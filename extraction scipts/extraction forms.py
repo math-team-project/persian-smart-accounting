@@ -1,11 +1,10 @@
+from config import EXCEL_FILE_PATH, FORMS_PARAM, SHEET_TO_CONFIG_MAP
 import openpyxl
 from openpyxl.worksheet.worksheet import Worksheet
 import pandas as pd
 import io
+import re
 from typing import List, Tuple, Any, Dict
-
-
-EXCEL_FILE_PATH = "Budget.xlsx"
 
 
 def fill_merged_cells(sheet: Worksheet) -> None:
@@ -105,7 +104,7 @@ def reconstruct_headers(df: pd.DataFrame, header_rows: List[int], delimiter: str
 
 
 def process_sheet(
-    df: pd.DataFrame,       #TODO: add excel to pandas def
+    df: pd.DataFrame,
     header_rows: List[int], 
     start_data_row: int, 
     hierarchy_cols_indices: List[int],
@@ -152,28 +151,38 @@ def process_sheet(
     return clean_df
 
 
-if __name__ == "__main__":
-    raw_sheets_in_ram = load_all_sheets_to_memory(EXCEL_FILE_PATH)
+def normalize_sheet_name(name: str) -> str:
+    cleaned = name.replace("\n", "").replace("\r", "").strip()
+    cleaned = re.sub(r'\s+', ' ', cleaned)
+    return cleaned
 
-    FORMS_PARAM = {'form1': {'header_rows':[3, 4], 'start_data_row':5, 'end_data_row':-1, 'hierarchy_cols_indices':[14, 13, 12]},
-                   'form2': {'header_rows':[2, 3], 'start_data_row':4, 'end_data_row':-1, 'hierarchy_cols_indices':[14, 13]},
-                   'form4': {'header_rows':[6,7,8], 'start_data_row':9, 'end_data_row':-1, 'hierarchy_cols_indices':range(20, 18-1, -1)},
-                   'form5': {'header_rows':[3, 4], 'start_data_row':5, 'end_data_row':-1, 'hierarchy_cols_indices':range(14, 11-1, -1)},
-                   'form5-1a': {'header_rows':[3, 4], 'start_data_row':5, 'end_data_row':16, 'hierarchy_cols_indices':range(13, 10-1, -1)},
-                   'form6a': {'header_rows':[4,5], 'start_data_row':6, 'end_data_row':15, 'hierarchy_cols_indices':range(12, 11-1, -1)},
-                   'form6b': {'header_rows':[17,18], 'start_data_row':19, 'end_data_row':-1, 'hierarchy_cols_indices':range(12, 11-1, -1)},
-                   'form7': {'header_rows':[4,5], 'start_data_row':6, 'end_data_row':-1, 'hierarchy_cols_indices':range(14, 13-1, -1)},
-                   'form8': {'header_rows':[4,5], 'start_data_row':6, 'end_data_row':-1, 'hierarchy_cols_indices':range(10, 7-1, -1)},
-                   'form9': {'header_rows':[4,5], 'start_data_row':6, 'end_data_row':-1, 'hierarchy_cols_indices':range(7, 6-1, -1)},
-                   'form10': {'header_rows':[4,5], 'start_data_row':6, 'end_data_row':-1, 'hierarchy_cols_indices':[7]},
-                   'form5-1b': {'header_rows':[3, 4], 'start_data_row':21, 'end_data_row':27, 'hierarchy_cols_indices':range(13, 10-1, -1)},
-                   }
+
+
+if __name__ == "__main__":
+    raw_sheets_in_ram = load_all_sheets_to_memory(EXCEL_FILE_PATH)      #TODO: speedup loading the sheets
+
     
-    result_sheets = Dict()
-    for i, df_sheet in enumerate(raw_sheets_in_ram):
-        result_sheets[f'form{i}'] = process_sheet(df=df_sheet, header_rows = FORMS_PARAM[f'form{i}']["header_rows"],
-                                                  start_data_row = FORMS_PARAM[f'form{i}']["start_data_row"],
-                                                  header_rows = FORMS_PARAM[f'form{i}']["header_rows"],
-                                                  hierarchy_cols_indices = FORMS_PARAM[f'form{i}']["hierarchy_cols_indices"])
+    # Process sheets dynamically using the clean mapping
+    result_sheets = dict()
+    for original_sheet_name, df_sheet in raw_sheets_in_ram.items():
+        normalized_name = normalize_sheet_name(original_sheet_name)
+        
+        if normalized_name in SHEET_TO_CONFIG_MAP:
+            target_configs = SHEET_TO_CONFIG_MAP[normalized_name]
+            
+            for config_key in target_configs:
+                if config_key in FORMS_PARAM:
+                    param = FORMS_PARAM[config_key]
+                    print(f"Processing '{original_sheet_name}' mapped as '{config_key}'")
+                    
+                    result_sheets[config_key] = process_sheet(
+                        df=df_sheet,
+                        header_rows=param["header_rows"],
+                        start_data_row=param["start_data_row"],
+                        end_data_row=param["end_data_row"],
+                        hierarchy_cols_indices=param["hierarchy_cols_indices"]
+                    )
+        else:
+            print(f"Skipped: Sheet '{original_sheet_name}' (Normalized: '{normalized_name}') has no mapping defined.")
 
     result_sheets

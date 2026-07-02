@@ -19,3 +19,6 @@ __pycache__/
 dist/
 build/
 *.egg-info/
+
+# ژوپیتر نوت‌بوک
+*.ipynb
