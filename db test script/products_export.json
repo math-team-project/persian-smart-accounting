@@ -1,0 +1,54 @@
+[
+  {
+    "id": 1,
+    "name": "لپ‌تاپ",
+    "attributes": {
+      "brand": "Apple",
+      "model": "MacBook Pro",
+      "specs": {
+        "cpu": "M3",
+        "ram": "16GB",
+        "storage": "512GB SSD"
+      },
+      "discount": "10%",
+      "in_stock": true,
+      "price_usd": 1999
+    },
+    "created_at": "2026-07-02T18:16:06.155393"
+  },
+  {
+    "id": 2,
+    "name": "هدفون",
+    "attributes": {
+      "brand": "Sony Electronics",
+      "color": "black",
+      "model": "WH-1000XM5",
+      "wireless": true,
+      "price_usd": 399,
+      "noise_canceling": true
+    },
+    "created_at": "2026-07-02T18:16:06.155393"
+  },
+  {
+    "id": 4,
+    "name": "مانیتور",
+    "attributes": {
+      "size": "27inch",
+      "brand": "Dell",
+      "price_usd": 599,
+      "resolution": "4K"
+    },
+    "created_at": "2026-07-02T18:16:06.155393"
+  },
+  {
+    "id": 5,
+    "name": "ماوس",
+    "attributes": {
+      "dpi": 3200,
+      "type": "wireless",
+      "brand": "Logitech",
+      "color": "gray"
+    },
+    "created_at": "2026-07-02T18:16:06.155393"
+  }
+]
