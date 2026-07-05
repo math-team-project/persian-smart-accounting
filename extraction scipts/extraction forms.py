@@ -6,7 +6,6 @@ import io
 import re
 from typing import List, Tuple, Any, Dict
 import time
-# from IPython.display import display
 
 
 def fill_merged_cells(sheet: Worksheet) -> None:
@@ -104,6 +103,27 @@ def reconstruct_headers(df: pd.DataFrame, header_rows: List[int], delimiter: str
             
     return new_headers
 
+def form_metadata(df: pd.DataFrame, metadata_start_row: int, metadata_end_row: int) -> Dict[Set, Any]:
+    # if metadata_start_row <= df.shape[0] or metadata_end_row >= df.shape[0]:
+    #     return {"metadata": ""}            
+
+    if metadata_end_row == -1:
+        metadata_df = df.iloc[metadata_start_row:]
+    else : metadata_df = df.iloc[metadata_start_row:metadata_end_row]
+        
+    metadata: Set[str] = set()
+
+    for _, row in metadata_df.iterrows():
+        row_cells = [
+            str(val).strip() for val in row 
+            if pd.notna(val) and str(val).strip() != ""
+        ]
+        
+        for cell_text in row_cells:
+            metadata.add(cell_text)
+                
+    return metadata
+
 
 def process_sheet(
     df: pd.DataFrame,
@@ -111,12 +131,17 @@ def process_sheet(
     start_data_row: int, 
     hierarchy_cols_indices: List[int],
     end_data_row: int = -1,
+    start_metadata_row: int = -1,
+    end_metadata_row: int = -1,
     delimiter: str = " _ "
 ) -> pd.DataFrame:
     
-    # 1. Reconstruct headers
+    # 0. Reconstruct headers
     headers = reconstruct_headers(df, header_rows, delimiter=delimiter)
     
+    # 1. metadata
+    metadata = form_metadata(df, start_metadata_row, end_metadata_row)
+
     # 2. Slice data rows
     if end_data_row == -1:
         clean_df = df.iloc[start_data_row:].copy()
@@ -148,9 +173,12 @@ def process_sheet(
     ]
     clean_df = clean_df[cols_to_keep]
 
-    clean_df.drop(columns=["Unnamed"], inplace=True, errors='ignore')
-    #TODO: fix and push good answer for "discribtion" field
-    return clean_df
+    unnamed_cols = [
+        col for col in clean_df.columns 
+        if str(col) == "Unnamed" or str(col).startswith("Unnamed_") or str(col).startswith("Unnamed:")
+    ]
+    clean_df.drop(columns=unnamed_cols, inplace=True, errors='ignore')
+    return {'data': clean_df, 'metadata': metadata}
 
 
 def normalize_sheet_name(name: str) -> str:
@@ -159,9 +187,10 @@ def normalize_sheet_name(name: str) -> str:
     return cleaned
 
 
+
 if __name__ == "__main__":
     t1 = time.time()
-    raw_sheets_in_ram = load_all_sheets_to_memory(EXCEL_FILE_PATH)      #TODO: speedup loading the sheets
+    raw_sheets_in_ram = load_all_sheets_to_memory(EXCEL_FILE_PATH)
     
     # Process sheets dynamically using the clean mapping
     result_sheets = dict()
@@ -169,20 +198,29 @@ if __name__ == "__main__":
         normalized_name = normalize_sheet_name(original_sheet_name)
         
         if normalized_name in SHEET_TO_CONFIG_MAP:
+            
             target_configs = SHEET_TO_CONFIG_MAP[normalized_name]
             
             for config_key in target_configs:
+                # if config_key in FORMS_PARAM and config_key in ['form1']:
                 if config_key in FORMS_PARAM:
                     param = FORMS_PARAM[config_key]
                     print(f"Processing '{original_sheet_name}' mapped as '{config_key}'")
                     
+                    # display(df_sheet)
+
                     result_sheets[config_key] = process_sheet(
                         df=df_sheet,
                         header_rows=param["header_rows"],
                         start_data_row=param["start_data_row"],
                         end_data_row=param["end_data_row"],
+                        start_metadata_row=param["start_metadata_row"],
+                        end_metadata_row=param["end_metadata_row"],
                         hierarchy_cols_indices=param["hierarchy_cols_indices"]
                     )
+                    # display(result_sheets[config_key]["metadata"])
+                    # display(result_sheets[config_key]["data"])
+                    # print(result_sheets[config_key].columns)
         else:
             print(f"Skipped: Sheet '{original_sheet_name}' (Normalized: '{normalized_name}') has no mapping defined.")
 
