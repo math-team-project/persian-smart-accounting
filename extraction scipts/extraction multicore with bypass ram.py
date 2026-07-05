@@ -5,6 +5,7 @@ import pandas as pd
 import io
 import re
 from typing import List, Tuple, Any, Dict
+import concurrent.futures
 import time
 # from IPython.display import display
 
@@ -41,18 +42,27 @@ def fill_merged_cells(sheet: Worksheet) -> None:
 
 
 def load_excel_without_merges(file_path: str, sheet_name: str) -> pd.DataFrame:
+    # wb = openpyxl.load_workbook(file_path, data_only=True)
+    # sheet = wb[sheet_name]
+    
+    # fill_merged_cells(sheet)
+    
+    # virtual_file = io.BytesIO()
+    # wb.save(virtual_file)
+    # virtual_file.seek(0)
+    
+    # df = pd.read_excel(virtual_file, sheet_name=sheet_name, header=None)
+    # return df
+    
     wb = openpyxl.load_workbook(file_path, data_only=True)
     sheet = wb[sheet_name]
-    
     fill_merged_cells(sheet)
     
-    virtual_file = io.BytesIO()
-    wb.save(virtual_file)
-    virtual_file.seek(0)
-    
-    df = pd.read_excel(virtual_file, sheet_name=sheet_name, header=None)
+    # Blazing fast direct conversion from memory to DataFrame (Bypasses wb.save and disk I/O)
+    data = list(sheet.values)
+    df = pd.DataFrame(data)
+    wb.close()
     return df
-
 
 def get_all_sheet_names(file_path: str) -> List[str]:
     wb = openpyxl.load_workbook(file_path, read_only=True)
@@ -61,19 +71,27 @@ def get_all_sheet_names(file_path: str) -> List[str]:
     return sheet_names
 
 
+def load_single_sheet_parallel(file_path: str, sheet_name: str) -> pd.DataFrame:
+    return load_excel_without_merges(file_path, sheet_name)
+
 def load_all_sheets_to_memory(file_path: str) -> Dict[str, pd.DataFrame]:
     sheet_names = get_all_sheet_names(file_path)
-    print("Sheets found in file:", sheet_names)
-    
     loaded_sheets: Dict[str, pd.DataFrame] = {}
     
-    for sheet in sheet_names:   #TODO: speedup loading the sheets
-        try:
-            df_cleaned = load_excel_without_merges(file_path, sheet)
-            loaded_sheets[sheet] = df_cleaned
-        except Exception as e:
-            print(f"Error loading sheet '{sheet}': {e}")
-            
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        futures = {
+            executor.submit(load_single_sheet_parallel, file_path, sheet): sheet 
+            for sheet in sheet_names
+        }
+        
+        for future in concurrent.futures.as_completed(futures):
+            sheet_name = futures[future]
+            try:
+                df_cleaned = future.result()
+                loaded_sheets[sheet_name] = df_cleaned
+            except Exception as e:
+                print(f"Error loading sheet '{sheet_name}' in parallel: {e}")
+                
     return loaded_sheets
 
 
@@ -159,10 +177,11 @@ def normalize_sheet_name(name: str) -> str:
     return cleaned
 
 
+
 if __name__ == "__main__":
     t1 = time.time()
     raw_sheets_in_ram = load_all_sheets_to_memory(EXCEL_FILE_PATH)      #TODO: speedup loading the sheets
-    
+
     # Process sheets dynamically using the clean mapping
     result_sheets = dict()
     for original_sheet_name, df_sheet in raw_sheets_in_ram.items():
@@ -188,6 +207,5 @@ if __name__ == "__main__":
 
     result_sheets
     t2 = time.time()
-    print("runtime:", t2-t1)
-
+    print("time:", t2-t1)
 #TODO: document of script

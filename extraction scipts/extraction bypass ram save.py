@@ -1,10 +1,9 @@
+from typing import List, Dict, Any, Tuple, Union
 from config import EXCEL_FILE_PATH, FORMS_PARAM, SHEET_TO_CONFIG_MAP
 import openpyxl
 from openpyxl.worksheet.worksheet import Worksheet
 import pandas as pd
-import io
 import re
-from typing import List, Tuple, Any, Dict
 import time
 # from IPython.display import display
 
@@ -13,7 +12,6 @@ def fill_merged_cells(sheet: Worksheet) -> None:
     merged_ranges = list(sheet.merged_cells.ranges)
     ranges_to_fill: List[Tuple[int, int, int, int, Any]] = []
     
-    # 1. Capture the ranges and their source top-left values
     for merged_range in merged_ranges:
         min_col, min_row, max_col, max_row = (
             merged_range.min_col,
@@ -24,7 +22,6 @@ def fill_merged_cells(sheet: Worksheet) -> None:
         top_left_value = sheet.cell(row=min_row, column=min_col).value
         ranges_to_fill.append((min_col, min_row, max_col, max_row, top_left_value))
         
-    # 2. Unmerge cells to make them writable standard cells
     for min_col, min_row, max_col, max_row, _ in ranges_to_fill:
         sheet.unmerge_cells(
             start_row=min_row,
@@ -33,7 +30,6 @@ def fill_merged_cells(sheet: Worksheet) -> None:
             end_column=max_col
         )
         
-    # 3. Fill all cells within the former merged ranges with the top-left value
     for min_col, min_row, max_col, max_row, val in ranges_to_fill:
         for row in range(min_row, max_row + 1):
             for col in range(min_col, max_col + 1):
@@ -43,16 +39,13 @@ def fill_merged_cells(sheet: Worksheet) -> None:
 def load_excel_without_merges(file_path: str, sheet_name: str) -> pd.DataFrame:
     wb = openpyxl.load_workbook(file_path, data_only=True)
     sheet = wb[sheet_name]
-    
     fill_merged_cells(sheet)
     
-    virtual_file = io.BytesIO()
-    wb.save(virtual_file)
-    virtual_file.seek(0)
-    
-    df = pd.read_excel(virtual_file, sheet_name=sheet_name, header=None)
+    # Blazing fast direct conversion from memory to DataFrame (Bypasses wb.save and disk I/O)
+    data = list(sheet.values)
+    df = pd.DataFrame(data)
+    wb.close()
     return df
-
 
 def get_all_sheet_names(file_path: str) -> List[str]:
     wb = openpyxl.load_workbook(file_path, read_only=True)
@@ -60,14 +53,12 @@ def get_all_sheet_names(file_path: str) -> List[str]:
     wb.close()
     return sheet_names
 
-
 def load_all_sheets_to_memory(file_path: str) -> Dict[str, pd.DataFrame]:
     sheet_names = get_all_sheet_names(file_path)
     print("Sheets found in file:", sheet_names)
     
     loaded_sheets: Dict[str, pd.DataFrame] = {}
-    
-    for sheet in sheet_names:   #TODO: speedup loading the sheets
+    for sheet in sheet_names:
         try:
             df_cleaned = load_excel_without_merges(file_path, sheet)
             loaded_sheets[sheet] = df_cleaned
@@ -77,21 +68,19 @@ def load_all_sheets_to_memory(file_path: str) -> Dict[str, pd.DataFrame]:
     return loaded_sheets
 
 
-
 def reconstruct_headers(df: pd.DataFrame, header_rows: List[int], delimiter: str = " _ ") -> List[str]:
     new_headers: List[str] = []
     num_cols = df.shape[1]
     
     for col_idx in range(num_cols):
         col_header_values: List[str] = []
-        
         for r in header_rows:
             val = df.iloc[r, col_idx]
             if pd.notna(val):
                 val_str = str(val).strip()
                 if val_str:
                     col_header_values.append(val_str)
-        
+                    
         deduplicated_values: List[str] = []
         for val in col_header_values:
             if not deduplicated_values or val != deduplicated_values[-1]:
@@ -106,29 +95,35 @@ def reconstruct_headers(df: pd.DataFrame, header_rows: List[int], delimiter: str
 
 
 def process_sheet(
-    df: pd.DataFrame,
+    df: pd.DataFrame, 
     header_rows: List[int], 
     start_data_row: int, 
-    hierarchy_cols_indices: List[int],
-    end_data_row: int = -1,
+    hierarchy_cols_indices: Union[List[int], range], 
+    end_data_row: int = -1, 
     delimiter: str = " _ "
 ) -> pd.DataFrame:
     
-    # 1. Reconstruct headers
+    cols_indices = list(hierarchy_cols_indices)
+    
+    # 1. Reconstruct headers (Now perfectly flattened without duplicates)
     headers = reconstruct_headers(df, header_rows, delimiter=delimiter)
     
     # 2. Slice data rows
     if end_data_row == -1:
         clean_df = df.iloc[start_data_row:].copy()
-    else: clean_df = df.iloc[start_data_row:end_data_row].copy()
+    else: 
+        clean_df = df.iloc[start_data_row:end_data_row].copy()
     clean_df.columns = headers
+    
+    # Drop rows that are completely empty
+    clean_df = clean_df.dropna(how='all')
     
     # 3. Build the combined index
     combined_index: List[str] = []
     for _, row in clean_df.iterrows():
         seen = set()
         unique_parts: List[str] = []
-        for idx in hierarchy_cols_indices:
+        for idx in cols_indices:
             val = row.iloc[idx]
             if pd.notna(val):
                 val_str = str(val).strip()
@@ -140,18 +135,23 @@ def process_sheet(
     # Assign the generated index
     clean_df.index = combined_index
     clean_df = clean_df[clean_df.index.str.strip() != ""]
-
+    
     # 4. Safely drop the hierarchy columns using their integer positions
     cols_to_keep = [
         col for i, col in enumerate(clean_df.columns) 
-        if i not in hierarchy_cols_indices
+        if i not in cols_indices
     ]
     clean_df = clean_df[cols_to_keep]
-
-    clean_df.drop(columns=["Unnamed"], inplace=True, errors='ignore')
+    
+    # Clean Unnamed columns
+    unnamed_cols = [
+        col for col in clean_df.columns 
+        if str(col) == "Unnamed" or str(col).startswith("Unnamed_") or str(col).startswith("Unnamed:")
+    ]
+    clean_df.drop(columns=unnamed_cols, inplace=True, errors='ignore')
+    
     #TODO: fix and push good answer for "discribtion" field
     return clean_df
-
 
 def normalize_sheet_name(name: str) -> str:
     cleaned = name.replace("\n", "").replace("\r", "").strip()
@@ -161,6 +161,7 @@ def normalize_sheet_name(name: str) -> str:
 
 if __name__ == "__main__":
     t1 = time.time()
+    
     raw_sheets_in_ram = load_all_sheets_to_memory(EXCEL_FILE_PATH)      #TODO: speedup loading the sheets
     
     # Process sheets dynamically using the clean mapping
@@ -172,10 +173,13 @@ if __name__ == "__main__":
             target_configs = SHEET_TO_CONFIG_MAP[normalized_name]
             
             for config_key in target_configs:
+                # if config_key in FORMS_PARAM and config_key in ['form6a', 'form6b']:
                 if config_key in FORMS_PARAM:
+
                     param = FORMS_PARAM[config_key]
                     print(f"Processing '{original_sheet_name}' mapped as '{config_key}'")
-                    
+
+                    # display(df_sheet)
                     result_sheets[config_key] = process_sheet(
                         df=df_sheet,
                         header_rows=param["header_rows"],
@@ -183,11 +187,13 @@ if __name__ == "__main__":
                         end_data_row=param["end_data_row"],
                         hierarchy_cols_indices=param["hierarchy_cols_indices"]
                     )
+                    # display(result_sheets[config_key])
+                    # print(result_sheets[config_key].columns)
         else:
             print(f"Skipped: Sheet '{original_sheet_name}' (Normalized: '{normalized_name}') has no mapping defined.")
 
     result_sheets
     t2 = time.time()
-    print("runtime:", t2-t1)
-
+    print("time:", t2-t1)
+    
 #TODO: document of script

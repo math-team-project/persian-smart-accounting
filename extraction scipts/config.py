@@ -2,7 +2,7 @@
 from typing import Dict, List, Any
 
 # Target Excel File Path (using raw string to avoid backslash escaping issues)
-EXCEL_FILE_PATH: str = r"C:\Users\Armin KHoojavi\Downloads\Code\persian-smart-accounting\extraction scipts\Budget.xlsx"
+EXCEL_FILE_PATH: str = r"extraction scipts\Budget.xlsx"
 
 # Dictionary representing form properties for parsing
 FORMS_PARAM: Dict[str, Dict[str, Any]] = {
@@ -47,12 +47,14 @@ FORMS_PARAM: Dict[str, Dict[str, Any]] = {
         'start_data_row': 6, 
         'end_data_row': 15, 
         'hierarchy_cols_indices': range(12, 11-1, -1)
+        # 'hierarchy_cols_indices': range(11, 10-1, -1)       # rust engine
     },
     'form6b': {
         'header_rows': [17, 18], 
         'start_data_row': 19, 
         'end_data_row': -1, 
         'hierarchy_cols_indices': range(12, 11-1, -1)
+        # 'hierarchy_cols_indices': range(11, 10-1, -1)       # rust engine
     },
     'form7': {
         'header_rows': [4, 5], 
