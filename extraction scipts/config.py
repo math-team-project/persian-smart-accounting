@@ -2,7 +2,7 @@
 from typing import Dict, List, Any
 
 # Target Excel File Path (using raw string to avoid backslash escaping issues)
-EXCEL_FILE_PATH: str = r"C:\Users\Armin KHoojavi\Downloads\Code\persian-smart-accounting\extraction scipts\Budget.xlsx"
+EXCEL_FILE_PATH: str = r"extraction scipts\Budget.xlsx"
 
 # Dictionary representing form properties for parsing
 FORMS_PARAM: Dict[str, Dict[str, Any]] = {

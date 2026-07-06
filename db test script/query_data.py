@@ -17,6 +17,7 @@ def run_queries():
             host=DB_HOST,
             port=DB_PORT
         )
+        conn.set_client_encoding('UTF8')  # تضمین ارتباط UTF-8 بین پایتون و دیتابیس
         cur = conn.cursor()
 
         print("=" * 60)

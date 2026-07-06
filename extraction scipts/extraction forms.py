@@ -5,7 +5,7 @@ import pandas as pd
 import io
 import re
 from typing import List, Tuple, Any, Dict
-
+import time
 
 def fill_merged_cells(sheet: Worksheet) -> None:
     merged_ranges = list(sheet.merged_cells.ranges)
@@ -159,8 +159,10 @@ def normalize_sheet_name(name: str) -> str:
 
 
 if __name__ == "__main__":
+    t1 = time.time()
     raw_sheets_in_ram = load_all_sheets_to_memory(EXCEL_FILE_PATH)      #TODO: speedup loading the sheets
-
+    t2 = time.time()
+    print("time:", t2-t1)
     
     # Process sheets dynamically using the clean mapping
     result_sheets = dict()
