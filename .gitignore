@@ -1,5 +1,6 @@
 # محیط مجازی
 venv/
+.venv/
 env/
 ENV/
 .venv

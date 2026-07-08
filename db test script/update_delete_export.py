@@ -17,6 +17,7 @@ def update_delete_export():
             host=DB_HOST,
             port=DB_PORT
         )
+        conn.set_client_encoding('UTF8')  # تضمین ارتباط UTF-8 بین پایتون و دیتابیس
         cur = conn.cursor()
 
         # ---------- ۱. به‌روزرسانی: اضافه کردن فیلد جدید به JSON ----------
