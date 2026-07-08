@@ -3,11 +3,13 @@ venv/
 .venv/
 env/
 ENV/
+.venv
 
 # فایل‌های کامپایل شده پایتون
 __pycache__/
 *.pyc
 *.pyo
+.pytest_cache/
 
 # فایل‌های محیطی و مخفی
 .env
@@ -23,3 +25,4 @@ build/
 
 # ژوپیتر نوت‌بوک
 *.ipynb
+.ipynb_checkpoints/
