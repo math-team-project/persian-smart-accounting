@@ -2,8 +2,8 @@
 from typing import Dict, List, Any
 
 # Target Excel File Path (using raw string to avoid backslash escaping issues)
-EXCEL_FILE_PATH: dict = {'تفضیلی': r"extraction scipts\Budget.xlsx",
-                         'اصلاحیه': r"extraction scipts\RevisedBudget.xlsx"}
+EXCEL_FILE_PATH: dict = {'تفضیلی': r"extraction_script\Budget.xlsx",
+                         'اصلاحیه': r"extraction_script\RevisedBudget.xlsx"}
 
 # Dictionary representing form properties for parsing
 FORMS_PARAM: Dict[str, Dict[List[int], Any]] = {

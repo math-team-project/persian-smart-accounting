@@ -2,6 +2,7 @@ import psycopg2
 from psycopg2 import sql, OperationalError
 import json
 
+
 DB_NAME = "smart_acounting_db"
 DB_USER = "postgres"
 DB_PASSWORD = "90908080"      
@@ -30,8 +31,8 @@ def create_table():
 
         CREATE TABLE IF NOT EXISTS forms (
             form_id VARCHAR(50) PRIMARY KEY,
-            org_name VARCHAR(255) NOT NULL,          -- نام سازمان
-            device_id VARCHAR(50) NOT NULL,          -- شماره ردیف دستگاه (مثلاً 113527)
+            org_name VARCHAR(255),                   -- نام سازمان
+            device_id VARCHAR(50),                   -- شماره ردیف دستگاه (مثلاً 113527)
             budget_year INTEGER NOT NULL,            -- سال بودجه (1404 مثلا)
             form_name VARCHAR(20) NOT NULL,          -- نام فرم (مثلاً 'فرم 1')
             form_title TEXT,                         -- عنوان فرم (درصورت وجود)
