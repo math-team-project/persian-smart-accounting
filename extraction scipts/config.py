@@ -2,115 +2,103 @@
 from typing import Dict, List, Any
 
 # Target Excel File Path (using raw string to avoid backslash escaping issues)
-EXCEL_FILE_PATH: str = r"extraction scipts\Budget.xlsx"
+EXCEL_FILE_PATH: dict = {'تفضیلی': r"extraction scipts\Budget.xlsx",
+                         'اصلاحیه': r"extraction scipts\RevisedBudget.xlsx"}
 
 # Dictionary representing form properties for parsing
-FORMS_PARAM: Dict[str, Dict[str, Any]] = {
+FORMS_PARAM: Dict[str, Dict[List[int], Any]] = {
     'form1': {
         'header_rows': [3, 4], 
-        'start_data_row': 5, 
-        'end_data_row': 22, 
-        'start_metadata_row': 23, 
-        'end_metadata_row': -1, 
+        'data_row': [5,22], 
+        'discription_row': [23,-1],
+        'form_header' : [1,2+1],
         'hierarchy_cols_indices': [14, 13, 12]
     },
     'form2': {
         'header_rows': [2, 3], 
-        'start_data_row': 4, 
-        'end_data_row': 17, 
-        'start_metadata_row': 18, 
-        'end_metadata_row': -1,
+        'data_row': [4,17], 
+        'discription_row': [18,-1],
+        'form_header' : [0,1+1],
         'hierarchy_cols_indices': [14, 13]
     },
     'form3': {
         'header_rows': [], 
-        'start_data_row': -1, 
-        'end_data_row': -1, 
-        'start_metadata_row': 3, 
-        'end_metadata_row': -1,
+        'data_row': [-1,-1], 
+        'discription_row': [3,-1],
+        'form_header' : [1,3+1],
         'hierarchy_cols_indices': []
     },
     'form4': {
         'header_rows': [6, 7, 8], 
-        'start_data_row': 9, 
-        'end_data_row': 28, 
-        'start_metadata_row': 29, 
-        'end_metadata_row': -1,
+        'data_row': [9,28], 
+        'discription_row': [29,-1],
+        'form_header' : [3,4+1],
         'hierarchy_cols_indices': range(20, 18-1, -1)
     },
     
     'form5': {
         'header_rows': [3, 4], 
-        'start_data_row': 5, 
-        'end_data_row': 90, 
-        'start_metadata_row': 91, 
-        'end_metadata_row': -1,
+        'data_row': [5,90], 
+        'discription_row': [91,-1],
+        'form_header' : [1,2+1],
         'hierarchy_cols_indices': range(14, 11-1, -1)
     },
     'form5-1a': {
         'header_rows': [3, 4], 
-        'start_data_row': 5, 
-        'end_data_row': 16, 
-        'start_metadata_row': -1, 
-        'end_metadata_row': -1,
+        'data_row': [5,16], 
+        'discription_row': [-1,-1],
+        'form_header' : [1,2+1],
         'hierarchy_cols_indices': range(13, 10-1, -1)
     },
     'form5-1b': {
         'header_rows': [3, 4], 
-        'start_data_row': 21, 
-        'end_data_row': 23, 
-        'start_metadata_row': 24, 
-        'end_metadata_row': -1,
+        'data_row': [21,23], 
+        'discription_row': [24,-1],
+        'form_header' : [17,18+1],
         'hierarchy_cols_indices': range(13, 10-1, -1)
     },
     'form6a': {
         'header_rows': [4, 5], 
-        'start_data_row': 6, 
-        'end_data_row': 15, 
-        'start_metadata_row': -1, 
-        'end_metadata_row': -1,
+        'data_row': [6,15], 
+        'discription_row': [-1,-1],
+        'form_header' : [1,3+1],
         'hierarchy_cols_indices': range(12, 11-1, -1)
         # 'hierarchy_cols_indices': range(11, 10-1, -1)       # rust engine
     },
     'form6b': {
         'header_rows': [17, 18], 
-        'start_data_row': 19, 
-        'end_data_row': 27, 
-        'start_metadata_row': 28, 
-        'end_metadata_row': -1,
+        'data_row': [19,27], 
+        'discription_row': [28,-1],
+        'form_header' : [16,16+1],
         'hierarchy_cols_indices': range(12, 11-1, -1)
         # 'hierarchy_cols_indices': range(11, 10-1, -1)       # rust engine
     },
     'form7': {
         'header_rows': [4, 5], 
-        'start_data_row': 6, 
-        'end_data_row': 23, 
-        'start_metadata_row': 24, 
-        'end_metadata_row': -1,
+        'data_row': [6,23], 
+        'discription_row': [24,-1],
+        'form_header' : [1,2+1],
         'hierarchy_cols_indices': range(14, 13-1, -1)
     },
     'form8': {
         'header_rows': [4, 5], 
-        'start_data_row': 6, 
-        'end_data_row': 25, 
-        'start_metadata_row': 26, 
-        'end_metadata_row': -1,
+        'data_row': [6,25], 
+        'discription_row': [26,-1],
+        'form_header' : [1,3+1],
         'hierarchy_cols_indices': range(10, 7-1, -1)
     },
     'form9': {
         'header_rows': [4, 5], 
-        'start_data_row': 6, 
-        'end_data_row': 63, 
-        'start_metadata_row': 64, 
-        'end_metadata_row': -1,
+        'data_row': [6,63], 
+        'discription_row': [64,-1],
+        'form_header' : [1,2+1],
         'hierarchy_cols_indices': range(7, 6-1, -1)
     },
     'form10': {
         'header_rows': [4, 5], 
-        'start_data_row': 6, 
-        'end_data_row': 20, 
-        'start_metadata_row': 21, 
-        'end_metadata_row': -1,
+        'data_row': [6,20], 
+        'discription_row': [21,-1],
+        'form_header' : [1,2+1],
         'hierarchy_cols_indices': [7]
     },
 }
