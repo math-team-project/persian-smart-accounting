@@ -1,5 +1,6 @@
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 import re
+import concurrent.futures
 import pandas as pd
 
 from excel_loader import (
@@ -357,29 +358,65 @@ def process_notes_sheet(df: pd.DataFrame, delimiter: str = DELIMITER) -> Dict[st
     return notes
 
 
-def main(file_path: str) -> Dict[str, Any]:
-    raw_sheets = load_all_sheets_to_memory(file_path)
+def _process_single_sheet(sheet_name: str, df: pd.DataFrame) -> Tuple[str, Any]:
+    """تابع سطح-ماژول قابل pickle برای پردازش یک شیت؛ برای اجرای موازی لازم است."""
+    normalized = normalize_sheet_name(sheet_name)
+    if normalized in NOTES_SPLIT_SHEETS:
+        # خروجی این شیت یک دیکشنری {شماره‌یادداشت: DataFrame/str} است، نه یک DataFrame
+        return sheet_name, process_notes_sheet(df)
+    elif normalized in TWO_BLOCK_SHEETS:
+        # خروجی این شیت یک دیکشنری با دو DataFrame (راست/چپ) است
+        return sheet_name, process_balance_sheet(df)
+    else:
+        return sheet_name, process_sheet_with_overrides(sheet_name, df)
+
+
+def main(file_path: str, parallel: bool = True) -> Dict[str, Any]:
+    raw_sheets = load_all_sheets_to_memory(file_path, parallel=parallel)
     result: Dict[str, Any] = {}
-    for sheet_name, df in raw_sheets.items():
-        normalized = normalize_sheet_name(sheet_name)
-        try:
-            if normalized in NOTES_SPLIT_SHEETS:
-                # خروجی این شیت یک دیکشنری {شماره‌یادداشت: DataFrame/str} است، نه یک DataFrame
-                result[sheet_name] = process_notes_sheet(df)
-            elif normalized in TWO_BLOCK_SHEETS:
-                # خروجی این شیت یک دیکشنری با دو DataFrame (راست/چپ) است
-                result[sheet_name] = process_balance_sheet(df)
-            else:
-                result[sheet_name] = process_sheet_with_overrides(sheet_name, df)
-        except Exception as e:
-            print(f"خطا در پردازش شیت '{sheet_name}': {e}")
+
+    if not parallel or len(raw_sheets) <= 1:
+        for sheet_name, df in raw_sheets.items():
+            try:
+                _, processed = _process_single_sheet(sheet_name, df)
+                result[sheet_name] = processed
+            except Exception as e:
+                print(f"خطا در پردازش شیت '{sheet_name}': {e}")
+        return result
+
+    try:
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            futures = {
+                executor.submit(_process_single_sheet, sheet_name, df): sheet_name
+                for sheet_name, df in raw_sheets.items()
+            }
+            for future in concurrent.futures.as_completed(futures):
+                sheet_name = futures[future]
+                try:
+                    _, processed = future.result()
+                    result[sheet_name] = processed
+                except Exception as e:
+                    print(f"خطا در پردازش شیت '{sheet_name}': {e}")
+    except Exception as e:
+        print(f"موازی‌سازی پردازش شیت‌ها شکست خورد، بازگشت به حالت سریالی: {e}")
+        result = {}
+        for sheet_name, df in raw_sheets.items():
+            try:
+                _, processed = _process_single_sheet(sheet_name, df)
+                result[sheet_name] = processed
+            except Exception as e2:
+                print(f"خطا در پردازش شیت '{sheet_name}': {e2}")
+
     return result
 
 
 if __name__ == "__main__":
-    import sys
-    path = sys.argv[1] if len(sys.argv) > 1 else "/mnt/user-data/uploads/صورتهاي_مالي_1398.xlsx"
+    import time as time
+    start=time.time()
+    path = "extraction_script/صورتهاي مالي 1398.xlsx"
     results = main(path)
+    final =time.time() - start
+    print(final)
     for name, r in results.items():
         print("=" * 80)
         normalized = normalize_sheet_name(name)
@@ -401,3 +438,4 @@ if __name__ == "__main__":
         print(f"شیت: {name}   |   عنوان: {r['title'][:80]}")
         print(f"header_rows={r['header_rows']} data_start={r['data_start']} hierarchy_cols={r['hierarchy_cols_indices']}")
         print(r["data"].head(5))
+    
