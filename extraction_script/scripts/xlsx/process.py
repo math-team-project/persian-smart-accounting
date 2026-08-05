@@ -53,6 +53,38 @@ def extract_title(df: pd.DataFrame, title_rows: List[int]) -> str:
                 lines.append(v)
     return normalize_persian_text(" | ".join(lines))
 
+def build_combined_index(
+    clean_df: pd.DataFrame,
+    hierarchy_cols_indices: List[int],
+    delimiter: str = DELIMITER,
+    fallback_label: str = "جمع کل (1)",
+) -> List[str]:
+    """
+    برای هر ردیف، مقادیر ستون‌های سلسله‌مراتبی (شرح) را به هم می‌چسباند تا ایندکس بسازد.
+    اگر ستون‌های شرح برای یک ردیف خالی باشند ولی بقیه‌ی ستون‌ها مقدار داشته باشند
+    (مثلا ردیف «جمع کل» که فقط عدد جمع دارد و برچسب متنی جلوش نوشته نشده)،
+    به‌جای رشته‌ی خالی (که باعث حذف کل ردیف می‌شد) از fallback_label استفاده می‌شود.
+    """
+    other_cols = [i for i in range(clean_df.shape[1]) if i not in hierarchy_cols_indices]
+    combined_index: List[str] = []
+    for _, row in clean_df.iterrows():
+        seen = set()
+        parts: List[str] = []
+        for idx in hierarchy_cols_indices:
+            val = row.iloc[idx]
+            if pd.notna(val):
+                val_str = str(val).strip()
+                if val_str and val_str not in seen:
+                    seen.add(val_str)
+                    parts.append(val_str)
+        label = delimiter.join(parts)
+        if not label:
+            has_other_data = any(pd.notna(row.iloc[i]) for i in other_cols)
+            if has_other_data:
+                label = fallback_label
+        combined_index.append(label)
+    return combined_index
+
 
 def process_sheet(df: pd.DataFrame, delimiter: str = DELIMITER) -> Dict[str, Any]:
     regions = detect_regions(df)
@@ -82,18 +114,7 @@ def process_sheet(df: pd.DataFrame, delimiter: str = DELIMITER) -> Dict[str, Any
         clean_df = df.iloc[data_start:data_end].copy()
     clean_df.columns = headers
 
-    combined_index: List[str] = []
-    for _, row in clean_df.iterrows():
-        seen = set()
-        unique_parts: List[str] = []
-        for idx in hierarchy_cols_indices:
-            val = row.iloc[idx]
-            if pd.notna(val):
-                val_str = str(val).strip()
-                if val_str and val_str not in seen:
-                    seen.add(val_str)
-                    unique_parts.append(val_str)
-        combined_index.append(delimiter.join(unique_parts))
+    combined_index = build_combined_index(clean_df, hierarchy_cols_indices, delimiter=delimiter)
 
     clean_df.index = combined_index
     clean_df = clean_df[clean_df.index.str.strip() != ""]
@@ -207,18 +228,7 @@ def process_sheet_with_overrides(sheet_name: str, df: pd.DataFrame, delimiter: s
             clean_df = df.iloc[data_start:data_end].copy()
         clean_df.columns = headers
 
-        combined_index: List[str] = []
-        for _, row in clean_df.iterrows():
-            seen = set()
-            unique_parts: List[str] = []
-            for idx in hierarchy_cols_indices:
-                val = row.iloc[idx]
-                if pd.notna(val):
-                    val_str = str(val).strip()
-                    if val_str and val_str not in seen:
-                        seen.add(val_str)
-                        unique_parts.append(val_str)
-            combined_index.append(delimiter.join(unique_parts))
+        combined_index = build_combined_index(clean_df, hierarchy_cols_indices, delimiter=delimiter)
         clean_df.index = combined_index
         clean_df = clean_df[clean_df.index.str.strip() != ""]
 
@@ -296,7 +306,9 @@ def process_notes_sheet(df: pd.DataFrame, delimiter: str = DELIMITER) -> Dict[st
             dup_count += 1
 
         # ردیف اول بلوک، شرح یادداشت است (نه هدر ستون)؛ از ردیف بعدی تشخیص خودکار را اجرا کن
-        sub = block.iloc[1:].reset_index(drop=True)
+        sub = block.copy()
+        sub.iloc[0, 0] = None   # شماره یادداشت (مثلا "-4-1") پاک می‌شود
+        sub.iloc[0, 1] = None   # جمله‌ی توضیحی پاک می‌شود
         if sub.dropna(how="all").empty:
             # کل محتوای یادداشت همان یک ردیفِ مارکر است (فقط متن، بدون جدول)
             text = _block_full_text(block)
@@ -322,18 +334,7 @@ def process_notes_sheet(df: pd.DataFrame, delimiter: str = DELIMITER) -> Dict[st
             clean_df = sub.iloc[data_start:].copy() if data_end == -1 else sub.iloc[data_start:data_end].copy()
             clean_df.columns = headers
 
-            combined_index: List[str] = []
-            for _, row in clean_df.iterrows():
-                seen = set()
-                parts: List[str] = []
-                for idx in hierarchy_cols_indices:
-                    val = row.iloc[idx]
-                    if pd.notna(val):
-                        s = str(val).strip()
-                        if s and s not in seen:
-                            seen.add(s)
-                            parts.append(s)
-                combined_index.append(delimiter.join(parts))
+            combined_index = build_combined_index(clean_df, hierarchy_cols_indices, delimiter=delimiter)
             clean_df.index = combined_index
             clean_df = clean_df[clean_df.index.str.strip() != ""]
 
