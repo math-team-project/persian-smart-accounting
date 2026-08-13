@@ -1,4 +1,4 @@
-from normalize_persian import normalize_persian_text, normalize_dataframe
+from extraction_script.scripts.checklist.normalize_persian import normalize_persian_text, normalize_dataframe
 
 import json
 import numpy as np
