@@ -1,0 +1,307 @@
+{
+  "question_01": {
+    "traz_cash": 110234473507,
+    "fs_cash": 110234473507,
+    "traz_ar_non_exchange": 10149042108,
+    "fs_ar_non_exchange": 10149042108,
+    "traz_fixed_assets": 930623919515,
+    "fs_fixed_assets": 930623919515,
+    "traz_ap_exchange": 12057773251,
+    "fs_ap_exchange": 12057773251,
+    "traz_expenses": 150027736305,
+    "fs_expenses": 150027736305,
+    "traz_opening_net_value": 992674152406,
+    "fs_opening_net_value": 992674152406,
+    "traz_intangible_assets": 32387008784,
+    "fs_intangible_assets": 32387008784,
+    "traz_longterm_invest": 25301169258,
+    "fs_longterm_invest": 25301169258,
+    "traz_employee_benefits": 24569309765,
+    "fs_employee_benefits": 24569309765,
+    "traz_treasury_allocated": 175005286000,
+    "fs_treasury_allocated": 175005286000,
+    "traz_government_revenue": 78732076442,
+    "fs_government_revenue": 78732076442,
+    "traz_sent_to_treasury": 56206000000,
+    "fs_sent_to_treasury": -56206000000,
+    "traz_prepayments": 1502834359,
+    "fs_prepayments": 1502834359,
+    "traz_other_assets": 36673485202,
+    "fs_other_assets": 36673485202,
+    "traz_other_noncurrent_liab": 2489711811,
+    "fs_other_noncurrent_liab": 2489711811,
+    "traz_other_revenues_code440": 30660000000,
+    "fs_other_revenues": 30660000000,
+    "condition": true
+  },
+  "question_2": {},
+  "question_3": {
+    "sanavat_cash_unspent": 2544864768.04,
+    "mosavab_cash_unspent": 49215523581,
+    "eblaghi_cash_unspent": 22491433305,
+    "sayer_manabe_cash_unspent": 24893199823,
+    "note4_5_deposits": 8673783102,
+    "note4_6_blocked": 2415668928,
+    "note4_total_cash": 110234473507,
+    "condition": true
+  },
+  "question_4": {
+    "transferred_from_last_year": 24277165944.04,
+    "note_4_last_year_total": [19191012833, 4690149047, 1451116623],
+    "condition": false
+  },
+  "question_5": {
+    "tafrigh_sources_total": 301082144500.04,
+    "tafrigh_uses_total": 186837123023,
+    "tafridh_budget_total": 342697324503.04,
+    "note_27_1_sources_total": 301082144500.04,
+    "note_27_2_uses_total": 186837123023,
+    "note_27_1_budget_total": 342697324503.04,
+    "tafrigh_budget_total": 342697324503.04,
+    "note_27_2_uses_budget_total": 342697324503.04,
+    "tafrigh_extra_not_uses_total_budget": 0,
+    "note_27_2_extra_not_uses_total_budget": 0,
+    "tafrigh_extra_not_uses": 114245021477.04,
+    "note_27_2_extra_not_uses": 114245021477.04,
+    "condition": true
+  },
+  "question_6": {
+    "tafrigh_unspent_total": 114245021477.04,
+    "mosavab_cash": 49215523581,
+    "mosavab_akhza": 2849999999.99985,
+    "sanavat_cash": 24277165944.04,
+    "sanavat_akhza": 12030000000,
+    "eblaghi_cash": 22491433305,
+    "eblaghi_akhza": 12250000000,
+    "sayer_cash": 24893199823,
+    "condition": false
+  },
+  "question_7": {
+    "tafrigh_unallocated_diff": 41615180003,
+    "mosavab_total_approved": 221296000000,
+    "mosavab_takhsis": 179680820000,
+    "condition": true
+  },
+  "question_8": {
+    "tafrigh_unrealized_expenses_diff": 114257639634,
+    "tafrigh_unallocated_sources_diff": -29279000000,
+    "note_4_1_ending_balance_97": 19191012833,
+    "note_4_1_ending_balance_98": 84978639634,
+    "condition": false
+  },
+  "question_9": {
+    "tafrigh_capital_unrealized_expenses_diff": 17800000000,
+    "tafrigh_capital_unallocated_sources_diff": -2350000000,
+    "note_4_3_ending_balance_previous_year": 1451116623,
+    "condition": false
+  },
+  "question_10": {
+    "tafrigh_dedicated_unrealized_expenses_diff": 23802561846,
+    "tafrigh_dedicated_unallocated_sources_diff": -9986180003,
+    "note_4_2_ending_balance_current_year": 13816381843,
+    "condition": true
+  },
+  "question_11": {
+    "sources_expense": null,
+    "sources_dedicated": null,
+    "sources_capital": null,
+    "sources_total_provided": null
+  },
+  "question_12": {
+    "note_17_1_expense_revenue": 156535286000,
+    "note_17_2_capital_revenue": 18470000000,
+    "note_18_capital_revenue": 54519819997,
+    "mosavab_expense_cash": 116221000000,
+    "mosavab_expense_akhza": 0,
+    "eblaghi_expense_cash": 40314286000,
+    "eblaghi_expense_akhza": 0,
+    "mosavab_capital_cash": 54519819997,
+    "mosavab_capital_akhza": 0,
+    "mosavab_sarmaye_cash": 5116000000,
+    "mosavab_sarmaye_akhza": 3824000000,
+    "eblaghi_sarmaye_cash": 35000000,
+    "eblaghi_sarmaye_akhza": 12250000000,
+    "condition": "none"
+  },
+  "question_13": {
+    "internal_eblaghi_expense_approved": 40314286000,
+    "external_confirmation_amount": 40314,
+    "condition": true
+  },
+  "question_14": {
+    "internal_eblaghi_expense_approved": 12600000000,
+    "external_confirmation_amount": 12600,
+    "condition": true
+  },
+  "question_15": {
+    "budget_letter_expense": [145500, 38800],
+    "form1_approved_expense": [145500, 38800],
+    "condition": true
+  },
+  "question_16": {
+    "budget_letter_capital": 6090,
+    "form1_approved_capital": 6090,
+    "condition": true
+  },
+  "question_17": {
+    "budget_letter_special": 38800,
+    "form1_approved_special": 38800,
+    "condition": true
+  },
+  "question_18": {
+    "treasury_current_cash": 116221000000,
+    "form_approved_current_cash": 116221000000,
+    "condition": true
+  },
+  "question_19": {
+    "treasury_capital_cash": 5116000000,
+    "form_approved_capital_cash": 5116000000,
+    "condition": true
+  },
+  "question_20": {
+    "treasury_special_total_payment": 56206000000,
+    "form_approved_special_cash_received": 54519819997,
+    "condition": false
+  },
+  "question_21": {
+    "performance_approved_bills": 3824000000,
+    "performance_eblaghi_bills": 12250000000,
+    "treasury_confirmed_bills": 974000000,
+    "condition": false
+  },
+  "question_22": {
+    "reported_transfer_special": -8300000000,
+    "reported_transfer_capital": 8300000000,
+    "approved_transfer_amount": 8300,
+    "condition": true
+  },
+  "question_25": {
+    "trial_balance_915_debit_balance": 2544864768,
+    "unused_funds_prev_years_end_balance": [2544864768.04, 0],
+    "condition": true
+  },
+  "question_26": {
+    "allocated_credit_930": 41447656156,
+    "unused_funds_sarmayeh_current_year": [35399141738, -0.000148773],
+    "unused_funds_hazine_current_year": [0, 2850000000],
+    "condition": false
+  },
+  "question_27": {
+    "eblaghi_control_950_balance": 34297854822,
+    "unused_funds_sarmayeh_current_year": [350000000, 12250000000],
+    "unused_funds_hazine_current_year": [12250000000, 0],
+    "condition": false
+  },
+  "question_28": {
+    "approved_credit_920_balance": 54139184448,
+    "non_allocation_comparison": -41615180003,
+    "unused_special_funds": [13816381843, 0],
+    "condition": false
+  },
+  "question_29": {
+    "uncleared_payments_980": 14497311121,
+    "prepayments_balance": 1502834359,
+    "advances_ali_al_hesab": 1073603123,
+    "prepayments_total": 1502834359,
+    "vadayeh_deposits": 476240000,
+    "capital_in_progress": 30351721935,
+    "condition": false
+  },
+  "question_30": {
+    "consumed_credit_traz_990": 166040190185,
+    "approved_exp_current": [68503878403, 31672946330, 14390000000],
+    "unused_exp_prev": [9416751964, 6639043542, 4690149047, 5480000000, 8001116623],
+    "eblaghi_exp_current": [18172852695, 0],
+    "finalized_prepayments_exp": [2624888000, 768177405],
+    "condition": false
+  },
+  "question_31": {
+    "past_year_hazineh_not_used": [8951991964, 0],
+    "form1_not_used_general": 8952,
+    "condition": true
+  },
+  "question_32": {
+    "past_year_special_not_used": 4690149047.04,
+    "form1_not_used_special": 4690,
+    "condition": true
+  },
+  "question_33": {
+    "not_used_budget_capital": [450000000, 5030000000],
+    "not_used_budget_eblaghi_capital": [1001116623, 7000000000],
+    "form1_not_used_capital": [12000, 1480],
+    "condition": false
+  },
+  "question_34": {
+    "not_used_budget_notified": [9183908310, 0],
+    "not_used_other_resources": 1055112559,
+    "form1_not_used_miscellaneous": 10239,
+    "condition": true
+  },
+  "question_35": {
+    "unused_eblaghi_capital": [1001116623, 7000000000],
+    "form1_eblaghi_capital_prev_balance": 12000,
+    "condition": false
+  },
+  "question_36": {
+    "budget_cost_data": [8952, 145500, 10239, 40314],
+    "financial_cost_prev_balances": [8951991964, 9183908310],
+    "financial_cost_current_appr": 145500000000,
+    "financial_cost_current_notif": 40314286000,
+    "condition": false
+  },
+  "question_37": {
+    "budget_spec_prev_balance": 4690,
+    "budget_spec_current_credits": [38800, 17406],
+    "financial_spec_prev_balance": 4690149047.04,
+    "financial_spec_current_total": 56206000000,
+    "condition": true
+  },
+  "question_38": {
+    "financial_budget_notification": 145500000000,
+    "budget_amendment_approved_credit": 145500,
+    "condition": true
+  },
+  "question_39": {
+    "financial_cap_notif": 19590000000,
+    "budget_cap_appr": 6090,
+    "budget_cap_incr": 13500,
+    "condition": true
+  },
+  "question_40": {
+    "financial_spec_notification": 38800000000,
+    "budget_spec_approved_credit": 38800,
+    "condition": true
+  },
+  "question_41": {
+    "budget_notified_cost_credit": 40314,
+    "financial_notified_cost_allocation": 40314286000,
+    "condition": true
+  },
+  "question_42": {
+    "budget_notified_capital_credit": 12600,
+    "financial_notified_capital_allocation": 12600000000,
+    "condition": true
+  },
+  "question_44": {
+    "fin_cost_eblagh": 145500000000,
+    "fin_cap_eblagh": 19590000000,
+    "fin_spec_eblagh": 38800000000,
+    "bud_cost_appr": 145500,
+    "bud_cost_incr": "-",
+    "bud_cap_appr": 6090,
+    "bud_cap_incr": 13500,
+    "bud_spec_appr": 38800,
+    "condition": true
+  },
+  "question_45": {
+    "fs_unused_expense_prev": [9183908310, 0],
+    "budget_form1_expense_prev": 8952,
+    "fs_unused_specific_prev": [4690149047, 0],
+    "budget_form1_specific_prev": 4690,
+    "fs_unused_cash": [9183908310, 4690149047, 450000000],
+    "fs_unused_treasury": [0, 0, 5030000000],
+    "budget_opening_balances_general": [8952, 1480],
+    "budget_opening_balances_ekhtesasi": [4690, "-"],
+    "condition": "none"
+  }
+}
