@@ -7,3 +7,5 @@ openpyxl
 pandas
 pdfplumber
 psycopg2-binary
+xlrd
+rapidfuzz
