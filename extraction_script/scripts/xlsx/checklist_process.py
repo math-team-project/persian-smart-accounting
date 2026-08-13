@@ -278,10 +278,10 @@ def evaluate_logic(condition_str, variables, on_true, on_false):
         "None": None,
         "NaN": float('nan'),
     }
-    
+
     eval_context.update(variables)
-    # before comparastion, numers round about 0 difits to fall floats. 
-    eval_context = {k: (round(v, 0) if isinstance(v, (int, float)) and not math.isnan(v) else v) for k, v in eval_context.items()}    
+    # before comparastion, numers round about 0 difits to fall floats.
+    eval_context = {k: (round(v, 0) if isinstance(v, (int, float)) and not math.isnan(v) else v) for k, v in eval_context.items()}
 
     for sub_cond in sub_conditions:
         sub_cond_clean = sub_cond.strip()
@@ -358,7 +358,7 @@ def run_audit_pipeline(
         return None
 
     logger.info(f"Targeting: {question_key}")
-    logger.info(f"Purpose: {target_q.get('question_porpose', 'N/A')}")
+    # logger.info(f"Purpose: {target_q.get('question_porpose', 'N/A')}")
 
     # # 2. Preloaded Excels
     if preloaded_sheets is None:
@@ -388,8 +388,14 @@ def run_audit_pipeline(
 
     logger.info(f"FINAL RESULT ({question_key}): {result.get('is_true')} -> {result.get('message')}")
 
+    eval_breakdown_str = [str(b) for b in result.get("breakdown", [])]
+
     return {
         "question_id": question_key,
+        "general_description": target_q.get("general_description", "N/A"),
+        "question_purpose": target_q.get("question_porpose", "N/A"),
+        "evaluation_condition": condition_str,
+        "evaluation_breakdown": eval_breakdown_str,
         "extracted_data": extracted_vars,
         "evaluation_result": result,
     }
@@ -428,7 +434,7 @@ def run_all_audit_questions(handler_json_path, excel_file_paths):
             res = run_audit_pipeline(
                 q_id, handler_json_path, excel_file_paths, preloaded_sheets=loaded_sheets
             )
-            
+
             if res is None or "evaluation_result" not in res:
                 raise ValueError("Pipeline execution returned empty or invalid structure.")
 
@@ -450,6 +456,7 @@ def run_all_audit_questions(handler_json_path, excel_file_paths):
                 results_summary["summary_overview"]["false_count"] += 1
                 results_summary["summary_overview"]["false_question_ids"].append(q_id)
 
+            ## if need full data like a question return, uncomment below line!!
             # results_summary["details"].append(res)
 
         except Exception as e:
@@ -539,7 +546,7 @@ def main(questions=None, json_path=None, excel_paths=None):
 
 if __name__ == "__main__":
     ## CLI: uv run .\extraction_script\scripts\xlsx\checklist_process.py -q ALL -j .\extraction_script\data\Checklist_Question_extracted_handler.json -e .\extraction_script\data\check_budget.xlsx .\extraction_script\data\check_output.xlsx 'extraction_script\data\????.xlsx' 'extraction_script\data\?????.xlsx' 'extraction_script\data\???????.xlsx'
-    main()
+    print(main())
 
     #Argument Base
     # from config import CHECKLIST_PROCESS_EXCEL_PATH, CHECKLIST_EXTRACTED_SAMPLE, CHECKLIST_EXTRACTED_HANDLER
