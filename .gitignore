@@ -26,3 +26,5 @@ build/
 # ژوپیتر نوت‌بوک
 *.ipynb
 .ipynb_checkpoints/
+uv.lock
+extraction_script/data/~$*.xlsx

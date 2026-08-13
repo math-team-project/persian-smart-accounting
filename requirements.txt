@@ -6,3 +6,5 @@
 openpyxl
 pandas
 psycopg2-binary
+xlrd
+rapidfuzz

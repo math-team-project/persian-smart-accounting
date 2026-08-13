@@ -1,12 +1,14 @@
 # config.py
 from typing import Dict, List, Any
+import os
+from pyprojroot import here
 
 # Target Excel File Path (using raw string to avoid backslash escaping issues)
-EXCEL_FILE_PATH: dict = {'تفضیلی': r"extraction_script\Budget.xlsx",
-                         'اصلاحیه': r"extraction_script\RevisedBudget.xlsx"}
+EXCEL_FILE_PATH: dict = {'تفضیلی': here("extraction_script/data/Budget.xlsx"),
+                         'اصلاحیه': here('extraction_script/data/RevisedBudget.xlsx')}
 
 # Dictionary representing form properties for parsing
-FORMS_PARAM: Dict[str, Dict[List[int], Any]] = {
+FORMS_PARAM = {
     'form1': {
         'header_rows': [3, 4], 
         'data_row': [5,22], 
@@ -104,7 +106,7 @@ FORMS_PARAM: Dict[str, Dict[List[int], Any]] = {
 }
 
 # Map normalized Persian sheet names to English config keys
-SHEET_TO_CONFIG_MAP: Dict[str, List[str]] = {
+SHEET_TO_CONFIG_MAP = {
     "فرم 1": ["form1"],
     "فرم 2": ["form2"],
     "فرم 3": ["form3"],
@@ -118,3 +120,16 @@ SHEET_TO_CONFIG_MAP: Dict[str, List[str]] = {
     "فرم 9": ["form9"],
     "فرم 10": ["form10"]
 }
+
+# checklist_fill_process
+CHECKLIST_PROCESS_EXCEL_PATH = [
+    here("extraction_script/data/check_budget.xlsx"),
+    here("extraction_script/data/check_output.xlsx"),
+    here("extraction_script/data/تراز.xlsx"),
+    here("extraction_script/data/ابلاغ.xlsx"),
+    here("extraction_script/data/تاييديه.xlsx")
+]
+
+# Checklist_Question_extracted_examples.json
+CHECKLIST_EXTRACTED_SAMPLE = here("extraction_script/data/Checklist_Question_extracted_examples.json")
+CHECKLIST_EXTRACTED_HANDLER = here("extraction_script/data/Checklist_Question_extracted_handler.json")
