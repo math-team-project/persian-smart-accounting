@@ -26,3 +26,6 @@ build/
 # ژوپیتر نوت‌بوک
 *.ipynb
 .ipynb_checkpoints/
+
+#فایل های غیرضروری
+excel_auto_extract.py
