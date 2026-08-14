@@ -1,5 +1,5 @@
 from normalize_persian import normalize_persian_text, normalize_dataframe
-
+from budget.config import CHECKLIST_PROCESS_EXCEL_PATH, CHECKLIST_EXTRACTED_HANDLER
 import json
 import numpy as np
 import pandas as pd
@@ -15,35 +15,33 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("AuditChecklistPipeline")
 
 
-def _read_single_excel(file_path):
-    sheets_dict = {}
-    try:
-        xls = pd.read_excel(file_path, sheet_name=None)
-        for sheet_name, df in xls.items():
-            norm_sheet_name = normalize_persian_text(sheet_name)
-            sheets_dict[norm_sheet_name] = normalize_dataframe(df)
-        logger.info(f"Successfully loaded and Normalized: {file_path}")
-    except FileNotFoundError as e:
-        logger.error(f"File not found: {file_path}")
-    except Exception as e:
-        logger.error(f"Error loading {file_path}: {e}")
-    return sheets_dict
-
-
-def load_excels_to_ram(file_paths):
-    """
-    Loads multiple Excel files into RAM as a dictionary of DataFrames.
-    Normalizes sheet names and contents upon loading.
-    """
+def load_excels_to_ram(imported_df):
+    raw_sheets = imported_df
     all_sheets = {}
 
-    with ProcessPoolExecutor() as executor:
-        results = executor.map(_read_single_excel, file_paths)
-        for res in results:
-            all_sheets.update(res)
+    try:
+        for sheet_name in raw_sheets.keys():
+            norm_sheet_name = normalize_persian_text(sheet_name)
+            try:
+                all_sheets[norm_sheet_name] = normalize_dataframe(raw_sheets[sheet_name]["data"])
+            except Exception as e_inner:
+                logger.debug(f"Sheet '{sheet_name}' does not contain standard 'data' key, attempting nested structure: {e_inner}")
+                try:
+                    for _sheet_name in raw_sheets[sheet_name].keys():
+                        _norm_sheet_name = normalize_persian_text(_sheet_name)
+                        all_sheets[f"{norm_sheet_name}_{_norm_sheet_name}"] = normalize_dataframe(raw_sheets[sheet_name][_sheet_name])
+                except Exception as e_nested:
+                    logger.warning(f"Failed to load nested sheets for '{sheet_name}': {e_nested}")
+                    continue
+
+        logger.info(f"Successfully loaded and normalized {len(all_sheets.keys())} sheets into RAM.")
+
+    except Exception as e:
+        logger.error(f"Critical error during sheet structure processing: {e}")
+
     return all_sheets
 
 
@@ -52,7 +50,7 @@ def load_excels_to_ram(file_paths):
 def find_value_in_sheet(df, row_id, col_id, cutoff=0.5):
     """
     Searches a dataframe using fuzzy matching and handles multi-value selection
-    via square bracket indices specified in the identifier (e.g., 'جمع [1]').
+    via square bracket indices specified in the identifier.
     """
     try:
         row_query = str(row_id).strip()
@@ -93,16 +91,35 @@ def find_value_in_sheet(df, row_id, col_id, cutoff=0.5):
         # 3. RapidFuzz match all matching rows
         row_text_to_indices = {}
         for idx, row in df.iterrows():
-            for col in df.columns:
-                val = row[col]
-                if pd.notna(val):
-                    text_val = str(val).strip()
-                    if text_val not in row_text_to_indices:
-                        row_text_to_indices[text_val] = []
+            # Add the row index itself to the search dictionary
+            idx_text = normalize_persian_text(str(idx))
+            if idx_text not in row_text_to_indices:
+                row_text_to_indices[idx_text] = []
+            row_text_to_indices[idx_text].append(idx)
+
+            # Iterate over row.values to avoid duplicate column index issues
+            for val in row.values:
+                # Handle cases where value might be a Series due to multi-indexing
+                if isinstance(val, (pd.Series, pd.DataFrame, np.ndarray, list)):
+                    continue
+
+                try:
+                    if pd.isna(val):
+                        continue
+                except Exception:
+                    continue
+
+                text_val = normalize_persian_text(str(val))
+                if text_val not in row_text_to_indices:
+                    row_text_to_indices[text_val] = []
+                # Append index only if it's not already added for this specific text
+                if idx not in row_text_to_indices[text_val]:
                     row_text_to_indices[text_val].append(idx)
 
         all_row_texts = list(row_text_to_indices.keys())
-        row_results = process.extract(row_query, all_row_texts, scorer=fuzz.WRatio, limit=3, score_cutoff=score_cutoff)
+        # Normalize row query
+        normalized_row_query = normalize_persian_text(row_query)
+        row_results = process.extract(normalized_row_query, all_row_texts, scorer=fuzz.WRatio, limit=3, score_cutoff=score_cutoff)
         matched_rows_text = [item[0] for item in row_results]
 
         if not matched_rows_text:
@@ -113,16 +130,44 @@ def find_value_in_sheet(df, row_id, col_id, cutoff=0.5):
         for r_text in matched_rows_text:
             candidate_row_indices.extend(row_text_to_indices[r_text])
 
+
         # 4. Extract all possible intersection values across matched rows and columns
         extracted_candidates = []
         for r_idx in candidate_row_indices:
             for c_col in target_cols:
-                raw_val = df.at[r_idx, c_col]
+                # Use .loc to safely extract values, which might return a DataFrame/Series if labels are duplicated
+                try:
+                    raw_val = df.loc[r_idx, c_col]
+                except KeyError:
+                    continue
 
-                parsed_val = None
-                if pd.notna(raw_val):
-                    if isinstance(raw_val, str):
-                        clean_val = raw_val.replace(",", "").replace(" ", "").strip()
+                # Safely flatten ANY nested structure (DataFrame, Series, multidimensional arrays)
+                if isinstance(raw_val, pd.DataFrame):
+                    vals = raw_val.values.flatten().tolist()
+                elif isinstance(raw_val, pd.Series):
+                    vals = raw_val.tolist()
+                elif isinstance(raw_val, np.ndarray):
+                    vals = raw_val.flatten().tolist()
+                else:
+                    vals = [raw_val]
+
+                # Process all extracted values
+                for v in vals:
+                    # Prevent "truth value of a Series is ambiguous" if 'v' is still iterable
+                    if isinstance(v, (pd.Series, pd.DataFrame, np.ndarray, list)):
+                        continue
+
+                    # Safe NaN check
+                    try:
+                        if pd.isna(v):
+                            continue
+                    except Exception:
+                        continue
+
+                    parsed_val = None
+                    if isinstance(v, str):
+                        clean_val = v.replace(",", "").replace(" ", "").strip()
+                        # Handle accounting negative numbers format like (1234)
                         if clean_val.startswith("(") and clean_val.endswith(")"):
                             clean_val = "-" + clean_val[1:-1]
                         try:
@@ -130,25 +175,26 @@ def find_value_in_sheet(df, row_id, col_id, cutoff=0.5):
                         except ValueError:
                             parsed_val = None
                     else:
-                        parsed_val = float(raw_val)
+                        try:
+                            parsed_val = float(v)
+                        except (ValueError, TypeError):
+                            parsed_val = None
 
-                extracted_candidates.append(parsed_val)
+                    if parsed_val is not None:
+                        extracted_candidates.append(parsed_val)
 
-        numeric_candidates = [val for val in extracted_candidates if val is not None]
-
-        if not numeric_candidates:
-            return None
+        if not extracted_candidates:
+                    return None
 
         # 5. Handle Selection Rules
         if target_index is not None:
-            if target_index < len(numeric_candidates):
-                return numeric_candidates[target_index]
-            logger.warning(f"Index [{target_index}] out of range for {len(numeric_candidates)} numeric values found.")
+            if target_index < len(extracted_candidates):
+                return extracted_candidates[target_index]
+            logger.warning(f"Index [{target_index}] out of range for {len(extracted_candidates)} valid values found.")
             return None
 
-        if len(numeric_candidates) == 1:
-            return numeric_candidates[0]
-        return numeric_candidates[0]
+        # Return the first valid, non-null value if no [i] was specified
+        return extracted_candidates[0]
 
         # # 5. Handle Selection Rules:
         # if target_index is not None:
@@ -283,21 +329,31 @@ def evaluate_logic(condition_str, variables, on_true, on_false):
     # before comparastion, numers round about 0 difits to fall floats.
     eval_context = {k: (round(v, 0) if isinstance(v, (int, float)) and not math.isnan(v) else v) for k, v in eval_context.items()}
 
+    formatted_conditions = []
     for sub_cond in sub_conditions:
         sub_cond_clean = sub_cond.strip()
 
+        # Format string with actual variable values for logging and final output
+        eval_logged_str = sub_cond_clean
+        for v_name, v_val in variables.items():
+            if v_name in eval_logged_str:
+                eval_logged_str = re.sub(rf'\b{re.escape(v_name)}\b', str(v_val), eval_logged_str)
+
+        formatted_conditions.append(f"[{eval_logged_str}]")
+
         # Check if any variable present in this specific sub-condition is None or NaN
         has_missing_var = False
+        missing_vars = []
         for var_name, val in variables.items():
-            # If the variable name appears in the sub-condition text and its value is None/NaN
             if var_name in sub_cond_clean:
                 if val is None or (isinstance(val, float) and math.isnan(val)):
                     has_missing_var = True
-                    break
+                    missing_vars.append(var_name)
 
+        # Treat missing variables as extraction errors rather than just 'False'
         if has_missing_var:
-            logger.info(f"Condition [{sub_cond_clean}]: Evaluated as False (contains None/NaN variable)")
-            evaluated_results.append(False)
+            logger.error(f"Condition [{sub_cond_clean}]: FAILED due to missing/NaN variables: {missing_vars}")
+            evaluated_results.append("FAILED")
             all_true = False
             continue
 
@@ -305,7 +361,6 @@ def evaluate_logic(condition_str, variables, on_true, on_false):
         try:
             sub_result = bool(eval(sub_cond_clean, {"__builtins__": None}, eval_context))
 
-            # چاپ وضعیت شرط با جایگذاری مقادیر در لاگ
             eval_logged_str = sub_cond_clean
             for v_name, v_val in variables.items():
                 if v_name in eval_logged_str:
@@ -316,19 +371,29 @@ def evaluate_logic(condition_str, variables, on_true, on_false):
             if not sub_result:
                 all_true = False
         except Exception as e:
-                logger.error(f"Condition [{sub_cond_clean}]: FAILED TO EVALUATE ({e})")
-                evaluated_results.append("FAILED")  # تغییر False به رشته FAILED برای ثبت خطا
-                all_true = False
+            logger.error(f"Condition [{sub_cond_clean}]: FAILED TO EVALUATE ({e})")
+            evaluated_results.append("FAILED")
+            all_true = False
 
     logger.info("----------------------------")
 
-    final_message = on_true if all_true else on_false
+    # Determine overall evaluation state
+    has_evaluation_error = any(res == "FAILED" for res in evaluated_results)
+
+    if has_evaluation_error:
+        final_status = "ERROR"
+        final_message = "Evaluation failed due to missing data or execution error."
+    else:
+        final_status = all_true
+        final_message = on_true if all_true else on_false
 
     return {
-        "is_true": all_true,
+        "is_true": final_status if final_status != "ERROR" else False,
+        "status": "ERROR" if has_evaluation_error else ("TRUE" if all_true else "FALSE"),
         "message": final_message,
-        "chained_result": all_true,
-        "breakdown": evaluated_results
+        "chained_result": all_true if not has_evaluation_error else False,
+        "breakdown": evaluated_results,
+        "formatted_conditions": formatted_conditions
     }
 
 
@@ -344,6 +409,8 @@ def run_audit_pipeline(
     try:
         with open(handler_json_path, "r", encoding="utf-8") as f:
             raw_data = f.read()
+            # normalized_raw_data = normalize_persian_text(raw_data)
+            # questions = json.loads(normalized_raw_data).get("audit_questions", [])
             questions = json.loads(raw_data).get("audit_questions", [])
     except Exception as e:
         logger.error(f"Failed to parse JSON: {e}")
@@ -386,7 +453,12 @@ def run_audit_pipeline(
         eval_data.get("on_false", "False"),
     )
 
-    logger.info(f"FINAL RESULT ({question_key}): {result.get('is_true')} -> {result.get('message')}")
+    # Logging based on explicit status (ERROR, TRUE, FALSE)
+    status = result.get("status", "FALSE")
+    if status == "ERROR":
+        logger.error(f"FINAL RESULT ({question_key}): ERROR -> {result.get('message')}")
+    else:
+        logger.info(f"FINAL RESULT ({question_key}): {result.get('is_true')} -> {result.get('message')}")
 
     eval_breakdown_str = [str(b) for b in result.get("breakdown", [])]
 
@@ -546,8 +618,8 @@ def main(questions=None, json_path=None, excel_paths=None):
 
 if __name__ == "__main__":
     ## CLI: uv run .\extraction_script\scripts\xlsx\checklist_process.py -q ALL -j .\extraction_script\data\Checklist_Question_extracted_handler.json -e .\extraction_script\data\check_budget.xlsx .\extraction_script\data\check_output.xlsx 'extraction_script\data\????.xlsx' 'extraction_script\data\?????.xlsx' 'extraction_script\data\???????.xlsx'
-    print(main())
+    # print(main())
 
     #Argument Base
     # from config import CHECKLIST_PROCESS_EXCEL_PATH, CHECKLIST_EXTRACTED_SAMPLE, CHECKLIST_EXTRACTED_HANDLER
-    # main("ALL", CHECKLIST_EXTRACTED_HANDLER, CHECKLIST_PROCESS_EXCEL_PATH)
+    print(main("ALL", CHECKLIST_EXTRACTED_HANDLER, CHECKLIST_PROCESS_EXCEL_PATH))
