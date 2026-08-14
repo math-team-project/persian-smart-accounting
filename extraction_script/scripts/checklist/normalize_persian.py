@@ -60,14 +60,28 @@ def normalize_dataframe(df):
     """
     Applies the Persian normalizer element-wise to every single cell
     and column name in the DataFrame, ensuring full dataset normalization.
-    Uses .map() (compatible with modern pandas versions, replacing deprecated applymap).
+    Safely handles cases where the input is not a pandas DataFrame.
     """
-    # Normalize column names
-    df.columns = [normalize_persian_text(col) for col in df.columns]
+    # Check if the input is actually a pandas DataFrame
+    if not isinstance(df, pd.DataFrame):
+        if isinstance(df, str):
+            return normalize_persian_text(df)
+        # print("not norm",type(df))
+        return df
 
-    # Normalize every cell value element-wise across the entire dataframe
-    return df.map(lambda x: normalize_persian_text(x) if isinstance(x, str) else x)
+    try:
+        # Normalize column names
+        df.columns = [normalize_persian_text(col) if isinstance(col, str) else col for col in df.columns]
+    except Exception as e:
+        print("DataFrame Normalize columns error:", e)
 
+    try:
+        # Normalize every cell value element-wise across the entire dataframe
+        df = df.map(lambda x: normalize_persian_text(x) if isinstance(x, str) else x)
+    except Exception as e:
+        print("DataFrame Normalize mapping error:", e)
+    
+    return df
 
 if __name__ == "__main__":
     pass
