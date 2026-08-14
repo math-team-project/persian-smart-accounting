@@ -18,32 +18,61 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def _read_single_excel(file_path):
-    sheets_dict = {}
-    try:
-        xls = pd.read_excel(file_path, sheet_name=None)
-        for sheet_name, df in xls.items():
-            norm_sheet_name = normalize_persian_text(sheet_name)
-            sheets_dict[norm_sheet_name] = normalize_dataframe(df)
-        logger.info(f"Successfully loaded and Normalized: {file_path}")
-    except FileNotFoundError as e:
-        logger.error(f"File not found: {file_path}")
-    except Exception as e:
-        logger.error(f"Error loading {file_path}: {e}")
-    return sheets_dict
+# def _read_single_excel(file_path):
+#     sheets_dict = {}
+#     try:
+#         xls = pd.read_excel(file_path, sheet_name=None)
+#         for sheet_name, df in xls.items():
+#             norm_sheet_name = normalize_persian_text(sheet_name)
+#             sheets_dict[norm_sheet_name] = normalize_dataframe(df)
+#         logger.info(f"Successfully loaded and Normalized: {file_path}")
+#     except FileNotFoundError as e:
+#         logger.error(f"File not found: {file_path}")
+#     except Exception as e:
+#         logger.error(f"Error loading {file_path}: {e}")
+#     return sheets_dict
 
 
-def load_excels_to_ram(file_paths):
-    """
-    Loads multiple Excel files into RAM as a dictionary of DataFrames.
-    Normalizes sheet names and contents upon loading.
-    """
+# def load_excels_to_ram(file_paths):
+#     """
+#     Loads multiple Excel files into RAM as a dictionary of DataFrames.
+#     Normalizes sheet names and contents upon loading.
+#     """
+#     all_sheets = {}
+
+#     with ProcessPoolExecutor() as executor:
+#         results = executor.map(_read_single_excel, file_paths)
+#         for res in results:
+#             all_sheets.update(res)
+#     return all_sheets
+
+def load_excels_to_ram(imported_df):
     all_sheets = {}
-
-    with ProcessPoolExecutor() as executor:
-        results = executor.map(_read_single_excel, file_paths)
-        for res in results:
-            all_sheets.update(res)
+    
+    try:
+       
+        raw_sheets = imported_df  
+        
+        for sheet_name in raw_sheets.keys():
+            print("sheet_name: ", sheet_name)
+            try: 
+                all_sheets[sheet_name] = raw_sheets[sheet_name]["data"]
+                print(f'it is raw_sheets[{sheet_name}]["data"]')
+            except :
+                print(f'not raw_sheets[{sheet_name}]["data"]')
+                try:
+                    for _sheet_name in raw_sheets[sheet_name].keys():
+                        print("_sheet_name: ", _sheet_name)
+                        all_sheets[f"{sheet_name}_{_sheet_name}"] = raw_sheets[sheet_name][_sheet_name]
+                        print(f'it is raw_sheets[{sheet_name}][{_sheet_name}]')
+                except :
+                    print(f'not raw_sheets[{sheet_name}][{_sheet_name}]')
+                    pass
+    except:
+        pass
+    #     logger.info("Successfully loaded and structured sheets from external function.")
+    # except Exception as e:
+    #     logger.error(f"Error loading sheets from external function: {e}")
     return all_sheets
 
 
@@ -474,17 +503,17 @@ def run_all_audit_questions(handler_json_path, excel_file_paths):
     return results_summary
 
 
-def main(questions=None, json_path=None, excel_paths=None):
+def main(questions=None, json_path=None, imported_df=None):
     """
     Unified entry point for both CLI (Terminal) and direct Python invocation.
 
     :param questions: Question ID(s) as a string, list, or 'ALL'/None for all questions.
     :param json_path: Path to the JSON handler file.
-    :param excel_paths: List of Excel file paths or a single file path string.
+    :param imported_df: dict of all sheets.
     :return: Dictionary or list containing evaluation results.
     """
     # 1. Parse arguments from CLI if parameters are not provided via Python call
-    if json_path is None or excel_paths is None:
+    if json_path is None or imported_df is None:
         parser = argparse.ArgumentParser(
             description="Audit Checklist Processing Pipeline"
         )
@@ -512,11 +541,11 @@ def main(questions=None, json_path=None, excel_paths=None):
         args = parser.parse_args()
         questions = args.questions if questions is None else questions
         json_path = args.json if json_path is None else json_path
-        excel_paths = args.excels if excel_paths is None else excel_paths
+        imported_df = args.excels if imported_df is None else imported_df
 
     # 2. Standardize input types
-    if isinstance(excel_paths, str):
-        excel_paths = [excel_paths]
+    if isinstance(imported_df, str):
+        imported_df = [imported_df]
 
     if isinstance(questions, str):
         questions = [questions]
@@ -524,29 +553,29 @@ def main(questions=None, json_path=None, excel_paths=None):
     # 3. Execution Logic
     # Case A: Process all questions
     if not questions or "ALL" in [str(q).upper() for q in questions]:
-        final_output = run_all_audit_questions(json_path, excel_paths)
+        final_output = run_all_audit_questions(json_path, imported_df)
 
     # Case B: Process a single question
     elif len(questions) == 1:
-        final_output = run_audit_pipeline(questions[0], json_path, excel_paths)
+        final_output = run_audit_pipeline(questions[0], json_path, imported_df)
 
     # Case C: Process multiple specific questions with pre-loaded Excel sheets
     else:
         logger.info("Pre-loading Excel files into RAM for selected questions...")
-        loaded_sheets = load_excels_to_ram(excel_paths)
+        loaded_sheets = load_excels_to_ram(imported_df)
         final_output = []
         for q_id in questions:
             res = run_audit_pipeline(
-                q_id, json_path, excel_paths, preloaded_sheets=loaded_sheets
+                q_id, json_path, imported_df, preloaded_sheets=loaded_sheets
             )
             final_output.append(res)
 
     return final_output
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     ## CLI: uv run .\extraction_script\scripts\xlsx\checklist_process.py -q ALL -j .\extraction_script\data\Checklist_Question_extracted_handler.json -e .\extraction_script\data\check_budget.xlsx .\extraction_script\data\check_output.xlsx 'extraction_script\data\????.xlsx' 'extraction_script\data\?????.xlsx' 'extraction_script\data\???????.xlsx'
-    print(main())
+    # print(main())
 
     #Argument Base
     # from config import CHECKLIST_PROCESS_EXCEL_PATH, CHECKLIST_EXTRACTED_SAMPLE, CHECKLIST_EXTRACTED_HANDLER

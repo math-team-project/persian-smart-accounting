@@ -520,8 +520,11 @@ def main(budget_type: str, excel_file_path: Dict[str, str], sheet_to_config_map:
     """
     start_time = time.time()
 
-    if budget_type not in ("تفضیلی", "اصلاحیه"):
+    if budget_type not in ("تفضیلی", "اصلاحیه", "ابلاغ", "تاییدیه"):
         raise ValueError("Invalid Budget type specified.")
+
+    if not excel_file_path.get(budget_type):
+        raise ValueError(f"Excel file path for budget type '{budget_type}' is not provided.")
 
     raw_sheets_in_ram = load_all_sheets_to_memory(excel_file_path[budget_type])
 
@@ -553,12 +556,3 @@ def main(budget_type: str, excel_file_path: Dict[str, str], sheet_to_config_map:
     print("runtime elapsed:", end_time - start_time)
     return result_sheets
 
-
-# if __name__ == '__main__':
-#     data = main(
-#         budget_type="اصلاحیه",
-#         excel_file_path={
-#             "تفضیلی": "path/to/your/budget_file.xlsx",
-#             "اصلاحیه": "E:/bach proj/persian-smart-accounting/extraction_script/data/اصلاحیه بودجه تفصیلی 98 - 991212 (1).xlsx"
-#         }
-#     )
