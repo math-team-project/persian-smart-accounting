@@ -3,12 +3,12 @@ import re
 import concurrent.futures
 import pandas as pd
 
-from excel_loader import (
+from .excel_loader import (
     load_all_sheets_to_memory,
     normalize_persian_text,
     normalize_sheet_name,
 )
-from auto_detect import detect_regions, detect_hierarchy_cols
+from .auto_detect import detect_regions, detect_hierarchy_cols
 
 DELIMITER = " _ "
 
@@ -385,8 +385,13 @@ def main(file_path: str, parallel: bool = True) -> Dict[str, Any]:
                 print(f"خطا در پردازش شیت '{sheet_name}': {e}")
         return result
 
+    # از ThreadPoolExecutor استفاده می‌شود (نه ProcessPoolExecutor) چون در
+    # محیط‌هایی مثل Streamlit که اسکریپت در ترد غیراصلی یک پردازش سرور
+    # طولانی‌مدت اجرا می‌شود، ساخت پردازش‌های سیستم‌عاملی جدید (spawn) با خطای
+    # "process pool terminated abruptly" مواجه می‌شود و عملا اکثر شیت‌ها
+    # پردازش نمی‌شوند.
     try:
-        with concurrent.futures.ProcessPoolExecutor() as executor:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = {
                 executor.submit(_process_single_sheet, sheet_name, df): sheet_name
                 for sheet_name, df in raw_sheets.items()
@@ -401,12 +406,16 @@ def main(file_path: str, parallel: bool = True) -> Dict[str, Any]:
     except Exception as e:
         print(f"موازی‌سازی پردازش شیت‌ها شکست خورد، بازگشت به حالت سریالی: {e}")
         result = {}
-        for sheet_name, df in raw_sheets.items():
-            try:
-                _, processed = _process_single_sheet(sheet_name, df)
-                result[sheet_name] = processed
-            except Exception as e2:
-                print(f"خطا در پردازش شیت '{sheet_name}': {e2}")
+
+    # اگر به هر دلیلی (مثلا محیط اجرای غیرمعمول) بارگذاری موازی برخی شیت‌ها را
+    # از دست داده باشد، به‌صورت سریالی امتحان مجدد می‌کنیم تا داده‌ای از دست نرود.
+    missing_sheets = [s for s in raw_sheets if s not in result]
+    for sheet_name in missing_sheets:
+        try:
+            _, processed = _process_single_sheet(sheet_name, raw_sheets[sheet_name])
+            result[sheet_name] = processed
+        except Exception as e2:
+            print(f"خطا در پردازش شیت '{sheet_name}': {e2}")
 
     return result
 

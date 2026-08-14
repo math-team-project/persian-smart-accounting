@@ -8,3 +8,8 @@ openpyxl
 pandas
 pdfplumber
 psycopg2-binary
+pyprojroot
+rapidfuzz
+xlrd
+streamlit
+plotly

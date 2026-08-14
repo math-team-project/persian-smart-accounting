@@ -58,10 +58,16 @@ def load_single_sheet_parallel(file_path: str, sheet_name: str) -> pd.DataFrame:
 
 
 def load_all_sheets_to_memory(file_path: str) -> Dict[str, pd.DataFrame]:
+    """
+    هر شیت را با ThreadPoolExecutor بارگذاری می‌کند (نه ProcessPoolExecutor)، چون
+    این کار عمدتا I/O-bound است (خواندن xlsx) و اجرای پردازش‌محور در محیط‌هایی
+    مثل Streamlit (که اسکریپت را در یک ترد غیر اصلی اجرا می‌کند) با خطای
+    "process pool terminated abruptly" روی ویندوز شکست می‌خورد.
+    """
     sheet_names = get_all_sheet_names(file_path)
     loaded_sheets: Dict[str, pd.DataFrame] = {}
 
-    with concurrent.futures.ProcessPoolExecutor() as executor:
+    with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = {
             executor.submit(load_single_sheet_parallel, file_path, sheet): sheet
             for sheet in sheet_names
@@ -72,6 +78,15 @@ def load_all_sheets_to_memory(file_path: str) -> Dict[str, pd.DataFrame]:
                 loaded_sheets[sheet_name] = future.result()
             except Exception as e:
                 print(f"Error loading sheet '{sheet_name}' in parallel: {e}")
+
+    # اگر به هر دلیلی (مثلا محیط اجرای غیرمعمول) بارگذاری موازی چیزی برنگرداند،
+    # به‌صورت سریالی امتحان مجدد می‌کنیم تا داده‌ای از دست نرود.
+    missing_sheets = [s for s in sheet_names if s not in loaded_sheets]
+    for sheet in missing_sheets:
+        try:
+            loaded_sheets[sheet] = load_excel_without_merges(file_path, sheet)
+        except Exception as e:
+            print(f"Error loading sheet '{sheet}' serially (fallback): {e}")
 
     return loaded_sheets
 

@@ -1,4 +1,4 @@
-from normalize_persian import normalize_persian_text, normalize_dataframe
+from .normalize_persian import normalize_persian_text, normalize_dataframe
 # from budget.config import CHECKLIST_PROCESS_EXCEL_PATH, CHECKLIST_EXTRACTED_HANDLER
 import json
 import numpy as np
@@ -464,7 +464,7 @@ def run_audit_pipeline(
 
     return {
         "question_id": question_key,
-        "general_description": target_q.get("general_description", "N/A"),
+        "general_description": target_q.get("general_descrintion") or target_q.get("general_description", "N/A"),
         "question_purpose": target_q.get("question_porpose", "N/A"),
         "evaluation_condition": condition_str,
         "evaluation_breakdown": eval_breakdown_str,

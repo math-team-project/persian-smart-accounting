@@ -58,10 +58,13 @@ def load_single_sheet_parallel(file_path: str, sheet_name: str) -> pd.DataFrame:
 
 def load_all_sheets_to_memory(file_path: str, parallel: bool = True) -> Dict[str, pd.DataFrame]:
     """
-    هر شیت را در یک پردازش (process) جداگانه بارگذاری می‌کند تا زمان خواندن
-    فایل‌های اکسل بزرگ با هسته‌های CPU متعدد کاهش یابد. اگر موازی‌سازی به هر
-    دلیلی (مثلا مشکل pickling در برخی محیط‌ها) شکست بخورد، به حالت سریالی
-    برمی‌گردد.
+    هر شیت را با ThreadPoolExecutor به‌صورت موازی بارگذاری می‌کند (نه
+    ProcessPoolExecutor)، چون این کار I/O-bound است (خواندن xlsx) و از
+    Process-spawn استفاده نمی‌کند؛ این موضوع باعث سازگاری کامل با محیط‌هایی
+    مثل Streamlit می‌شود که در آن‌ها ساخت پردازش‌های سیستم‌عاملی جدید
+    (ProcessPoolExecutor روی ویندوز) با خطای "process pool terminated
+    abruptly" مواجه می‌شود. اگر موازی‌سازی به هر دلیلی شکست بخورد، به حالت
+    سریالی برمی‌گردد.
     """
     sheet_names = get_all_sheet_names(file_path)
     loaded_sheets: Dict[str, pd.DataFrame] = {}
@@ -75,7 +78,7 @@ def load_all_sheets_to_memory(file_path: str, parallel: bool = True) -> Dict[str
         return loaded_sheets
 
     try:
-        with concurrent.futures.ProcessPoolExecutor() as executor:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = {
                 executor.submit(load_single_sheet_parallel, file_path, sheet): sheet
                 for sheet in sheet_names
@@ -89,11 +92,15 @@ def load_all_sheets_to_memory(file_path: str, parallel: bool = True) -> Dict[str
     except Exception as e:
         print(f"موازی‌سازی بارگذاری شیت‌ها شکست خورد، بازگشت به حالت سریالی: {e}")
         loaded_sheets = {}
-        for sheet in sheet_names:
-            try:
-                loaded_sheets[sheet] = load_excel_without_merges(file_path, sheet)
-            except Exception as e2:
-                print(f"خطا در بارگذاری شیت '{sheet}': {e2}")
+
+    # اگر به هر دلیلی (مثلا محیط اجرای غیرمعمول) بارگذاری موازی برخی شیت‌ها را
+    # از دست داده باشد، به‌صورت سریالی امتحان مجدد می‌کنیم تا داده‌ای از دست نرود.
+    missing_sheets = [s for s in sheet_names if s not in loaded_sheets]
+    for sheet in missing_sheets:
+        try:
+            loaded_sheets[sheet] = load_excel_without_merges(file_path, sheet)
+        except Exception as e2:
+            print(f"خطا در بارگذاری شیت '{sheet}': {e2}")
 
     return loaded_sheets
 
