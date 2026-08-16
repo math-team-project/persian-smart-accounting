@@ -103,7 +103,6 @@ with st.sidebar:
             <div class="psa-icon-badge">{icon('shield-check', 20)}</div>
             <div>
                 <div class="psa-sidebar-title">داشبورد هوشمند حسابرسی</div>
-                <div class="psa-sidebar-subtitle">تحلیل بودجه، صورت‌های مالی و چک‌لیست حسابرسی</div>
             </div>
         </div>
         """,
@@ -128,6 +127,14 @@ with st.sidebar:
     st.markdown(f"<ul>{steps_html}</ul>", unsafe_allow_html=True)
 
     st.divider()
+
+    if st.session_state.pop("show_success", False):
+        st.success(
+            f"پردازش با موفقیت انجام شد "
+            f"({st.session_state['result']['elapsed_seconds']:.1f} ثانیه).",
+            icon=":material/task_alt:",
+    )
+
     if st.session_state["result"] is not None:
         if st.button(
             "پاک‌کردن نتایج و شروع مجدد",
@@ -135,9 +142,13 @@ with st.sidebar:
             width="stretch",
         ):
             st.session_state["result"] = None
+
+            for key in FILE_SLOTS:
+                st.session_state.pop(f"upload_{key}", None)
+
             st.rerun()
         st.divider()
-    st.caption("منطق پردازش برگرفته از main/main.ipynb و ساختار خروجی چک‌لیست مطابق checklist_process.md است.")
+    st.caption("پروژه کارشناسی \n استاد محترم: دکتر قنبری \n دانشجویان: حامد حسامی، آرمین خوجوی")
 
 
 # ---------------------------------------------------------------------------
@@ -148,7 +159,7 @@ st.markdown(
     <div class="psa-hero">
         <div class="psa-hero-top">
             <div class="psa-hero-badge">{icon('shield-check', 26)}</div>
-            <h1>داشبورد هوشمند حسابرسی و حسابداری</h1>
+            <h1>داشبورد هوشمند حسابرسی</h1>
         </div>
         <p class="psa-hero-desc">
             فایل‌های بودجه، صورت‌های مالی و ترازنامه را بارگذاری کنید تا چک‌لیست حسابرسی به‌صورت
@@ -215,13 +226,13 @@ def _render_upload_card(col, key: str) -> None:
             )
 
 
-req_cols = st.columns(len(required_keys))
-for col, key in zip(req_cols, required_keys):
-    _render_upload_card(col, key)
+all_keys = required_keys + optional_keys
 
-opt_cols = st.columns(len(optional_keys))
-for col, key in zip(opt_cols, optional_keys):
-    _render_upload_card(col, key)
+for i in range(0, len(all_keys), 2):
+    row_cols = st.columns(2, gap="medium")
+
+    for col, key in zip(row_cols, all_keys[i:i + 2]):
+        _render_upload_card(col, key)
 
 st.write("")
 process_clicked = st.button(
@@ -244,10 +255,14 @@ if process_clicked:
                     file_paths[key] = save_uploaded_file(uploaded, workdir) if uploaded is not None else None
                 result = run_full_pipeline(file_paths)
             st.session_state["result"] = result
-            st.success(
-                f"پردازش با موفقیت انجام شد ({result['elapsed_seconds']:.1f} ثانیه).",
-                icon=":material/task_alt:",
-            )
+            st.session_state["show_success"] = True
+            # اجرای مجدد برنامه تا Sidebar با نتیجه جدید رندر شود
+            st.rerun()
+
+            # st.success(
+            #     f"پردازش با موفقیت انجام شد ({result['elapsed_seconds']:.1f} ثانیه).",
+            #     icon=":material/task_alt:",
+            # )
         except PipelineError as exc:
             st.error(str(exc), icon=":material/error:")
         except Exception as exc:  # noqa: BLE001
@@ -269,6 +284,16 @@ if result is None:
         "info",
         "برای مشاهده داشبورد، ابتدا فایل‌های الزامی را بارگذاری و دکمه «پردازش و تحلیل داده‌ها» را بزنید.",
     )
+    st.markdown(
+    f"""
+    <div class="psa-footer">
+        {icon('shield-check', 14)}
+        داشبورد هوشمند حسابرسی فارسی —
+        پروژه کارشناسی رشته ریاضیات و کاربردات، دانشگاه فردوسی مشهد   
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
     st.stop()
 
 for warning in result.get("warnings", []):
@@ -603,8 +628,8 @@ st.markdown(
     f"""
     <div class="psa-footer">
         {icon('shield-check', 14)}
-        داشبورد هوشمند حسابرسی و حسابداری فارسی —
-        ساخته‌شده بر پایه‌ی گردش‌کاری main/main.ipynb و مستندات checklist_process.md
+        داشبورد هوشمند حسابرسی فارسی —
+        پروژه کارشناسی رشته ریاضیات و کاربردات، دانشگاه فردوسی مشهد   
     </div>
     """,
     unsafe_allow_html=True,

@@ -43,7 +43,7 @@ span[data-testid="stIconMaterial"] {{
     direction: ltr !important;
 }}
 
-html, body, [class*="css"], .stApp, .stMarkdown, .stText, p, span, div, h1, h2, h3, h4, h5, h6,
+html, body, [class*="css"], .stApp, .stMarkdown, .stText, p, div, h1, h2, h3, h4, h5, h6,
 button, input, textarea, label, li, table, th, td {{
     font-family: 'Vazirmatn', 'Tahoma', sans-serif !important;
 }}
@@ -72,14 +72,36 @@ button, input, textarea, label, li, table, th, td {{
     color: var(--psa-text);
 }}
 
-section.main > div {{
+/* لایه‌ی layout اصلی Streamlit */
+[data-testid="stAppViewContainer"] {{
+    direction: ltr !important;
+    flex-direction: row-reverse !important;
+}}
+
+section.main,
+section.main > div,
+.block-container {{
+    width: 100%;
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+    max-width: 1220px;
     direction: rtl;
 }}
 
-.block-container {{
-    padding-top: 1.6rem;
-    padding-bottom: 3rem;
-    max-width: 1220px;
+/* -----------------------------
+   Sidebar — اجبار به سمت راست
+   ----------------------------- */
+
+section[data-testid="stSidebar"] {{
+    direction: rtl !important;
+}}
+
+section[data-testid="stSidebar"] > div {{
+    direction: rtl !important;
+}}
+
+section[data-testid="stSidebar"] * {{
+    text-align: right;
 }}
 
 h1, h2, h3, h4, h5, h6 {{
@@ -103,6 +125,9 @@ a {{ color: var(--psa-sky); }}
     direction: rtl;
     background: linear-gradient(180deg, #111c33 0%, var(--psa-bg) 100%);
     border-left: 1px solid var(--psa-border);
+}}
+[data-testid="stSidebar"] > div {{
+    direction: rtl !important;
 }}
 [data-testid="stSidebar"] * {{
     text-align: right;
@@ -176,6 +201,58 @@ a {{ color: var(--psa-sky); }}
     border-radius: 10px !important;
 }}
 
+/* -----------------------------------------------------------------------
+   رفع باگ محل دکمه‌ی «باز کردن سایدبار» در هدر
+   -----------------------------------------------------------------------
+   این دکمه فقط وقتی سایدبار بسته است در هدر ظاهر می‌شود و بخشی از یک ردیف
+   فلکسِ جداگانه (نوار هدر بالای صفحه) است که مستقل از سایدباره و تا اینجا
+   دست‌نخورده مونده بود؛ آن ردیف هم مثل سایدبار با فرض چپ‌چین بودن طراحی
+   شده (دکمه همیشه در ابتدای ردیف = سمت چپ). با معکوس‌کردن جهت همین ردیف،
+   این دکمه (و هر آیتم دیگری که در ابتدای هدر قرار می‌گرفت) به سمت راست
+   منتقل می‌شود، هم‌راستا با سایدبار.
+   نکته: این کار باعث می‌شود دکمه‌ی «Deploy» و منوی سه‌نقطه (که پیش‌فرض
+   Streamlit است) هم به سمت چپ هدر جابه‌جا شوند. اگر ترجیح می‌دهید Deploy
+   همان‌جای فعلی (راست) بماند، این بخش را حذف کنید و فقط بگویید تا یک
+   نسخه‌ی جایگزین که فقط دکمه‌ی سایدبار را جابه‌جا می‌کند (بدون تأثیر روی
+   Deploy) براتون آماده کنم. */
+[data-testid="stToolbar"],
+[data-testid="stToolbar"] > div {{
+    flex-direction: row-reverse !important;
+}}
+
+/* -----------------------------------------------------------------------
+   رفع باگ جمع‌شدن سایدبار در حالت RTL
+   -----------------------------------------------------------------------
+   خودِ Streamlit هنگام جمع‌شدن سایدبار، مقدار عرض را به‌صورت این‌لاین
+   (style="width:...px") روی خودِ سایدبار ست می‌کند و هم‌زمان یک transform
+   با فرض «سایدبار سمت چپ است» اعمال می‌کند. چون این دو مقدار (عرض در حال
+   کوچک‌شدن + جابه‌جایی transform) با هم و به‌صورت جداگانه انیمیت می‌شن، تلاش
+   برای هماهنگ‌کردنشون با یک transform معکوس (نسخه‌ی قبلی این فایل) در وسط
+   انیمیشن ناهماهنگ می‌شد و یک تکه از سایدبار (خصوصاً دستگیره‌ی resize) کنار
+   صفحه گیر می‌کرد.
+   راه‌حل مطمئن‌تر: کلاً درگیر transform نشویم و در حالت جمع‌شده، عرض سایدبار
+   را با !important مستقیماً صفر کنیم. !important در استایل‌شیت حتی از
+   style این‌لاینی که React ست می‌کند هم اولویت بالاتری دارد. */
+section[data-testid="stSidebar"][aria-expanded="false"] {{
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    overflow: hidden !important;
+    visibility: hidden !important;
+    transform: none !important;
+}}
+
+/* دستگیره‌ی تغییر اندازه‌ی سایدبار (resize handle) به‌صورت داخلی با فرض
+   چپ‌بودن سایدبار روی لبه‌ی راست قرار می‌گیرد و جهت درگ‌کردنش هم بر همان
+   اساس محاسبه می‌شود؛ در حالت RTL جابه‌جایی صرفِ موقعیت آن باعث می‌شد جهت
+   درگ برعکس و گیج‌کننده باشد. به‌جای جابه‌جایی، آن را مخفی می‌کنیم (فقط
+   قابلیت باز/بسته‌کردن با دکمه باقی می‌ماند، تغییر اندازه با درگ حذف می‌شود). */
+section[data-testid="stSidebar"] > div[style*="right"] {{
+    display: none !important;
+}}
+
 /* =========================================================================
    متریک‌های بومی Streamlit (fallback)
    ========================================================================= */
@@ -237,6 +314,8 @@ a {{ color: var(--psa-sky); }}
     max-width: 48rem;
     position: relative;
     line-height: 1.9;
+    direction: rtl;
+    text-align: right;
 }}
 .psa-hero .psa-badges {{
     display: flex;
@@ -336,6 +415,14 @@ div[data-testid="stVerticalBlock"]:has(> div > div.psa-upload-marker):hover {{
     background: rgba(15, 23, 42, 0.55) !important;
     border: 1.5px dashed var(--psa-border) !important;
     border-radius: 14px !important;
+
+    min-height: 105px !important;
+    height: 105px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
     transition: border-color .2s ease, background .2s ease;
 }}
 [data-testid="stFileUploaderDropzone"]:hover {{
@@ -346,9 +433,20 @@ div[data-testid="stVerticalBlock"]:has(> div > div.psa-upload-marker):hover {{
     fill: var(--psa-text-secondary) !important;
     color: var(--psa-text-secondary) !important;
 }}
+[data-testid="stFileUploaderDropzone"] > div {{
+    width: 100% !important;
+}}
 [data-testid="stFileUploaderDropzoneInstructions"] {{
     color: var(--psa-text) !important;
     direction: rtl;
+}}
+/* رفع باگ: خودِ Streamlit روی این المان text-align:left و
+   justify-content:flex-start را به‌صورت هاردکد (داخل کد جاوااسکریپت خودش،
+   نه از طریق کلاس CSS قابل‌override معمولی) اعمال می‌کند، با فرض LTR بودن
+   صفحه. با !important این مقدار را برای حالت RTL برمی‌گردانیم. */
+[data-testid="stFileUploaderDropzoneInstructions"] {{
+    text-align: right !important;
+    justify-content: flex-end !important;
 }}
 [data-testid="stFileUploaderDropzoneInstructions"] span {{
     color: var(--psa-text) !important;
@@ -398,12 +496,17 @@ div[data-testid="stVerticalBlock"]:has(> div > div.psa-upload-marker):hover {{
 }}
 .stButton > button[kind="primary"] {{
     background: linear-gradient(135deg, var(--psa-accent) 0%, #0ea472 100%) !important;
+    color: #FFFFFF !important;
     border: none !important;
     box-shadow: 0 12px 28px -12px rgba(16, 185, 129, 0.6);
 }}
 .stButton > button[kind="primary"]:hover {{
     box-shadow: 0 16px 34px -12px rgba(16, 185, 129, 0.75);
     filter: brightness(1.05);
+}}
+.stButton > button[kind="primary"] *,
+.stButton > button[kind="primary"] span {{
+    color: #FFFFFF !important;
 }}
 .stButton > button[kind="secondary"], .stDownloadButton > button {{
     background: var(--psa-surface) !important;
