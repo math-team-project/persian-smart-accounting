@@ -774,7 +774,7 @@
 		{
 		  "variable_name": "budget_letter_expense",
 		  "sheet_table": "ابلاغ بودجه مصوب",
-		  "sheet_anchor": "شماره",
+		  "sheet_anchor": "ابلاغ_1",
 		  "row_identifier": "پارک علم و فناوری خراسان رضوی",
 		  "column_identifier": ["هزینه ای _ عمومی", "هزینه ای _ اختصاصی"]
 		},
@@ -801,7 +801,7 @@
 		{
 		  "variable_name": "budget_letter_capital",
 		  "sheet_table": "ابلاغ بودجه مصوب",
-		  "sheet_anchor": "شماره",
+		  "sheet_anchor": "ابلاغ_1",
 		  "row_identifier": "پارک علم و فناوری خراسان رضوی",
 		  "column_identifier": "تملک دارائی های سرمایه ای _ جمع"
 		},
@@ -828,7 +828,7 @@
 		{
 		  "variable_name": "budget_letter_special",
 		  "sheet_table": "ابلاغ بودجه مصوب",
-		  "sheet_anchor": "شماره",
+		  "sheet_anchor": "ابلاغ_1",
 		  "row_identifier": "پارک علم و فناوری خراسان رضوی",
 		  "column_identifier": "هزینه ای _ اختصاصی"
 		},
@@ -944,7 +944,7 @@
 		{
 		  "variable_name": "treasury_confirmed_bills",
 		  "sheet_anchor": "تاییدیه مصارف اداره کل خزانه",
-		  "row_identifier": "تملک دارایی های سرمایه ای _ مجموع اسناد خزانه اسلامی طرح",
+		  "row_identifier": "مجموع اسناد خزانه اسلامي طرح",
 		  "column_identifier": "پرداختی"
 		}
 	  ],
