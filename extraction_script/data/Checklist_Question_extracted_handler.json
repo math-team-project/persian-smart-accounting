@@ -981,7 +981,7 @@
 		}
 	  ],
 	  "evaluation_logic": {
-		"condition": "abs(reported_transfer_special) == (approved_transfer_amount * 1000000) && reported_transfer_capital == (approved_transfer_amount * 1000000)",
+		"condition": "round(abs(reported_transfer_special/1000000)) == abs(approved_transfer_amount) && round(abs(reported_transfer_capital/1000000)) == abs(approved_transfer_amount)",
 		"on_false": "نقل و انتقالات انجام شده در صورت های مالی با مبالغ مصوب هیأت امنا مطابقت ندارد.",
 		"on_true": "نقل و انتقالات انجام شده در صورت های مالی با مبالغ مصوب هیأت امنا (8,300 میلیون ریال جابجایی) مطابقت دارد."
 	  }
@@ -1371,7 +1371,7 @@
 			}
 		],
 		"evaluation_logic": {
-			"condition":"round((financial_cost_prev_balances[0])/1000000) == budget_cost_data[0] && financial_cost_current_appr/1000000 == budget_cost_data[1] && round(financial_cost_prev_balances[1]/1000000) == budget_cost_data[2] && round(financial_cost_current_notif/1000000) == budget_cost_data[3]",
+			"condition":"round(financial_cost_prev_balances[0]/1000000) == budget_cost_data[0] && financial_cost_current_appr/1000000 == budget_cost_data[1] && round(financial_cost_prev_balances[1]/1000000) == budget_cost_data[2] && round(financial_cost_current_notif/1000000) == budget_cost_data[3]",
 			"on_false": "مطابقت ندارد.",
 			"on_true": "مطابقت دارد."
 		}
@@ -1535,13 +1535,15 @@
 		  "variable_name": "budget_notified_capital_credit",
 		  "sheet_anchor": "فرم 1",
 		  "row_identifier": "اعتبارات متفرقه و ردیفهای متمرکز _ از محل اعتبار ابلاغی",
-		  "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار 1398"
+		  "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار 1398",
+		  "variable_hint": "فرم 1 - اعتبارات متفرقه ابلاغی - اعتبار تملک سرمایه ای"
 		},
 		{
 		  "variable_name": "financial_notified_capital_allocation",
 		  "sheet_anchor": "ابلاغي",
 		  "row_identifier": "جمع عملکرد اعتبارات ابلاغی تملک دارایی های سرمایه ای",
-		  "column_identifier": "اعتبارات _ تخصیص یافته"
+		  "column_identifier": "اعتبارات _ تخصیص یافته",
+		  "variable_hint": "ابلاغی - جمع عملکرد اعتبارات ابلاغی - تخصیص یافته"
 		  }
 	  ],
 	  "evaluation_logic": {
