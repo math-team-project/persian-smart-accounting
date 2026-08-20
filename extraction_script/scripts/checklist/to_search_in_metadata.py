@@ -1,4 +1,4 @@
-from normalize_persian import normalize_persian_text, normalize_dataframe
+from .normalize_persian import normalize_persian_text, normalize_dataframe
 
 import re
 import logging
@@ -58,7 +58,22 @@ def search_in_text(text: str, anchor_phrase: str, target_keyword: str, fuzzy_cut
     Generalized extractor using RapidFuzz and Token Similarity (Bag of Words).
     Robust against structural changes, typos, and specific year mentions.
     """
-    normalized_text = normalize_persian_text(text)
+    # normalized_text = normalize_persian_text(text)
+    # 
+    # # Handle different input types (str, list, tuple, set, dict) and normalize them
+    if isinstance(text, (list, tuple, set)):
+        normalized_text = "\n".join([normalize_persian_text(str(item)) for item in text if item])
+    elif isinstance(text, dict):
+        normalized_text = "\n".join([normalize_persian_text(str(val)) for val in text.values() if val])
+    elif isinstance(text, str):
+        normalized_text = normalize_persian_text(text)
+    else:
+        normalized_text = normalize_persian_text(str(text)) if text else ""
+
+    if not normalized_text:
+        logger.warning("Provided text input is empty or invalid after processing.")
+        return {"value": None, "format": "unknown", "method_used": "none"}
+    
     normalized_anchor = normalize_persian_text(anchor_phrase)
     
     # Remove digits from anchor to make it strictly year-agnostic
@@ -162,9 +177,9 @@ def search_in_text(text: str, anchor_phrase: str, target_keyword: str, fuzzy_cut
 #     مجوز جابجایی از اختصاصی 98 به تملک 98: بر اساس دستور شماره 7 از صورتجلسه کمیسیون دائمی مورخ 29-11-98 با جابجایی مبلغ 8300 میلیون ریال از اعتبارات اختصاصی 98 به تملک دارائی های سرمایه ای 98 موافقت بعمل آمد. باتوجه به اینکه در جداول بودجه تفصیلی ستونی برای جابجایی از سال جاری وجود ندارد اعتبار مربوطه از افزایش درآمد اختصاصی کسر و به ستون تملک منتقل شد.
 #     """
 #     # Notice how we drop the year completely in the anchor
-#     # anchor = "مجوز جابجایی از اختصاصی به تملک"
-#     anchor = "افزایش اعتبار طرح تعمیرات اساسی و خرید تجهیزات"
+#     anchor = "توضیحات _ مجوز جابجایی از اختصاصی 98 به تملک 98"
+#     # anchor = "افزایش اعتبار طرح تعمیرات اساسی و خرید تجهیزات"
 #     target_keyword = "مبلغ"
     
-#     result = extract_data_point_generalized(raw_text, anchor, target_keyword)
+#     result = search_in_text(raw_text, anchor, target_keyword)
 #     print("Final Extracted Data:", result)
