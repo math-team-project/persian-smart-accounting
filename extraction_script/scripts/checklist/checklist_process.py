@@ -12,7 +12,6 @@ for _p in _PATHS_TO_ADD:
     if _p_str not in sys.path:
         sys.path.insert(0, _p_str)
 
-
 from .normalize_persian import normalize_persian_text, normalize_dataframe
 from .math_func_to_latex_code import math_to_latex
 from .to_search_in_metadata import search_in_text
