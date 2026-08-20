@@ -513,7 +513,7 @@
         }
       ],
       "evaluation_logic": {
-        "condition": "note_4_1_ending_balance_previous == Math.abs(tafrigh_unrealized_expenses_diff) - Math.abs(tafrigh_unallocated_sources_diff)",
+        "condition": "note_4_1_ending_balance_previous == Math.abs(tafrigh_expense_unrealized_diff) - Math.abs(tafrigh_unallocated_sources_diff)",
         "on_true": "بله. اختلاف مورد نظر برابر با مانده سال 1397 است.",
         "on_false": "خیر. این محاسبه معادل موجودی پایان سال 1398 است، نه 1397. (رقم بدست آمده با ستون 1398 یادداشت برابر است)."
       }
