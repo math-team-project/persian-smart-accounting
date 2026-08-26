@@ -121,7 +121,7 @@
     "mosavab_sarmaye_akhza": 3824000000,
     "eblaghi_sarmaye_cash": 35000000,
     "eblaghi_sarmaye_akhza": 12250000000,
-    "condition": "none"
+    "condition": false
   },
   "question_13": {
     "internal_eblaghi_expense_approved": 40314286000,

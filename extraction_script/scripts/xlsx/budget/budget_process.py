@@ -5,6 +5,7 @@ import pandas as pd
 import re
 import time
 import concurrent.futures
+from rapidfuzz import fuzz
 
 
 # ============================================================================
@@ -64,6 +65,7 @@ def load_all_sheets_to_memory(file_path: str) -> Dict[str, pd.DataFrame]:
     مثل Streamlit (که اسکریپت را در یک ترد غیر اصلی اجرا می‌کند) با خطای
     "process pool terminated abruptly" روی ویندوز شکست می‌خورد.
     """
+
     sheet_names = get_all_sheet_names(file_path)
     loaded_sheets: Dict[str, pd.DataFrame] = {}
 
@@ -524,14 +526,51 @@ def process_sheet(
 # 6. TOP-LEVEL DRIVER
 # ============================================================================
 
-def main(budget_type: str, excel_file_path: Dict[str, str], sheet_to_config_map: Optional[Dict[str, List[str]]] = None,
-         forms_param: Optional[Dict[str, Dict[str, Any]]] = None):
+def detect_config_by_content(
+    df: Any,
+    content_keyword_map,
+    threshold: float = 80.0
+) -> Optional[str]:
     """
-    sheet_to_config_map / forms_param are now OPTIONAL. If omitted, every
-    sheet in the workbook is auto-detected and processed under its own
-    (normalized) sheet name. If provided, they behave as before: a sheet can
-    still be manually re-labelled/forced via FORMS_PARAM, but nothing is
-    required to be hand-mapped anymore for the auto path to work.
+    Scans the DataFrame content (rows/columns or converted string representation)
+    to match defined keyword lists using fuzzy string comparison.
+    """
+    if df is None or df.empty:
+        return None
+
+    sample_text = " ".join(str(val) for val in df.values.flatten() if pd.notna(val))
+
+    best_match_key = None
+    highest_score = 0.0
+
+    for config_key, keywords in content_keyword_map.items():
+        for keyword in keywords:
+            ## Calculate fuzzy partial ratio score between keyword and sampled text
+            score = fuzz.partial_ratio(keyword.lower(), sample_text.lower())
+
+            ## token_set_ratio handles word order differences and partial set overlaps cleanly
+            ##عبارت کلیدی را در متن شیت جستجو کنید، متد fuzz.token_set_ratio گزینه مناسبی است؛ زیرا این الگوریتم تکرارها و کلمات مشترک را مجزا کرده و بدون توجه به ترتیب کلمات، تشابه را می‌سنجد.
+            # score = fuzz.token_set_ratio(keyword.lower(), sample_text.lower())
+
+
+            if score > highest_score and score >= threshold:
+                highest_score = score
+                best_match_key = config_key
+
+    return best_match_key
+
+
+def main(
+    budget_type: str,
+    excel_file_path: Dict[str, str],
+    sheet_to_config_map: Optional[Dict[str, List[str]]] = None,
+    forms_param: Optional[Dict[str, Dict[str, Any]]] = None,
+    content_keyword_map = None,
+    fuzzy_threshold: float = 80.0
+):
+    """
+    Main entry point for processing budget sheets.
+    Supports auto-detection, direct sheet-name mapping, and content-based fuzzy matching.
     """
     start_time = time.time()
 
@@ -546,8 +585,9 @@ def main(budget_type: str, excel_file_path: Dict[str, str], sheet_to_config_map:
     result_sheets: Dict[str, Any] = {}
     for original_sheet_name, df_sheet in raw_sheets_in_ram.items():
         normalized_name = normalize_sheet_name(original_sheet_name)
+        matched_config_keys: List[str] = []
 
-        # Manual override path (kept for backward compatibility / exceptional sheets)
+        # 1. Primary Strategy: Direct Sheet Name Mapping with Custom Boundaries (forms_param)
         if sheet_to_config_map and normalized_name in sheet_to_config_map:
             for config_key in sheet_to_config_map[normalized_name]:
                 if forms_param and config_key in forms_param:
@@ -561,13 +601,22 @@ def main(budget_type: str, excel_file_path: Dict[str, str], sheet_to_config_map:
                         form_header=param.get("form_header"),
                         hierarchy_cols_indices=param.get("hierarchy_cols_indices"),
                     )
-                    continue
+            continue
 
-        # Default path: fully auto-detected
+        # 2. Secondary Strategy: Content Fuzzy Matching (Renaming only, Default Auto-detected Boundaries)
+        matched_content_key = None
+        if content_keyword_map:
+            matched_content_key = detect_config_by_content(df=df_sheet, content_keyword_map=content_keyword_map, threshold=fuzzy_threshold)
+
+        if matched_content_key:
+            print(f"Processing '{original_sheet_name}' fuzzy-mapped as '{matched_content_key}' (auto-detected boundaries)")
+            result_sheets[matched_content_key] = process_sheet(df=df_sheet)
+            continue
+
+        # 3. Default Path: Process sheet under normalized name with fully auto-detected boundaries
         print(f"Processing '{original_sheet_name}' (auto-detected boundaries)")
         result_sheets[normalized_name] = process_sheet(df=df_sheet)
 
     end_time = time.time()
     print("runtime elapsed:", end_time - start_time)
     return result_sheets
-
