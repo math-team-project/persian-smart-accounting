@@ -39,6 +39,7 @@ _PATHS_TO_ADD = [
     ROOT_DIR / "extraction_script" / "scripts" / "xlsx",
     ROOT_DIR / "extraction_script" / "scripts" / "xlsx" / "budget",
     ROOT_DIR / "extraction_script" / "scripts" / "xlsx" / "financial_statements",
+    ROOT_DIR / "extraction_script" / "scripts" / "docs",
 ]
 for _p in _PATHS_TO_ADD:
     _p_str = str(_p)
@@ -58,6 +59,9 @@ from extraction_script.scripts.xlsx.financial_statements.process import (  # noq
 )
 from extraction_script.scripts.xlsx.budget.config import (
     CONTENT_KEYWORD_MAP
+)
+from extraction_script.scripts.docs.pdf_to_excel_fa import (
+    convert as pdf_converter
 )
 
 CHECKLIST_HANDLER_PATH = (
@@ -118,6 +122,9 @@ class PipelineError(Exception):
 
 def _is_xls(path: Path) -> bool:
     return path.suffix.lower() == ".xls"
+    
+def _is_pdf(path: Path) -> bool:
+    return path.suffix.lower() == ".pdf"
 
 
 def _convert_xls_to_xlsx(src_path: Path, dest_dir: Path) -> Path:
@@ -161,12 +168,18 @@ def _convert_xls_to_xlsx(src_path: Path, dest_dir: Path) -> Path:
 
 
 def save_uploaded_file(uploaded_file, dest_dir: Path) -> Path:
-    """ذخیره یک فایل آپلودشده استریم‌لیت روی دیسک (با تبدیل خودکار xls به xlsx)."""
+    """
+    Saves a Streamlit uploaded file to disk and automatically converts 
+    legacy (.xls) and document (.pdf) formats to standard Excel (.xlsx).
+    """
     dest_dir.mkdir(parents=True, exist_ok=True)
     raw_path = dest_dir / uploaded_file.name
+
+    # Save the raw uploaded buffer to disk
     with open(raw_path, "wb") as fh:
         fh.write(uploaded_file.getbuffer())
 
+    # 1. Handle legacy Excel files (.xls conversion)
     if _is_xls(raw_path):
         try:
             return _convert_xls_to_xlsx(raw_path, dest_dir)
@@ -176,6 +189,21 @@ def save_uploaded_file(uploaded_file, dest_dir: Path) -> Path:
             raise PipelineError(
                 f"تبدیل فایل «{uploaded_file.name}» از xls به xlsx ناموفق بود: {exc}"
             ) from exc
+
+    # 2. Handle PDF document files (.pdf conversion)
+    if _is_pdf(raw_path):
+        try:
+            target_xlsx_path = raw_path.with_suffix(".xlsx")
+            # Call your custom PDF converter module function
+            converted_path_str = pdf_converter(pdf_path=str(raw_path), xlsx_path=str(target_xlsx_path))
+            return Path(converted_path_str)
+        except PipelineError:
+            raise
+        except Exception as exc:
+            raise PipelineError(
+                f"تبدیل فایل «{uploaded_file.name}» از PDF به xlsx ناموفق بود: {exc}"
+            ) from exc
+
     return raw_path
 
 
