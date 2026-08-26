@@ -323,7 +323,7 @@
           "variable_name": "tafridh_budget_total",
           "sheet_anchor": "تفریغ",
           "row_identifier": "جمع منابع",
-          "column_identifier": "بودجه نهایی"
+          "column_identifier": "بودجه _ نهایی"
         },
         {
           "variable_name": "note_27_1_sources_total",
@@ -353,7 +353,7 @@
           "variable_name": "tafrigh_budget_total",
           "sheet_anchor": "تفریغ",
           "row_identifier": "جمع مصارف",
-          "column_identifier": "بودجه نهایی"
+          "column_identifier": "بودجه _ نهایی"
         },
 		{
           "variable_name": "note_27_2_extra_not_uses",
