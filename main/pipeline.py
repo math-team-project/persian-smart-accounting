@@ -17,7 +17,6 @@ evaluation_breakdown / extracted_data / status (TRUE | FALSE | ERROR | MANUAL)
 """
 
 from __future__ import annotations
-
 import json
 import shutil
 import sys
@@ -27,6 +26,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 import pandas as pd
+import warnings
+warnings.filterwarnings('ignore')  # Suppress all warnings
 
 # ---------------------------------------------------------------------------
 # اضافه کردن مسیرهای لازم به sys.path -- دقیقا مطابق سلول اول main.ipynb --
@@ -36,6 +37,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 _PATHS_TO_ADD = [
     ROOT_DIR,
     ROOT_DIR / "extraction_script" / "scripts",
+    ROOT_DIR / "extraction_script" / "checklist",
     ROOT_DIR / "extraction_script" / "scripts" / "xlsx",
     ROOT_DIR / "extraction_script" / "scripts" / "xlsx" / "budget",
     ROOT_DIR / "extraction_script" / "scripts" / "xlsx" / "financial_statements",
@@ -49,6 +51,10 @@ for _p in _PATHS_TO_ADD:
 from extraction_script.scripts.checklist.checklist_process import (  # noqa: E402
     load_excels_to_ram,
     run_audit_pipeline,
+)
+from extraction_script.scripts.checklist.year_relabeler import (
+    analyze_dataframes,
+    apply_header_relabeling_to_many,
 )
 from extraction_script.scripts.xlsx.budget.budget_process import (  # noqa: E402
     main as run_budget_extraction,
@@ -122,7 +128,7 @@ class PipelineError(Exception):
 
 def _is_xls(path: Path) -> bool:
     return path.suffix.lower() == ".xls"
-    
+
 def _is_pdf(path: Path) -> bool:
     return path.suffix.lower() == ".pdf"
 
@@ -169,7 +175,7 @@ def _convert_xls_to_xlsx(src_path: Path, dest_dir: Path) -> Path:
 
 def save_uploaded_file(uploaded_file, dest_dir: Path) -> Path:
     """
-    Saves a Streamlit uploaded file to disk and automatically converts 
+    Saves a Streamlit uploaded file to disk and automatically converts
     legacy (.xls) and document (.pdf) formats to standard Excel (.xlsx).
     """
     dest_dir.mkdir(parents=True, exist_ok=True)
@@ -267,7 +273,7 @@ def build_imported_sheets(file_paths: dict[str, Optional[Path]]) -> ProcessedInp
             taraz[matched_content_key] = {"data": df_sheet}
         else:
             taraz[original_sheet_name] = {"data": df_sheet}
-    
+
     imported.update(taraz)
     counts["ترازنامه"] = len(taraz)
 
@@ -276,7 +282,7 @@ def build_imported_sheets(file_paths: dict[str, Optional[Path]]) -> ProcessedInp
     if ca_path:
         try:
             tayidie = run_budget_extraction(
-                budget_type="تاییدیه", excel_file_path={"تاییدیه": str(ca_path)}, 
+                budget_type="تاییدیه", excel_file_path={"تاییدیه": str(ca_path)},
                 content_keyword_map=CONTENT_KEYWORD_MAP.get("credit_approvals")
             )
             imported.update(tayidie)
@@ -341,6 +347,17 @@ def run_checklist(imported_sheets: dict[str, Any]) -> list[dict[str, Any]]:
     """اجرای تمام سوالات چک‌لیست و بازگرداندن نتایج ساختاریافته برای نمایش در داشبورد."""
     questions = load_checklist_definitions()
     loaded_sheets = load_excels_to_ram(imported_sheets)
+    #TODO: load_excels_to_ram changed in process
+    
+    from datetime import datetime
+    d = datetime.now()
+    ## year_relabeler excute on imported_sheets
+    year_relabeler_result = analyze_dataframes(loaded_sheets["df"])
+    print("relabeler:", year_relabeler_result["anchor"], year_relabeler_result["diagnostics"]["full_frequency"])
+    relabed_loaded_sheets = {"df":apply_header_relabeling_to_many(loaded_sheets["df"], year_relabeler_result["replacement_map"])}
+    #TODO: metadata complete and excuteable
+    print("time relabel:", datetime.now()-d)
+
 
     results: list[dict[str, Any]] = []
     for question in questions:
@@ -367,7 +384,7 @@ def run_checklist(imported_sheets: dict[str, Any]) -> list[dict[str, Any]]:
 
         try:
             pipeline_result = run_audit_pipeline(
-                q_id, str(CHECKLIST_HANDLER_PATH), None, preloaded_sheets=loaded_sheets
+                q_id, str(CHECKLIST_HANDLER_PATH), None, preloaded_sheets=relabed_loaded_sheets
             )
         except Exception as exc:
             record["status"] = "ERROR"

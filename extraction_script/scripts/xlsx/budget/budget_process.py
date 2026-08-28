@@ -6,7 +6,8 @@ import re
 import time
 import concurrent.futures
 from rapidfuzz import fuzz
-
+import warnings
+warnings.filterwarnings('ignore')  # Suppress all warnings
 
 # ============================================================================
 # 1. LOW-LEVEL EXCEL LOADING (unchanged)

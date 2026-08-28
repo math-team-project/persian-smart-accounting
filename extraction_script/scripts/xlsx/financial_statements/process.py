@@ -2,6 +2,8 @@ from typing import List, Dict, Any, Optional, Tuple
 import re
 import concurrent.futures
 import pandas as pd
+import warnings
+warnings.filterwarnings('ignore')  # Suppress all warnings
 
 from .excel_loader import (
     load_all_sheets_to_memory,
