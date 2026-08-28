@@ -8,12 +8,12 @@ import pandas as pd
 import warnings
 warnings.filterwarnings('ignore')  # Suppress all warnings
 
-# logger = logging.getLogger("year_relabeler")
-# if not logger.handlers:
-#     _handler = logging.StreamHandler()
-#     _handler.setFormatter(logging.Formatter("[%(levelname)s] %(name)s: %(message)s"))
-#     logger.addHandler(_handler)
-#     logger.setLevel(logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("YearRelabeler")
 
 
 # ---------------------------------------------------------------------------

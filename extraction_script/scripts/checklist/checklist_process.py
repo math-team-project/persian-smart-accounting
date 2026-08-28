@@ -97,7 +97,8 @@ def load_excels_to_ram(imported_df):
     except Exception as e:
         logger.error(f"Critical error during sheet structure processing: {e}")
 
-    return {"df":all_sheets}
+    return {"df":all_sheets}    #TODO: metadata key
+
 
 # ## USE PATH FILES TO USE IN CLI OR DIRECTED RUN MAIN FUNCTIONS IN CHECKLIST_PROCESS.PY
 # def _read_single_excel(file_path):
