@@ -9,18 +9,45 @@
 """
 
 # --- پالت رنگی تم تیره ------------------------------------------------------
-BG_BASE = "#0F172A"
-BG_ELEVATED = "#1E293B"
-BG_ELEVATED_2 = "#16213A"
-BORDER = "#334155"
-ACCENT = "#10B981"        # زمردی - CTA اصلی
-ACCENT_INDIGO = "#6366F1"
-ACCENT_SKY = "#0EA5E9"
-ACCENT_PURPLE = "#8B5CF6"
-DANGER = "#EF4444"
-MUTED_BADGE = "#64748B"
-TEXT_PRIMARY = "#F8FAFC"
-TEXT_SECONDARY = "#94A3B8"
+# BG_BASE = "#0F172A"
+# BG_ELEVATED = "#1E293B"
+# BG_ELEVATED_2 = "#16213A"
+# BORDER = "#334155"
+# ACCENT = "#10B981"        # زمردی - CTA اصلی
+# ACCENT_INDIGO = "#6366F1"
+# ACCENT_SKY = "#0EA5E9"
+# ACCENT_PURPLE = "#8B5CF6"
+# DANGER = "#EF4444"
+# MUTED_BADGE = "#64748B"
+# TEXT_PRIMARY = "#F8FAFC"
+# TEXT_SECONDARY = "#94A3B8"
+
+# BG_BASE = "#0A0E17"        # سرمه‌ای بسیار تیره و عمیق
+# BG_ELEVATED = "#131C2E"    # کارت‌ها و پنل‌های اصلی
+# BG_ELEVATED_2 = "#1D2B44"  # عناصر شناور و هاورها
+# BORDER = "#2A3C5A"         # خطوط جداکننده واضح
+# ACCENT = "#2563EB"         # آبی رویال (دکمه‌ها و عناصر اصلی)
+# ACCENT_INDIGO = "#818CF8"  # نیلی روشن
+# ACCENT_SKY = "#38BDF8"     # آبی آسمانی (اکسنت فرعی)
+# ACCENT_PURPLE = "#A855F7"  # بنفش
+# DANGER = "#F43F5E"         # قرمز رز برای هشدارهای مغایرت
+# MUTED_BADGE = "#475569"    # بج‌های خنثی
+# TEXT_PRIMARY = "#F8FAFC"   # متن اصلی
+# TEXT_SECONDARY = "#94A3B8" # متن فرعی
+
+BG_BASE = "#0B1315"        # سبز-خاکستری تیره
+BG_ELEVATED = "#142124"    # زمینه کارت‌ها
+BG_ELEVATED_2 = "#1E3035"  # عناصر ثانویه
+BORDER = "#2D474E"         # مرزها
+ACCENT = "#059669"         # سبز زمردی عمیق‌تر و استاندارد
+ACCENT_INDIGO = "#6366F1"  # ایندیگو
+ACCENT_SKY = "#06B6D4"     # فیروزه‌ای
+ACCENT_PURPLE = "#8B5CF6"  # بنفش
+DANGER = "#EF4444"         # قرمز
+MUTED_BADGE = "#526E75"    # بج‌های خنثی
+TEXT_PRIMARY = "#ECFDF5"   # متن سفید با هاله سبز بسیار ملایم
+TEXT_SECONDARY = "#86A7B0" # متن فرعی روشن‌تر
+
 
 CUSTOM_CSS = f"""
 <style>

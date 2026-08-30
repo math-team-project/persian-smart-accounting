@@ -291,7 +291,7 @@ def run_checklist(imported_sheets: dict[str, Any]) -> list[dict[str, Any]]:
     """اجرای تمام سوالات چک‌لیست و بازگرداندن نتایج ساختاریافته برای نمایش در داشبورد."""
     questions = load_checklist_definitions()
     loaded_sheets = load_excels_to_ram(imported_sheets)
-
+    # return print(len(loaded_sheets.keys()), "شیت‌های استخراج‌شده برای ارزیابی بارگذاری شدند.")
     results: list[dict[str, Any]] = []
     for question in questions:
         q_id = question["question_id"]
