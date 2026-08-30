@@ -1,5 +1,21 @@
+from pathlib import Path
+import sys
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+_PATHS_TO_ADD = [
+    ROOT_DIR,
+    ROOT_DIR / "extraction_script" / "scripts",
+    ROOT_DIR / "extraction_script" / "scripts" / "checklist",
+]
+for _p in _PATHS_TO_ADD:
+    _p_str = str(_p)
+    if _p_str not in sys.path:
+        sys.path.insert(0, _p_str)
+
 from .normalize_persian import normalize_persian_text, normalize_dataframe
-# from budget.config import CHECKLIST_PROCESS_EXCEL_PATH, CHECKLIST_EXTRACTED_HANDLER
+from .math_func_to_latex_code import math_to_latex
+from .to_search_in_metadata import search_in_text
+
 import json
 import numpy as np
 import pandas as pd
@@ -18,33 +34,70 @@ logging.basicConfig(
 logger = logging.getLogger("AuditChecklistPipeline")
 
 
+# ====================================================================================
+# Load excel/df files to run checklist functions to extract data it's needed!
+
+## USE COMBINED DATAFRAMES (MAIN PIPLINE)
 def load_excels_to_ram(imported_df):
     raw_sheets = imported_df
-    all_sheets = {}
+    all_sheets_df = {}
+    sheets_metadata = {}
 
     try:
         for sheet_name in raw_sheets.keys():
             norm_sheet_name = normalize_persian_text(sheet_name)
             try:
-                all_sheets[norm_sheet_name] = normalize_dataframe(raw_sheets[sheet_name]["data"])
+                all_sheets_df[norm_sheet_name] = normalize_dataframe(raw_sheets[sheet_name]["data"])
+                sheets_metadata[norm_sheet_name] = normalize_dataframe(raw_sheets[sheet_name]["metadata"])
             except Exception as e_inner:
                 logger.debug(f"Sheet '{sheet_name}' does not contain standard 'data' key, attempting nested structure: {e_inner}")
                 try:
                     for _sheet_name in raw_sheets[sheet_name].keys():
                         _norm_sheet_name = normalize_persian_text(_sheet_name)
-                        all_sheets[f"{norm_sheet_name}_{_norm_sheet_name}"] = normalize_dataframe(raw_sheets[sheet_name][_sheet_name])
+                        all_sheets_df[f"{norm_sheet_name}_{_norm_sheet_name}"] = normalize_dataframe(raw_sheets[sheet_name][_sheet_name])
                 except Exception as e_nested:
                     logger.warning(f"Failed to load nested sheets for '{sheet_name}': {e_nested}")
                     continue
 
-        logger.info(f"Successfully loaded and normalized {len(all_sheets.keys())} sheets into RAM.")
+        logger.info(f"Successfully loaded and normalized {len(all_sheets_df.keys())} sheets into RAM.")
 
     except Exception as e:
         logger.error(f"Critical error during sheet structure processing: {e}")
 
-    return all_sheets
+    return {"df":all_sheets_df, "metadata": sheets_metadata}
 
 
+# ## USE PATH FILES TO USE IN CLI OR DIRECTED RUN MAIN FUNCTIONS IN CHECKLIST_PROCESS.PY
+# def _read_single_excel(file_path):
+#     sheets_dict = {}
+#     try:
+#         xls = pd.read_excel(file_path, sheet_name=None)
+#         for sheet_name, df in xls.items():
+#             norm_sheet_name = normalize_persian_text(sheet_name)
+#             sheets_dict[norm_sheet_name] = normalize_dataframe(df)
+#         logger.info(f"Successfully loaded and Normalized: {file_path}")
+#     except FileNotFoundError as e:
+#         logger.error(f"File not found: {file_path}")
+#     except Exception as e:
+#         logger.error(f"Error loading {file_path}: {e}")
+#     return sheets_dict
+
+
+# def load_excels_to_ram(file_paths):
+#     """
+#     Loads multiple Excel files into RAM as a dictionary of DataFrames.
+#     Normalizes sheet names and contents upon loading.
+#     """
+#     all_sheets = {}
+
+#     with ProcessPoolExecutor() as executor:
+#         results = executor.map(_read_single_excel, file_paths)
+#         for res in results:
+#             all_sheets.update(res)
+#     return all_sheets
+
+
+# ====================================================================================
 # EXTRACTION LOGIC
 # RapidFuzz
 def find_value_in_sheet(df, row_id, col_id, cutoff=0.5):
@@ -215,7 +268,7 @@ def find_value_in_sheet(df, row_id, col_id, cutoff=0.5):
         return None
 
 
-def extract_data_points(data_points, loaded_sheets):
+def extract_data_points(data_points, loaded_sheets, fuzzy_threshold = 50):
     """
     Iterates through the question's data_points, maps them to the loaded sheets in RAM,
     and handles single string identifiers or lists of identifiers (like Q25).
@@ -237,21 +290,55 @@ def extract_data_points(data_points, loaded_sheets):
         row_ids = [normalize_persian_text(r) for r in row_ids] if row_ids else []
         col_ids = [normalize_persian_text(c) for c in col_ids] if col_ids else []
 
-        # Find the correct sheet in RAM
-        # Using fuzzy matching (in keyword) because sheet anchors might be substrings
+        # Find the correct sheet in RAM (Hybrid: Exact Substring first, then Fuzzy Matching)
         target_df = None
-        for name, df in loaded_sheets.items():
+        matched_sheet_name = None
+
+        # Step 1: Try exact substring matching for maximum speed
+        for name, df in loaded_sheets["df"].items():
             if sheet_anchor in name:
                 target_df = df
+                matched_sheet_name = name
+                logger.info(f"Exact sheet match found: '{sheet_anchor}' matched with '{name}' for variable '{var_name}'.")
                 break
 
+        # Step 2: Fallback to RapidFuzz if exact match fails
+        if target_df is None and loaded_sheets["df"]:
+            sheet_names = list(loaded_sheets["df"].keys())
+            best_match, score, _ = process.extractOne(
+                sheet_anchor,
+                sheet_names,
+                scorer=fuzz.partial_ratio
+            )
+
+            if score >= fuzzy_threshold:
+                matched_sheet_name = best_match
+                target_df = loaded_sheets["df"][best_match]
+                logger.info(f"Fuzzy sheet match found: '{sheet_anchor}' matched with '{best_match}' (Score: {score}) for variable '{var_name}'.")
+            else:
+                logger.warning(f"Fuzzy matching failed for sheet anchor '{sheet_anchor}' (Best score: {score} below threshold {fuzzy_threshold}) for variable '{var_name}'.")
+
+        # Fallback log if no sheet matched at all
+        if target_df is None:
+            logger.warning(f"Sheet matching '{sheet_anchor}' not found in RAM for variable '{var_name}'.")
+
         extracted_values = []
+
         if target_df is not None:
-            # Handle cases where multiple rows/cols are provided
             for r_id in row_ids:
-                for c_id in col_ids:
-                    val = find_value_in_sheet(target_df, r_id, c_id)
-                    extracted_values.append(val)
+                if r_id.startswith("توضیحات _"):
+                    anchor = r_id.replace("توضیحات _", "")
+                    target_keyword = "مبلغ"
+                    val = search_in_text(loaded_sheets["metadata"][matched_sheet_name], anchor, target_keyword)
+                    if val["value"] is not None:
+                        extracted_values.append(val["value"])
+                    logger.info(f"Search in Text found: '{r_id}' matched with '{val}' value.")
+
+                else:
+                    for c_id in col_ids:
+                        val = find_value_in_sheet(target_df, r_id, c_id)
+                        extracted_values.append(val)
+
         else:
             logger.warning(f"Sheet matching '{sheet_anchor}' not found in RAM.")
             extracted_values = [None]
@@ -387,13 +474,15 @@ def evaluate_logic(condition_str, variables, on_true, on_false):
         final_status = all_true
         final_message = on_true if all_true else on_false
 
+
     return {
         "is_true": final_status if final_status != "ERROR" else False,
         "status": "ERROR" if has_evaluation_error else ("TRUE" if all_true else "FALSE"),
         "message": final_message,
         "chained_result": all_true if not has_evaluation_error else False,
         "breakdown": evaluated_results,
-        "formatted_conditions": formatted_conditions
+        "formatted_conditions": formatted_conditions,
+        "formatted_conditions_latex": math_to_latex(formatted_conditions)
     }
 
 
@@ -462,15 +551,31 @@ def run_audit_pipeline(
 
     eval_breakdown_str = [str(b) for b in result.get("breakdown", [])]
 
+
+    # Build hint mapping and localize keys for dashboard display
+    # EXXTRA: use HINT_VARIABLE instead of VARIABLE_NAME
+    hint_mapping = {
+        dp.get("variable_name"): dp.get("variable_hint", dp.get("variable_name"))
+        for dp in data_points
+        if dp.get("variable_name")
+    }
+    localized_extracted_vars = {
+        hint_mapping.get(var_name, var_name): value
+        for var_name, value in extracted_vars.items()
+    }
+
     return {
         "question_id": question_key,
         "general_description": target_q.get("general_descrintion") or target_q.get("general_description", "N/A"),
         "question_purpose": target_q.get("question_porpose", "N/A"),
         "evaluation_condition": condition_str,
+        "evaluation_condition_latex": math_to_latex(condition_str),
         "evaluation_breakdown": eval_breakdown_str,
-        "extracted_data": extracted_vars,
+        # "extracted_data": extracted_vars,
+        "extracted_data": localized_extracted_vars,
         "evaluation_result": result,
     }
+
 
 
 def run_all_audit_questions(handler_json_path, excel_file_paths):
@@ -616,10 +721,10 @@ def main(questions=None, json_path=None, imported_df=None):
     return final_output
 
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
     ## CLI: uv run .\extraction_script\scripts\xlsx\checklist_process.py -q ALL -j .\extraction_script\data\Checklist_Question_extracted_handler.json -e .\extraction_script\data\check_budget.xlsx .\extraction_script\data\check_output.xlsx 'extraction_script\data\????.xlsx' 'extraction_script\data\?????.xlsx' 'extraction_script\data\???????.xlsx'
-    # print(main())
+    print(main())
 
     #Argument Base
     # from config import CHECKLIST_PROCESS_EXCEL_PATH, CHECKLIST_EXTRACTED_SAMPLE, CHECKLIST_EXTRACTED_HANDLER
-    print(main("ALL", CHECKLIST_EXTRACTED_HANDLER, CHECKLIST_PROCESS_EXCEL_PATH))
+    # print(main("ALL", CHECKLIST_EXTRACTED_HANDLER, CHECKLIST_PROCESS_EXCEL_PATH))

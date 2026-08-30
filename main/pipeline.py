@@ -15,6 +15,7 @@
 question_id / general_description / question_purpose / evaluation_condition /
 evaluation_breakdown / extracted_data / status (TRUE | FALSE | ERROR | MANUAL)
 """
+
 from __future__ import annotations
 
 import json
@@ -25,7 +26,6 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
-
 import pandas as pd
 
 # ---------------------------------------------------------------------------
@@ -37,7 +37,9 @@ _PATHS_TO_ADD = [
     ROOT_DIR,
     ROOT_DIR / "extraction_script" / "scripts",
     ROOT_DIR / "extraction_script" / "scripts" / "xlsx",
+    ROOT_DIR / "extraction_script" / "scripts" / "xlsx" / "budget",
     ROOT_DIR / "extraction_script" / "scripts" / "xlsx" / "financial_statements",
+    ROOT_DIR / "extraction_script" / "scripts" / "docs",
 ]
 for _p in _PATHS_TO_ADD:
     _p_str = str(_p)
@@ -50,9 +52,16 @@ from extraction_script.scripts.checklist.checklist_process import (  # noqa: E40
 )
 from extraction_script.scripts.xlsx.budget.budget_process import (  # noqa: E402
     main as run_budget_extraction,
+    detect_config_by_content
 )
 from extraction_script.scripts.xlsx.financial_statements.process import (  # noqa: E402
     main as run_financial_statements_extraction,
+)
+from extraction_script.scripts.xlsx.budget.config import (
+    CONTENT_KEYWORD_MAP
+)
+from extraction_script.scripts.docs.pdf_to_excel_fa import (
+    convert as pdf_converter
 )
 
 CHECKLIST_HANDLER_PATH = (
@@ -113,6 +122,9 @@ class PipelineError(Exception):
 
 def _is_xls(path: Path) -> bool:
     return path.suffix.lower() == ".xls"
+    
+def _is_pdf(path: Path) -> bool:
+    return path.suffix.lower() == ".pdf"
 
 
 def _convert_xls_to_xlsx(src_path: Path, dest_dir: Path) -> Path:
@@ -156,12 +168,18 @@ def _convert_xls_to_xlsx(src_path: Path, dest_dir: Path) -> Path:
 
 
 def save_uploaded_file(uploaded_file, dest_dir: Path) -> Path:
-    """ذخیره یک فایل آپلودشده استریم‌لیت روی دیسک (با تبدیل خودکار xls به xlsx)."""
+    """
+    Saves a Streamlit uploaded file to disk and automatically converts 
+    legacy (.xls) and document (.pdf) formats to standard Excel (.xlsx).
+    """
     dest_dir.mkdir(parents=True, exist_ok=True)
     raw_path = dest_dir / uploaded_file.name
+
+    # Save the raw uploaded buffer to disk
     with open(raw_path, "wb") as fh:
         fh.write(uploaded_file.getbuffer())
 
+    # 1. Handle legacy Excel files (.xls conversion)
     if _is_xls(raw_path):
         try:
             return _convert_xls_to_xlsx(raw_path, dest_dir)
@@ -171,6 +189,21 @@ def save_uploaded_file(uploaded_file, dest_dir: Path) -> Path:
             raise PipelineError(
                 f"تبدیل فایل «{uploaded_file.name}» از xls به xlsx ناموفق بود: {exc}"
             ) from exc
+
+    # 2. Handle PDF document files (.pdf conversion)
+    if _is_pdf(raw_path):
+        try:
+            target_xlsx_path = raw_path.with_suffix(".xlsx")
+            # Call your custom PDF converter module function
+            converted_path_str = pdf_converter(pdf_path=str(raw_path), xlsx_path=str(target_xlsx_path))
+            return Path(converted_path_str)
+        except PipelineError:
+            raise
+        except Exception as exc:
+            raise PipelineError(
+                f"تبدیل فایل «{uploaded_file.name}» از PDF به xlsx ناموفق بود: {exc}"
+            ) from exc
+
     return raw_path
 
 
@@ -204,7 +237,8 @@ def build_imported_sheets(file_paths: dict[str, Optional[Path]]) -> ProcessedInp
     if not revised_path:
         raise PipelineError("فایل «بودجه اصلاحیه» الزامی است و ارسال نشده است.")
     revised_budget = run_budget_extraction(
-        budget_type="اصلاحیه", excel_file_path={"اصلاحیه": str(revised_path)}
+        budget_type="اصلاحیه", excel_file_path={"اصلاحیه": str(revised_path)},
+        content_keyword_map=CONTENT_KEYWORD_MAP.get("revised_budget")
     )
     imported.update(revised_budget)
     counts["بودجه اصلاحیه"] = len(revised_budget)
@@ -216,19 +250,34 @@ def build_imported_sheets(file_paths: dict[str, Optional[Path]]) -> ProcessedInp
     imported.update(financial_statements)
     counts["صورت‌های مالی"] = len(financial_statements)
 
+
     bs_path = file_paths.get("balance_sheet")
     if not bs_path:
         raise PipelineError("فایل «ترازنامه» الزامی است و ارسال نشده است.")
     raw_taraz = pd.read_excel(str(bs_path), sheet_name=None)
-    taraz = {name: {"data": df} for name, df in raw_taraz.items()}
+    taraz = {}
+    for original_sheet_name, df_sheet in raw_taraz.items():
+        matched_content_key = detect_config_by_content(
+            df=df_sheet,
+            content_keyword_map=CONTENT_KEYWORD_MAP.get("balance_sheet"),
+            threshold=80.0
+        )
+        if matched_content_key:
+            print(f"Processing '{original_sheet_name}' mapped as '{matched_content_key}' via content fuzzy search")
+            taraz[matched_content_key] = {"data": df_sheet}
+        else:
+            taraz[original_sheet_name] = {"data": df_sheet}
+    
     imported.update(taraz)
     counts["ترازنامه"] = len(taraz)
+
 
     ca_path = file_paths.get("credit_approvals")
     if ca_path:
         try:
             tayidie = run_budget_extraction(
-                budget_type="تاییدیه", excel_file_path={"تاییدیه": str(ca_path)}
+                budget_type="تاییدیه", excel_file_path={"تاییدیه": str(ca_path)}, 
+                content_keyword_map=CONTENT_KEYWORD_MAP.get("credit_approvals")
             )
             imported.update(tayidie)
             counts["تاییدیه اعتبارات"] = len(tayidie)
@@ -239,7 +288,8 @@ def build_imported_sheets(file_paths: dict[str, Optional[Path]]) -> ProcessedInp
     if bl_path:
         try:
             eblagh = run_budget_extraction(
-                budget_type="ابلاغ", excel_file_path={"ابلاغ": str(bl_path)}
+                budget_type="ابلاغ", excel_file_path={"ابلاغ": str(bl_path)},
+                content_keyword_map=CONTENT_KEYWORD_MAP.get("budget_law")
             )
             imported.update(eblagh)
             counts["قانون بودجه"] = len(eblagh)

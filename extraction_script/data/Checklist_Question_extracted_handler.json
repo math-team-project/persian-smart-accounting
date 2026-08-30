@@ -323,7 +323,7 @@
           "variable_name": "tafridh_budget_total",
           "sheet_anchor": "تفریغ",
           "row_identifier": "جمع منابع",
-          "column_identifier": "بودجه نهایی"
+          "column_identifier": "بودجه _ نهایی"
         },
         {
           "variable_name": "note_27_1_sources_total",
@@ -353,7 +353,7 @@
           "variable_name": "tafrigh_budget_total",
           "sheet_anchor": "تفریغ",
           "row_identifier": "جمع مصارف",
-          "column_identifier": "بودجه نهایی"
+          "column_identifier": "بودجه _ نهایی"
         },
 		{
           "variable_name": "note_27_2_extra_not_uses",
@@ -513,7 +513,7 @@
         }
       ],
       "evaluation_logic": {
-        "condition": "note_4_1_ending_balance_previous == Math.abs(tafrigh_unrealized_expenses_diff) - Math.abs(tafrigh_unallocated_sources_diff)",
+        "condition": "note_4_1_ending_balance_previous == Math.abs(tafrigh_expense_unrealized_diff) - Math.abs(tafrigh_unallocated_sources_diff)",
         "on_true": "بله. اختلاف مورد نظر برابر با مانده سال 1397 است.",
         "on_false": "خیر. این محاسبه معادل موجودی پایان سال 1398 است، نه 1397. (رقم بدست آمده با ستون 1398 یادداشت برابر است)."
       }
@@ -774,7 +774,7 @@
 		{
 		  "variable_name": "budget_letter_expense",
 		  "sheet_table": "ابلاغ بودجه مصوب",
-		  "sheet_anchor": "شماره",
+		  "sheet_anchor": "ابلاغ_1",
 		  "row_identifier": "پارک علم و فناوری خراسان رضوی",
 		  "column_identifier": ["هزینه ای _ عمومی", "هزینه ای _ اختصاصی"]
 		},
@@ -801,7 +801,7 @@
 		{
 		  "variable_name": "budget_letter_capital",
 		  "sheet_table": "ابلاغ بودجه مصوب",
-		  "sheet_anchor": "شماره",
+		  "sheet_anchor": "ابلاغ_1",
 		  "row_identifier": "پارک علم و فناوری خراسان رضوی",
 		  "column_identifier": "تملک دارائی های سرمایه ای _ جمع"
 		},
@@ -828,7 +828,7 @@
 		{
 		  "variable_name": "budget_letter_special",
 		  "sheet_table": "ابلاغ بودجه مصوب",
-		  "sheet_anchor": "شماره",
+		  "sheet_anchor": "ابلاغ_1",
 		  "row_identifier": "پارک علم و فناوری خراسان رضوی",
 		  "column_identifier": "هزینه ای _ اختصاصی"
 		},
@@ -944,7 +944,7 @@
 		{
 		  "variable_name": "treasury_confirmed_bills",
 		  "sheet_anchor": "تاییدیه مصارف اداره کل خزانه",
-		  "row_identifier": "تملک دارایی های سرمایه ای _ مجموع اسناد خزانه اسلامی طرح",
+		  "row_identifier": "مجموع اسناد خزانه اسلامي طرح",
 		  "column_identifier": "پرداختی"
 		}
 	  ],
@@ -981,7 +981,7 @@
 		}
 	  ],
 	  "evaluation_logic": {
-		"condition": "abs(reported_transfer_special) == (approved_transfer_amount * 1000000) && reported_transfer_capital == (approved_transfer_amount * 1000000)",
+		"condition": "round(abs(reported_transfer_special/1000000)) == abs(approved_transfer_amount) && round(abs(reported_transfer_capital/1000000)) == abs(approved_transfer_amount)",
 		"on_false": "نقل و انتقالات انجام شده در صورت های مالی با مبالغ مصوب هیأت امنا مطابقت ندارد.",
 		"on_true": "نقل و انتقالات انجام شده در صورت های مالی با مبالغ مصوب هیأت امنا (8,300 میلیون ریال جابجایی) مطابقت دارد."
 	  }
@@ -1371,7 +1371,7 @@
 			}
 		],
 		"evaluation_logic": {
-			"condition":"round((financial_cost_prev_balances[0])/1000000) == budget_cost_data[0] && financial_cost_current_appr/1000000 == budget_cost_data[1] && round(financial_cost_prev_balances[1]/1000000) == budget_cost_data[2] && round(financial_cost_current_notif/1000000) == budget_cost_data[3]",
+			"condition":"round(financial_cost_prev_balances[0]/1000000) == budget_cost_data[0] && financial_cost_current_appr/1000000 == budget_cost_data[1] && round(financial_cost_prev_balances[1]/1000000) == budget_cost_data[2] && round(financial_cost_current_notif/1000000) == budget_cost_data[3]",
 			"on_false": "مطابقت ندارد.",
 			"on_true": "مطابقت دارد."
 		}
@@ -1535,13 +1535,15 @@
 		  "variable_name": "budget_notified_capital_credit",
 		  "sheet_anchor": "فرم 1",
 		  "row_identifier": "اعتبارات متفرقه و ردیفهای متمرکز _ از محل اعتبار ابلاغی",
-		  "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار 1398"
+		  "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار 1398",
+		  "variable_hint": "فرم 1 - اعتبارات متفرقه ابلاغی - اعتبار تملک سرمایه ای"
 		},
 		{
 		  "variable_name": "financial_notified_capital_allocation",
 		  "sheet_anchor": "ابلاغي",
 		  "row_identifier": "جمع عملکرد اعتبارات ابلاغی تملک دارایی های سرمایه ای",
-		  "column_identifier": "اعتبارات _ تخصیص یافته"
+		  "column_identifier": "اعتبارات _ تخصیص یافته",
+		  "variable_hint": "ابلاغی - جمع عملکرد اعتبارات ابلاغی - تخصیص یافته"
 		  }
 	  ],
 	  "evaluation_logic": {

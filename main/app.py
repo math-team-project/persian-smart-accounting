@@ -177,7 +177,7 @@ st.markdown(
 
 
 # ---------------------------------------------------------------------------
-# بخش بارگذاری فایل‌ها
+# upload section
 # ---------------------------------------------------------------------------
 st.markdown(
     f'<div class="psa-section-title">{icon("upload-cloud", 20)} بارگذاری فایل‌های ورودی</div>',
@@ -220,7 +220,7 @@ def _render_upload_card(col, key: str) -> None:
             )
             uploaded_files[key] = st.file_uploader(
                 slot["label"],
-                type=["xlsx", "xls"],
+                type=["xlsx", "xls", "pdf"],
                 key=f"upload_{key}",
                 label_visibility="collapsed",
             )
@@ -289,7 +289,7 @@ if result is None:
     <div class="psa-footer">
         {icon('shield-check', 14)}
         داشبورد هوشمند حسابرسی فارسی —
-        پروژه کارشناسی رشته ریاضیات و کاربردات، دانشگاه فردوسی مشهد   
+        پروژه کارشناسی رشته ریاضیات و کاربردات، دانشگاه فردوسی مشهد
     </div>
     """,
     unsafe_allow_html=True,
@@ -629,7 +629,7 @@ st.markdown(
     <div class="psa-footer">
         {icon('shield-check', 14)}
         داشبورد هوشمند حسابرسی فارسی —
-        پروژه کارشناسی رشته ریاضیات و کاربردات، دانشگاه فردوسی مشهد   
+        پروژه کارشناسی رشته ریاضیات و کاربردات، دانشگاه فردوسی مشهد
     </div>
     """,
     unsafe_allow_html=True,
