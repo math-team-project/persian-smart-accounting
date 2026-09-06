@@ -22,7 +22,7 @@
 		  "variable_name": "fs_cash",
 		  "sheet_anchor": "ت_دارایی‌ها",
 		  "row_identifier": "موجودی نقد",
-		  "column_identifier": "1398/12/29"
+		  "column_identifier": "سال جاری"
 		},
 		{
 		  "variable_name": "traz_ar_non_exchange",
@@ -34,7 +34,7 @@
 		  "variable_name": "fs_ar_non_exchange",
 		  "sheet_anchor": "ت_دارایی‌ها",
 		  "row_identifier": "حساب‌های دریافتنی حاصل از عملیات غیر مبادله‌ای",
-		  "column_identifier": "1398/12/29"
+		  "column_identifier": "سال جاری"
 		},
 		{
 		  "variable_name": "traz_fixed_assets",
@@ -46,7 +46,7 @@
 		  "variable_name": "fs_fixed_assets",
 		  "sheet_anchor": "ت_دارایی‌ها",
 		  "row_identifier": "دارایی‌های ثابت مشهود",
-		  "column_identifier": "1398/12/29"
+		  "column_identifier": "سال جاری"
 		},
 		{
 		  "variable_name": "traz_ap_exchange",
@@ -58,7 +58,7 @@
 		  "variable_name": "fs_ap_exchange",
 		  "sheet_anchor": "ت_بدهی‌ها و ارزش خالص",
 		  "row_identifier": "حساب‎های پرداختنی حاصل از عملیات مبادله‎ای",
-		  "column_identifier": "1398/12/29"
+		  "column_identifier": "سال جاری"
 		},
 		{
 		  "variable_name": "traz_expenses",
@@ -70,7 +70,7 @@
 		  "variable_name": "fs_expenses",
 		  "sheet_anchor": "ع",
 		  "row_identifier": "جمع [3]",
-		  "column_identifier": "1398/12/29 _ ریال"
+		  "column_identifier": "سال جاری _ ریال"
 		},
 		{
 		  "variable_name": "traz_opening_net_value",
@@ -82,7 +82,7 @@
 		  "variable_name": "fs_opening_net_value",
 		  "sheet_anchor": "ع",
 		  "row_identifier": "ارزش خالص انباشته ابتدای سال تعدیل شده",
-		  "column_identifier": "1398/12/29"
+		  "column_identifier": "سال جاری"
 		},
 		{
 		  "variable_name": "traz_intangible_assets",
@@ -94,7 +94,7 @@
 		  "variable_name": "fs_intangible_assets",
 		  "sheet_anchor": "ت_دارایی‌ها",
 		  "row_identifier": "دارایی‎های نامشهود",
-		  "column_identifier": "1398/12/29"
+		  "column_identifier": "سال جاری"
 		},
 		{
 		  "variable_name": "traz_longterm_invest",
@@ -106,7 +106,7 @@
 		  "variable_name": "fs_longterm_invest",
 		  "sheet_anchor": "ت_دارایی‌ها",
 		  "row_identifier": "سرمایه گذاری‎های بلند مدت",
-		  "column_identifier": "1398/12/29"
+		  "column_identifier": "سال جاری"
 		},
 		{
 		  "variable_name": "traz_employee_benefits",
@@ -118,7 +118,7 @@
 		  "variable_name": "fs_employee_benefits",
 		  "sheet_anchor": "ت_بدهی‌ها و ارزش خالص",
 		  "row_identifier": "ذخیره مزایای پایان خدمت کارکنان",
-		  "column_identifier": "1398/12/29"
+		  "column_identifier": "سال جاری"
 		},
 		{
 		  "variable_name": "traz_treasury_allocated",
@@ -130,7 +130,7 @@
 		  "variable_name": "fs_treasury_allocated",
 		  "sheet_anchor": "ع",
 		  "row_identifier": "دریافتی از خزانه از محل اعتبارات تخصیص یافته",
-		  "column_identifier": "1398/12/29 _ ریال"
+		  "column_identifier": "سال جاری _ ریال"
 		},
 		{
 		  "variable_name": "traz_government_revenue",
@@ -142,7 +142,7 @@
 		  "variable_name": "fs_government_revenue",
 		  "sheet_anchor": "ع",
 		  "row_identifier": "درآمد های دولت",
-		  "column_identifier": "1398/12/29 _ ریال"
+		  "column_identifier": "سال جاری _ ریال"
 		},
 		{
 		  "variable_name": "traz_sent_to_treasury",
@@ -154,7 +154,7 @@
 		  "variable_name": "fs_sent_to_treasury",
 		  "sheet_anchor": "ع",
 		  "row_identifier": "کسر میشود وجوه ارسالی به خزانه",
-		  "column_identifier": "1398/12/29 _ ریال"
+		  "column_identifier": "سال جاری _ ریال"
 		},
 		{
 		  "variable_name": "traz_prepayments",
@@ -166,7 +166,7 @@
 		  "variable_name": "fs_prepayments",
 		  "sheet_anchor": "ت_دارایی‌ها",
 		  "row_identifier": "پیش‎پرداخت‎ها",
-		  "column_identifier": "1398/12/29"
+		  "column_identifier": "سال جاری"
 		},
 		{
 		  "variable_name": "traz_other_assets",
@@ -178,7 +178,7 @@
 		  "variable_name": "fs_other_assets",
 		  "sheet_anchor": "ت_دارایی‌ها",
 		  "row_identifier": "سایر دارایی ها",
-		  "column_identifier": "1398/12/29"
+		  "column_identifier": "سال جاری"
 		},
 		{
 		  "variable_name": "traz_other_noncurrent_liab",
@@ -190,7 +190,7 @@
 		  "variable_name": "fs_other_noncurrent_liab",
 		  "sheet_anchor": "ت_بدهی‌ها و ارزش خالص",
 		  "row_identifier": "سایر بدهی‎های غیرجاری",
-		  "column_identifier": "1398/12/29"
+		  "column_identifier": "سال جاری"
 		},
 		{
 		  "variable_name": "traz_other_revenues_code440",
@@ -202,7 +202,7 @@
 		  "variable_name": "fs_other_revenues",
 		  "sheet_anchor": "ع",
 		  "row_identifier": "سایر درآمدها",
-		  "column_identifier": "1398/12/29 _ ریال"
+		  "column_identifier": "سال جاری _ ریال"
 		}
 	  ],
 	  "evaluation_logic": {
@@ -251,26 +251,26 @@
           "variable_name": "note4_5_deposits",
           "sheet_anchor": "يادداشتها_-4-5",
           "row_identifier": "جمع کل",
-          "column_identifier": "1398 _ ریال"
+          "column_identifier": "سال جاری _ ریال"
         },
         {
           "variable_name": "note4_6_blocked",
           "sheet_anchor": "يادداشتها_4-6",
           "row_identifier": "جمع کل",
-          "column_identifier": "1398 _ ریال",
+          "column_identifier": "سال جاری _ ریال",
           "context_hint": "در جدول 4-6 موجودی غیرقابل برداشت"
         },
         {
           "variable_name": "note4_total_cash",
           "sheet_anchor": "يادداشتها_-4",
           "row_identifier": "جمع کل",
-          "column_identifier": "1398 _ ریال",
+          "column_identifier": "سال جاری _ ریال",
           "context_hint": "در جدول 4 اصلی موجودی نزد بانکها"
         }
       ],
       "evaluation_logic": {
         "condition": "note4_total_cash == mosavab_cash_unspent + sanavat_cash_unspent + eblaghi_cash_unspent + sayer_manabe_cash_unspent + note4_5_deposits + note4_6_blocked",
-        "on_true": "بله، ارقام ضمائم با مانده موجودی نقد پایان سال (1398) کاملاً مطابقت دارد. جمع محاسبه شده از فرم‌های بودجه و حساب‌های ویژه برابر است با مانده یادداشت 4.",
+        "on_true": "بله، ارقام ضمائم با مانده موجودی نقد پایان سال (13سال جاری) کاملاً مطابقت دارد. جمع محاسبه شده از فرم‌های بودجه و حساب‌های ویژه برابر است با مانده یادداشت 4.",
         "on_false": "خیر، مغایرت وجود دارد. جمع فرم‌های بودجه با یادداشت 4 برابر نیست."
       }
     },
@@ -291,7 +291,7 @@
           "variable_name": "note_4_last_year_total",
           "sheet_anchor": "يادداشتها_-4",
           "row_identifier": ["موجودی نزد بانکهای حساب مستقل اعتبارات هزینه ای _ 4-1", "موجودی نزد بانکهای حساب مستقل اعتبارات اختصاصي _ 4-2", "موجودی نزد بانکهای حساب مستقل تملک دارائیهای سرمایه ای _ 4-3"],
-          "column_identifier": "1397 _ ریال"
+          "column_identifier": "سال قبل _ ریال"
         }
       ],
       "evaluation_logic": {
@@ -503,19 +503,19 @@
           "variable_name": "note_4_1_ending_balance_previous",
           "sheet_anchor": "يادداشتها_-4-1",
           "row_identifier": "جمع کل",
-          "column_identifier": "1397"
+          "column_identifier": "سال قبل"
         },
         {
           "variable_name": "note_4_1_ending_balance_current",
           "sheet_anchor": "يادداشتها_-4-1",
           "row_identifier": "جمع کل",
-          "column_identifier": "1398"
+          "column_identifier": "سال جاری"
         }
       ],
       "evaluation_logic": {
         "condition": "note_4_1_ending_balance_previous == Math.abs(tafrigh_expense_unrealized_diff) - Math.abs(tafrigh_unallocated_sources_diff)",
         "on_true": "بله. اختلاف مورد نظر برابر با مانده سال 1397 است.",
-        "on_false": "خیر. این محاسبه معادل موجودی پایان سال 1398 است، نه 1397. (رقم بدست آمده با ستون 1398 یادداشت برابر است)."
+        "on_false": "خیر. این محاسبه معادل موجودی پایان سال جاری است، نه 1397. (رقم بدست آمده با ستون 13سال جاری یادداشت برابر است)."
       }
     },
 	{
@@ -541,7 +541,7 @@
           "variable_name": "note_4_3_ending_balance_previous_year",
           "sheet_anchor": "يادداشتها_-4-3",
           "row_identifier": "جمع کل",
-          "column_identifier": "1397"
+          "column_identifier": "سال قبل"
         }
       ],
       "evaluation_logic": {
@@ -573,7 +573,7 @@
           "variable_name": "note_4_2_ending_balance_current_year",
           "sheet_anchor": "يادداشتها_-4-2",
           "row_identifier": "جمع کل",
-          "column_identifier": "1398"
+          "column_identifier": "سال جاری"
         }
       ],
       "evaluation_logic": {
@@ -633,19 +633,19 @@
         "variable_name": "note_17_1_expense_revenue",
         "sheet_anchor": "يادداشتها_17-1",
         "row_identifier": "جمع کل",
-        "column_identifier": "1398"
+        "column_identifier": "سال جاری"
       },
       {
         "variable_name": "note_17_2_capital_revenue",
         "sheet_anchor": "يادداشتها_17-2",
         "row_identifier": "جمع کل",
-        "column_identifier": "1398"
+        "column_identifier": "سال جاری"
       },
       {
         "variable_name": "note_18_capital_revenue",
         "sheet_anchor": "يادداشتها_-18",
         "row_identifier": "جمع کل",
-        "column_identifier": "1398"
+        "column_identifier": "سال جاری"
       },
       {
         "variable_name": "mosavab_expense_cash",
@@ -729,7 +729,7 @@
           "variable_name": "external_confirmation_amount",
           "sheet_anchor": "فرم 1",
           "row_identifier": "از محل اعتبار ابلاغی _ اعتبارات متفرقه و ردیفهای متمرکز",
-          "column_identifier": "اعتبارات هِزینه ای _ اعتبار 1398"
+          "column_identifier": "اعتبارات هِزینه ای _ اعتبار سال جاری"
         }
       ],
       "evaluation_logic": {
@@ -755,7 +755,7 @@
           "variable_name": "external_confirmation_amount",
           "sheet_anchor": "فرم 1",
           "row_identifier": "از محل اعتبار ابلاغی _ اعتبارات متفرقه و ردیفهای متمرکز",
-          "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار 1398"
+          "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار سال جاری"
         }
       ],
       "evaluation_logic": {
@@ -782,7 +782,7 @@
 		  "variable_name": "form1_approved_expense",
 		  "sheet_anchor": "فرم 1",
 		  "row_identifier": ["از محل اعتبار مصوب _ درآمد عمومی", "از محل اعتبار مصوب _ درآمد اختصاصی"],
-		  "column_identifier": "اعتبارات هِزینه ای _ اعتبار 1398"
+		  "column_identifier": "اعتبارات هِزینه ای _ اعتبار سال جاری"
 		}
 	  ],
 	  "evaluation_logic": {
@@ -809,7 +809,7 @@
 		  "variable_name": "form1_approved_capital",
 		  "sheet_anchor": "فرم 1",
 		  "row_identifier": "از محل اعتبار مصوب _ درآمد عمومی",
-		  "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار 1398"
+		  "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار سال جاری"
 		}
 	  ],
 	  "evaluation_logic": {
@@ -836,7 +836,7 @@
 		  "variable_name": "form1_approved_special",
 		  "sheet_anchor": "فرم 1",
 		  "row_identifier": "از محل اعتبار مصوب _ درآمد اختصاصی",
-		  "column_identifier": "اعتبارات هِزینه ای _ اعتبار 1398"
+		  "column_identifier": "اعتبارات هِزینه ای _ اعتبار سال جاری"
 		}
 	  ],
 	  "evaluation_logic": {
@@ -862,7 +862,7 @@
 		  "variable_name": "form_approved_current_cash",
 		  "sheet_anchor": " مصوب",
 		  "row_identifier": "جمع عملکرد اعتبارات مصوب هزینه‌ای",
-		  "column_identifier": "صورتحساب عملکرد اعتبارات مصوب بودجه (هزینه ای ، تملک داراییهای سرمایه ای ، اختصاصی ) سال 1398 _ دریافتی ازخزانه _ وجه نقد"
+		  "column_identifier": "صورتحساب عملکرد اعتبارات مصوب بودجه (هزینه ای ، تملک داراییهای سرمایه ای ، اختصاصی ) سال جاری _ دریافتی ازخزانه _ وجه نقد"
 		}
 	  ],
 	  "evaluation_logic": {
@@ -976,7 +976,7 @@
 		{
 		  "variable_name": "approved_transfer_amount",
 		  "sheet_anchor": "فرم 1",
-		  "row_identifier": "توضیحات _ مجوز جابجایی از اختصاصی 98 به تملک 98",
+		  "row_identifier": "توضیحات _ مجوز جابجایی از اختصاصی سال جاری به تملک سال جاری",
 		  "column_identifier": "مبلغ مصوب"
 		}
 	  ],
@@ -1105,50 +1105,50 @@
 	  }
 	},{
 	  "question_id": "Q29",
-	  "question_text": "آیا مانده اعتبار پرداخت‏های غیر قطعی ( کد 980) در تراز کل در تاریخ 29 اسفند جاری با  علی الحساب ها (حساب‏های انتظامی) ، پیش پرداخت ها و پیش پرداخت‏های سرمایه‏ای(در دارایی‏های ثابت مشهود) و ودایع در صورت‏های مالی، مطابقت دارد",
+	  "question_text": "آیا مانده اعتبار پرداخت‏های غیر قطعی ( کد سال جاری0) در تراز کل در تاریخ 29 اسفند جاری با  علی الحساب ها (حساب‏های انتظامی) ، پیش پرداخت ها و پیش پرداخت‏های سرمایه‏ای(در دارایی‏های ثابت مشهود) و ودایع در صورت‏های مالی، مطابقت دارد",
 	  "is_evaluable_with_current_context": true,
 	  "question_porpose": "هدف سوال: این کنترل اطمینان حاصل می‌کند که تمام پرداخت‌های غیرقطعی (پیش‌پرداخت و علی‌الحساب) که در بخش مالی ثبت شده‌اند، به طور همزمان در سرفصل‌های کنترلی بودجه (حساب ۹۸۰) نیز منعکس شده باشند تا سقف اعتبارات مصرف شده به درستی محاسبه گردد.",
 	  "general_descrintion": "برای پاسخ، مانده بدهکار حساب ۹۸۰ از تراز کل استخراج می‌شود. سپس مبالغ مربوط به پیش‌پرداخت‌ها، علی‌الحساب‌ها (یادداشت انتظامی)، ودایع و پیش‌پرداخت‌های سرمایه‌ای از تراز یا یادداشت‌های صورت مالی جمع زده شده و با مانده بودجه‌ای مقایسه می‌گردد.",
 	  "data_points_to_extract": [
 		{
-		  "variable_name": "uncleared_payments_980",
+		  "variable_name": "uncleared_payments_سال جاری0",
 		  "sheet_anchor": "کل",
-		  "row_identifier": "980 _ اعتبار پرداختهاي غيرقطعي",
+		  "row_identifier": "سال جاری0 _ اعتبار پرداختهاي غيرقطعي",
 		  "column_identifier": "(مانده(بدهکار"
 		},
 		{
 		  "variable_name": "prepayments_balance",
 		  "sheet_anchor": "ت_دارایی‌ها",
 		  "row_identifier": "پیش‎پرداخت‎ها",
-		  "column_identifier": "1398/12/29"
+		  "column_identifier": "سال جاری"
 		},
 		{
 		  "variable_name": "advances_ali_al_hesab",
 		  "sheet_anchor": "يادداشتها_-29",
 		  "row_identifier": "حسابهای انتظامی - علی الحساب _ 14-16",
-		  "column_identifier": "1398 _ ریال"
+		  "column_identifier": "سال جاری _ ریال"
 		},
 		{
 		  "variable_name": "prepayments_total",
 		  "sheet_anchor": "يادداشتها_-7",
 		  "row_identifier": "جمع کل (1)",
-		  "column_identifier": "1398"
+		  "column_identifier": "سال جاری"
 		},
 		{
 		  "variable_name": "vadayeh_deposits",
 		  "sheet_anchor": "يادداشتها_-5-1",
 		  "row_identifier": "ودايع - سپرده شرکت در مناقصه",
-		  "column_identifier": "1398"
+		  "column_identifier": "سال جاری"
 		},
 		{
 		  "variable_name": "capital_in_progress",
 		  "sheet_anchor": "دارایی ثابت مشهود",
 		  "row_identifier": "دارایی در جریان تکمیل _ 8-6",
-		  "column_identifier": "یادداشت های توضیحی همراه صورتهای مالی _ سال مالی منتهی 29 اسفند ماه 1398 _ جدول بهاي تمام شده و استهلاك انباشته داراييهاي ثابت مشهود به شرح زير است : _ بهاي تمام شده - ريال _ مانده در 1398/12/29"
+		  "column_identifier": "یادداشت های توضیحی همراه صورتهای مالی _ سال مالی منتهی 29 اسفند ماه 13سال جاری _ جدول بهاي تمام شده و استهلاك انباشته داراييهاي ثابت مشهود به شرح زير است : _ بهاي تمام شده - ريال _ مانده در 13سال جاری/12/29"
 		}
 	  ],
 	  "evaluation_logic": {
-		"condition": "round(uncleared_payments_980) == round(prepayments_balance + advances_ali_al_hesab + prepayments_total + vadayeh_deposits + capital_in_progress)",
+		"condition": "round(uncleared_payments_سال جاری0) == round(prepayments_balance + advances_ali_al_hesab + prepayments_total + vadayeh_deposits + capital_in_progress)",
 		"on_false": "مطابقت ندارد.",
 		"on_true": "مطابقت دارد."
 	  }
@@ -1169,7 +1169,7 @@
 		  "variable_name": "approved_exp_current",
 		  "sheet_anchor": "مصوب",
 		  "row_identifier": ["جمع عملکرد اعتبارات مصوب هزینه ای", "جمع عملکرد اعتبارات مصوب اختصاصی", "جمع عملکرد اعتبارات مصوب تملک داراییهای سرمایه ای"],
-		  "column_identifier": "صورتحساب عملکرد اعتبارات مصوب بودجه (هزینه ای ، تملک داراییهای سرمایه ای ، اختصاصی ) سال 1398 _ مصرفی _ هزینه"
+		  "column_identifier": "صورتحساب عملکرد اعتبارات مصوب بودجه (هزینه ای ، تملک داراییهای سرمایه ای ، اختصاصی ) سال جاری _ مصرفی _ هزینه"
 		},
 		{
 		  "variable_name": "unused_exp_prev",
@@ -1213,7 +1213,7 @@
           "variable_name": "form1_not_used_general",
           "sheet_anchor": "فرم 1",
           "row_identifier": "از محل مانده اعتبار سال قبل _ درآمد عمومی",
-          "column_identifier": "اعتبارات هِزینه ای _ اعتبار 1398"
+          "column_identifier": "اعتبارات هِزینه ای _ اعتبار سال جاری"
         }
       ],
       "evaluation_logic": {
@@ -1239,7 +1239,7 @@
           "variable_name": "form1_not_used_special",
           "sheet_anchor": "فرم 1",
           "row_identifier": "از محل مانده اعتبار سال قبل _ درآمد اختصاصی",
-          "column_identifier": "اعتبارات هِزینه ای _ اعتبار 1398"
+          "column_identifier": "اعتبارات هِزینه ای _ اعتبار سال جاری"
         }
       ],
       "evaluation_logic": {
@@ -1271,7 +1271,7 @@
           "variable_name": "form1_not_used_capital",
           "sheet_anchor": "فرم 1",
           "row_identifier": ["از محل مانده اعتبار سال قبل _ اعتبارات متفرقه و ردیفهای متمرکز", "از محل مانده اعتبار سال قبل _ درآمد عمومی"],
-          "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار 1398"
+          "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار سال جاری"
         }
       ],
       "evaluation_logic": {
@@ -1303,7 +1303,7 @@
           "variable_name": "form1_not_used_miscellaneous",
           "sheet_anchor": "فرم 1",
           "row_identifier": "از محل مانده اعتبار سال قبل _ اعتبارات متفرقه و ردیفهای متمرکز",
-          "column_identifier": "اعتبارات هِزینه ای _ اعتبار 1398"
+          "column_identifier": "اعتبارات هِزینه ای _ اعتبار سال جاری"
         }
       ],
       "evaluation_logic": {
@@ -1329,7 +1329,7 @@
 			"variable_name": "form1_eblaghi_capital_prev_balance",
 			"sheet_anchor": "فرم 1",
 			"row_identifier": "اعتبارات متفرقه و ردیفهای متمرکز _ از محل مانده اعتبار سال قبل",
-			"column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار 1398"
+			"column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار سال جاری"
 			}
 		],
 		"evaluation_logic": {
@@ -1349,7 +1349,7 @@
 			"variable_name": "budget_cost_data",
 			"sheet_anchor": "فرم 1",
 			"row_identifier": ["از محل مانده اعتبار سال قبل _ درآمد عمومی", "از محل اعتبار مصوب _ درآمد عمومی", "از محل مانده اعتبار سال قبل _ اعتبارات متفرقه و ردیفهای متمرکز", "از محل اعتبار ابلاغی _ اعتبارات متفرقه و ردیفهای متمرکز"],
-			"column_identifier": "اعتبارات هِزینه ای _ اعتبار 1398"
+			"column_identifier": "اعتبارات هِزینه ای _ اعتبار سال جاری"
 			},
 			{
 			"variable_name": "financial_cost_prev_balances",
@@ -1387,13 +1387,13 @@
 			"variable_name": "budget_spec_prev_balance",
 			"sheet_anchor": "فرم 1",
 			"row_identifier": "از محل مانده اعتبار سال قبل _ درآمد اختصاصی",
-			"column_identifier": "جمع کل _ اعتبار 1398"
+			"column_identifier": "جمع کل _ اعتبار سال جاری"
 			},
 			{
 			  "variable_name": "budget_spec_current_credits",
 			  "sheet_anchor": "فرم 1",
 			  "row_identifier": ["از محل اعتبار مصوب _ درآمد اختصاصی", "افزایش _ درآمد اختصاصی"],
-			  "column_identifier": "جمع کل _ اعتبار 1398"
+			  "column_identifier": "جمع کل _ اعتبار سال جاری"
 			},
 			{
 			"variable_name": "financial_spec_prev_balance",
@@ -1431,7 +1431,7 @@
 		  "variable_name": "budget_amendment_approved_credit",
 		  "sheet_anchor": "فرم 1",
 		  "row_identifier": "درآمد عمومی _ از محل اعتبار مصوب",
-		  "column_identifier": "اعتبارات هزینه ای _ اعتبار 1398"
+		  "column_identifier": "اعتبارات هزینه ای _ اعتبار سال جاری"
 		}
 	  ],
 	  "evaluation_logic": {
@@ -1457,13 +1457,13 @@
 		  "variable_name": "budget_cap_appr",
 		  "sheet_anchor": "فرم 1",
 		  "row_identifier": "از محل اعتبار مصوب _ درآمد عمومی",
-		  "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار 1398"
+		  "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار سال جاری"
 		},
 		{
 		  "variable_name": "budget_cap_incr",
 		  "sheet_anchor": "فرم 1",
 		  "row_identifier": "افزایش _ درآمد عمومی",
-		  "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار 1398"
+		  "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار سال جاری"
 		}
 	  ],
 	  "evaluation_logic": {
@@ -1489,7 +1489,7 @@
 		  "variable_name": "budget_spec_approved_credit",
 		  "sheet_anchor": "فرم 1",
 		  "row_identifier": "درآمد اختصاصی _ از محل اعتبار مصوب",
-		  "column_identifier": "اعتبارات هِزینه ای _ اعتبار 1398"
+		  "column_identifier": "اعتبارات هِزینه ای _ اعتبار سال جاری"
 		}
 	  ],
 	  "evaluation_logic": {
@@ -1509,7 +1509,7 @@
 		  "variable_name": "budget_notified_cost_credit",
 		  "sheet_anchor": "فرم 1",
 		  "row_identifier": "اعتبارات متفرقه و ردیفهای متمرکز _ از محل اعتبار ابلاغی",
-		  "column_identifier": "اعتبارات هزینه ای _ اعتبار 1398"
+		  "column_identifier": "اعتبارات هزینه ای _ اعتبار سال جاری"
 		},
 		{
 		  "variable_name": "financial_notified_cost_allocation",
@@ -1535,7 +1535,7 @@
 		  "variable_name": "budget_notified_capital_credit",
 		  "sheet_anchor": "فرم 1",
 		  "row_identifier": "اعتبارات متفرقه و ردیفهای متمرکز _ از محل اعتبار ابلاغی",
-		  "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار 1398",
+		  "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار سال جاری",
 		  "variable_hint": "فرم 1 - اعتبارات متفرقه ابلاغی - اعتبار تملک سرمایه ای"
 		},
 		{
@@ -1581,25 +1581,25 @@
 		  "variable_name": "bud_cost_appr",
 		  "sheet_anchor": "فرم 1",
 		  "row_identifier": "درآمد عمومی _ از محل اعتبار مصوب",
-		  "column_identifier": "اعتبارات هزینه ای _ اعتبار 1398"
+		  "column_identifier": "اعتبارات هزینه ای _ اعتبار سال جاری"
 		},
 		{
 		  "variable_name": "bud_cap_appr",
 		  "sheet_anchor": "فرم 1",
 		  "row_identifier": "درآمد عمومی _ از محل اعتبار مصوب",
-		  "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار 1398"
+		  "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار سال جاری"
 		},
 		{
 		  "variable_name": "bud_cap_incr",
 		  "sheet_anchor": "فرم 1",
 		  "row_identifier": "درآمد عمومی _ افزایش",
-		  "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار 1398"
+		  "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار سال جاری"
 		},
 		{
 		  "variable_name": "bud_spec_appr",
 		  "sheet_anchor": "فرم 1",
 		  "row_identifier": "درآمد اختصاصی _ از محل اعتبار مصوب",
-		  "column_identifier": "اعتبارات هزینه ای _ اعتبار 1398"
+		  "column_identifier": "اعتبارات هزینه ای _ اعتبار سال جاری"
 		}
 	  ],
 	  "evaluation_logic": {
@@ -1619,50 +1619,50 @@
 		  "variable_name": "fs_unused_cash",
 		  "sheet_anchor": "وجوه مصرف نشده",
 		  "row_identifier": ["جمع عملکرد مانده مصرف نشده اعتبارات ابلاغی هزینه ای", "جمع عملکرد مانده مصرف نشده اعتبارات تملک داراییهای سرمایه ای", "جمع عملکرد مانده مصرف نشده اعتبارات اختصاصی"],
-		  "column_identifier": "صورتحساب وضعیت وجوه مصرف نشده سنوات قبل اعتبارات  (هزینه ای ،اختصاصی، تملک داراییهای سرمایه ای ) سال 1398 _ انتقال مانده ازسال قبل _ وجه نقد"
+		  "column_identifier": "صورتحساب وضعیت وجوه مصرف نشده سنوات قبل اعتبارات  (هزینه ای ،اختصاصی، تملک داراییهای سرمایه ای ) سال جاری _ انتقال مانده ازسال قبل _ وجه نقد"
 		},
 		{
 		  "variable_name": "fs_unused_treasury",
 		  "sheet_anchor": "وجوه مصرف نشده",
 		  "row_identifier": ["جمع عملکرد مانده مصرف نشده اعتبارات ابلاغی هزینه ای", "جمع عملکرد مانده مصرف نشده اعتبارات تملک داراییهای سرمایه ای", "جمع عملکرد مانده مصرف نشده اعتبارات اختصاصی"],
-		  "column_identifier": "صورتحساب وضعیت وجوه مصرف نشده سنوات قبل اعتبارات  (هزینه ای ،اختصاصی، تملک داراییهای سرمایه ای ) سال 1398 _ انتقال مانده ازسال قبل _ اسناد خزانه"
+		  "column_identifier": "صورتحساب وضعیت وجوه مصرف نشده سنوات قبل اعتبارات  (هزینه ای ،اختصاصی، تملک داراییهای سرمایه ای ) سال جاری _ انتقال مانده ازسال قبل _ اسناد خزانه"
 		},
 		{
 		  "variable_name": "budget_opening_balances_general",
 		  "sheet_anchor": "فرم 1",
 		  "row_identifier": "درآمد عمومی _ از محل مانده اعتبار سال قبل",
-		  "column_identifier": ["اعتبارات هزینه ای _ اعتبار 1398", "اعتبارات تملک دارائی های سرمایه ای _ اعتبار 1398"]
+		  "column_identifier": ["اعتبارات هزینه ای _ اعتبار سال جاری", "اعتبارات تملک دارائی های سرمایه ای _ اعتبار سال جاری"]
 		},
 		{
 		  "variable_name": "budget_opening_balances_ekhtesasi",
 		  "sheet_anchor": "فرم 1",
 		  "row_identifier": "درآمد اختصاصی _ از محل مانده اعتبار سال قبل",
-		  "column_identifier": ["اعتبارات هزینه ای _ اعتبار 1398"]
+		  "column_identifier": ["اعتبارات هزینه ای _ اعتبار سال جاری"]
 		  },
 
 		{
 		  "variable_name": "fs_unused_expense_prev",
 		  "sheet_anchor": "وجوه مصرف نشده",
 		  "row_identifier": "جمع عملکرد مانده مصرف نشده اعتبارات ابلاغی هزینه ای",
-		  "column_identifier": ["صورتحساب وضعیت وجوه مصرف نشده سنوات قبل اعتبارات  (هزینه ای ،اختصاصی، تملک داراییهای سرمایه ای ) سال 1398 _ انتقال مانده ازسال قبل _ وجه نقد", "صورتحساب وضعیت وجوه مصرف نشده سنوات قبل اعتبارات  (هزینه ای ،اختصاصی، تملک داراییهای سرمایه ای ) سال 1398 _ انتقال مانده ازسال قبل _ اسناد خزانه"]
+		  "column_identifier": ["صورتحساب وضعیت وجوه مصرف نشده سنوات قبل اعتبارات  (هزینه ای ،اختصاصی، تملک داراییهای سرمایه ای ) سال جاری _ انتقال مانده ازسال قبل _ وجه نقد", "صورتحساب وضعیت وجوه مصرف نشده سنوات قبل اعتبارات  (هزینه ای ،اختصاصی، تملک داراییهای سرمایه ای ) سال جاری _ انتقال مانده ازسال قبل _ اسناد خزانه"]
 		},
 		{
 		  "variable_name": "budget_form1_expense_prev",
 		  "sheet_anchor": "فرم 1",
 		  "row_identifier": "درآمد عمومی _ از محل مانده اعتبار سال قبل",
-		  "column_identifier": "اعتبارات هزینه ای _ اعتبار 1398"
+		  "column_identifier": "اعتبارات هزینه ای _ اعتبار سال جاری"
 		},
 		{
 		  "variable_name": "fs_unused_specific_prev",
 		  "sheet_anchor": "وجوه مصرف نشده",
 		  "row_identifier": "جمع عملکرد مانده مصرف نشده اعتبارات اختصاصی",
-		  "column_identifier": ["صورتحساب وضعیت وجوه مصرف نشده سنوات قبل اعتبارات  (هزینه ای ،اختصاصی، تملک داراییهای سرمایه ای ) سال 1398 _ انتقال مانده ازسال قبل _ وجه نقد", "صورتحساب وضعیت وجوه مصرف نشده سنوات قبل اعتبارات  (هزینه ای ،اختصاصی، تملک داراییهای سرمایه ای ) سال 1398 _ انتقال مانده ازسال قبل _ اسناد خزانه"]
+		  "column_identifier": ["صورتحساب وضعیت وجوه مصرف نشده سنوات قبل اعتبارات  (هزینه ای ،اختصاصی، تملک داراییهای سرمایه ای ) سال جاری _ انتقال مانده ازسال قبل _ وجه نقد", "صورتحساب وضعیت وجوه مصرف نشده سنوات قبل اعتبارات  (هزینه ای ،اختصاصی، تملک داراییهای سرمایه ای ) سال جاری _ انتقال مانده ازسال قبل _ اسناد خزانه"]
 		},
 		{
 		  "variable_name": "budget_form1_specific_prev",
 		  "sheet_anchor": "فرم 1",
 		  "row_identifier": "درآمد اختصاصی _ از محل مانده اعتبار سال قبل",
-		  "column_identifier": "اعتبارات هزینه ای _ اعتبار 1398"
+		  "column_identifier": "اعتبارات هزینه ای _ اعتبار سال جاری"
 		},
 		{
 		  "variable_name": "fs_unused_capital_prev_cash",
@@ -1680,7 +1680,7 @@
 		  "variable_name": "budget_form1_capital_prev",
 		  "sheet_anchor": "فرم 1",
 		  "row_identifier": "درآمد عمومی _ از محل مانده اعتبار سال قبل",
-		  "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار 1398"
+		  "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار سال جاری"
 		}
 	  ],
 	  "evaluation_logic": {
