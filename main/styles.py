@@ -612,7 +612,27 @@ div[data-testid="stVerticalBlock"]:has(> div > div.psa-upload-marker):hover {{
 .psa-alert.info .psa-icon {{ color: var(--psa-sky); }}
 .psa-alert.warning {{ border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08); }}
 .psa-alert.warning .psa-icon {{ color: #f59e0b; }}
+.psa-alert.error {{ border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.08); }}
+.psa-alert.error .psa-icon {{ color: #f87171; }}
+.psa-alert.success {{ border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08); }}
+.psa-alert.success .psa-icon {{ color: #34d399; }}
 .psa-alert-text {{ color: var(--psa-text); font-size: .88rem; line-height: 1.7; }}
+
+/* =========================================================================
+   نشان وضعیت پردازش پس‌زمینه (خلاصه‌سازی هوشمند)
+   ========================================================================= */
+.psa-badge.processing {{
+    background: rgba(14, 165, 233, 0.16);
+    color: #7dd3fc;
+    border: 1px solid rgba(14, 165, 233, 0.4);
+    animation: psa-pulse 1.6s ease-in-out infinite;
+}}
+.psa-badge.error {{ background: rgba(239, 68, 68, 0.16); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); }}
+.psa-badge.done {{ background: rgba(16, 185, 129, 0.16); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4); }}
+@keyframes psa-pulse {{
+    0%, 100% {{ opacity: 1; }}
+    50% {{ opacity: .55; }}
+}}
 
 /* =========================================================================
    عمومی
