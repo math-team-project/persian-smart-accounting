@@ -343,12 +343,12 @@ def _format_value(value: Any) -> str:
     return str(value)
 
 
-def run_checklist(imported_sheets: dict[str, Any]) -> list[dict[str, Any]]:
+def run_checklist(imported_sheets: dict[str, Any]):
     """اجرای تمام سوالات چک‌لیست و بازگرداندن نتایج ساختاریافته برای نمایش در داشبورد."""
     questions = load_checklist_definitions()
     loaded_sheets = load_excels_to_ram(imported_sheets)
     #TODO: load_excels_to_ram changed in process
-    
+
     from datetime import datetime
     d = datetime.now()
     ## year_relabeler excute on imported_sheets
@@ -360,6 +360,7 @@ def run_checklist(imported_sheets: dict[str, Any]) -> list[dict[str, Any]]:
 
 
     results: list[dict[str, Any]] = []
+    false_questions: list[dict[str, Any]] = []
     for question in questions:
         q_id = question["question_id"]
         evaluable = _has_evaluation_logic(question)
@@ -368,7 +369,7 @@ def run_checklist(imported_sheets: dict[str, Any]) -> list[dict[str, Any]]:
             "question_id": q_id,
             "question_text": question.get("question_text", ""),
             "question_purpose": question.get("question_porpose", ""),
-            "general_description": question.get("general_descrintion", ""),
+            # "general_description": question.get("general_descrintion", ""),
             "is_evaluable": evaluable,
             "evaluation_condition": None,
             "condition_breakdown": [],
@@ -416,6 +417,10 @@ def run_checklist(imported_sheets: dict[str, Any]) -> list[dict[str, Any]]:
         record["condition_breakdown"] = condition_breakdown
 
         results.append(record)
+        if record["status"] == "FALSE":
+            record.update({f"data_points_to_extract": question.get("data_points_to_extract")})
+            false_questions.append(record)
+        #TODO : false_questions for write report for false questions
 
     return results
 
@@ -474,6 +479,8 @@ def run_full_pipeline(file_paths: dict[str, Optional[Path]]) -> dict[str, Any]:
     processed_inputs = build_imported_sheets(file_paths)
     checklist_results = run_checklist(processed_inputs.imported_sheets)
     summary = summarize_checklist(checklist_results)
+    # TODO: checklist_results[1] for write report for false questions
+
     elapsed = time.time() - start
     return {
         "imported_sheets": processed_inputs.imported_sheets,

@@ -490,12 +490,12 @@ with tab_checklist:
                     f"<b>هدف بررسی:</b> {record['question_purpose']}</div>",
                     unsafe_allow_html=True,
                 )
-            if record["general_description"]:
-                st.markdown(
-                    f"<div style='margin-bottom:.5rem;'>{icon('info', 15)} "
-                    f"<b>توضیحات تکمیلی:</b> {record['general_description']}</div>",
-                    unsafe_allow_html=True,
-                )
+            # if record["general_description"]:
+            #     st.markdown(
+            #         f"<div style='margin-bottom:.5rem;'>{icon('info', 15)} "
+            #         f"<b>توضیحات تکمیلی:</b> {record['general_description']}</div>",
+            #         unsafe_allow_html=True,
+            #     )
 
             if record["evaluation_condition"]:
                 st.markdown(

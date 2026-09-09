@@ -62,7 +62,7 @@
 		{
 		  "variable_name": "traz_expenses",
 		  "sheet_anchor": "کل",
-		  "row_identifier": "610 _ هزينه",
+		  "row_identifier": "610_هزينه",
 		  "column_identifier": "(مانده(بدهکار"
 		},
 		{
@@ -79,9 +79,9 @@
 		},
 		{
 		  "variable_name": "fs_opening_net_value",
-		  "sheet_anchor": "ع",
-		  "row_identifier": "ارزش خالص انباشته ابتدای سال تعدیل شده",
-		  "column_identifier": "سال جاری"
+		  "sheet_anchor": "ت_بدهی‌ها و ارزش خالص",
+		  "row_identifier": "ارزش خالص انباشته",
+		  "column_identifier": "سال قبل"
 		},
 		{
 		  "variable_name": "traz_intangible_assets",
@@ -288,10 +288,16 @@
           "sheet_anchor": "يادداشتها_-4",
           "row_identifier": ["موجودی نزد بانکهای حساب مستقل اعتبارات هزینه ای _ 4-1", "موجودی نزد بانکهای حساب مستقل اعتبارات اختصاصي _ 4-2", "موجودی نزد بانکهای حساب مستقل تملک دارائیهای سرمایه ای _ 4-3"],
           "column_identifier": "سال قبل _ ریال"
+        },
+		{
+          "variable_name": "other_manabe_mande",
+          "sheet_anchor": "سايرمنابع جاری",
+          "row_identifier": "جمع کل سایر منابع هزینه ای",
+		  "column_identifier": "مانده سال گذشته"
         }
       ],
       "evaluation_logic": {
-        "formula": "sum(note_4_last_year_total) == transferred_from_last_year",
+        "formula": "sum(note_4_last_year_total) == transferred_from_last_year + other_manabe_mande",
         "on_true": "بله. مانده انتقال یافته از سال قبل با کسر حساب‌های سپرده و غیرقابل برداشت، با مانده سال قبل یادداشت ۴ برابر است.",
         "on_false": "خیر."
       }
@@ -391,7 +397,7 @@
           "variable_name": "tafrigh_unspent_total",
           "sheet_anchor": "تفریغ",
           "row_identifier": "مازاد وجوه مصرف نشده",
-          "column_identifier": "عملکرد بر مبنای _ قابل مقایسه"
+          "column_identifier": "تفاوت بودجه _ نهایی و عملکرد"
         },
         {
           "variable_name": "mosavab_cash",
@@ -495,7 +501,7 @@
           "variable_name": "note_4_1_ending_balance_previous",
           "sheet_anchor": "يادداشتها_-4-1",
           "row_identifier": "جمع کل",
-          "column_identifier": "سال قبل"
+          "column_identifier": "سال جاری"
         },
         {
           "variable_name": "note_4_1_ending_balance_current",
@@ -532,11 +538,23 @@
           "variable_name": "note_4_3_ending_balance_previous_year",
           "sheet_anchor": "يادداشتها_-4-3",
           "row_identifier": "جمع کل",
-          "column_identifier": "سال قبل"
-        }
+          "column_identifier": "سال جاری"
+        },
+		{
+          "variable_name": "mosavab_mande_khazaneh",
+          "sheet_anchor": " مصوب",
+          "row_identifier": "جمع كل مصوب",
+          "column_identifier": "مانده مصرف نشده در پایان سال _ اسناد خزانه"
+		},
+		{
+        "variable_name": "eblaghi_expense_akhza",
+        "sheet_anchor": "ابلاغي",
+        "row_identifier": "جمع كل",
+        "column_identifier": "مانده مصرف نشده درپایان سال _ اسناد خزانه"
+		}
       ],
       "evaluation_logic": {
-        "condition": "note_4_3_ending_balance_previous_year == Math.abs(tafrigh_capital_unrealized_expenses_diff) - Math.abs(tafrigh_capital_unallocated_sources_diff)",
+        "condition": "(note_4_3_ending_balance_previous_year + mosavab_mande_khazaneh + eblaghi_expense_akhza) == Math.abs(tafrigh_capital_unrealized_expenses_diff) - Math.abs(tafrigh_capital_unallocated_sources_diff)",
         "on_true": "بله. تطابق وجود دارد.",
         "on_false": "خیر. مابه التفاوت مربوطه شامل مانده نقدی و اسناد خزانه پایان سال جاری است و با مانده نقدی سال قبل در یادداشت ۴-۳ برابر نیست."
       }

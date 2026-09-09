@@ -599,7 +599,7 @@ def run_audit_pipeline(
 
     return {
         "question_id": question_key,
-        "general_description": target_q.get("general_descrintion") or target_q.get("general_description", "N/A"),
+        # "general_description": target_q.get("general_descrintion") or target_q.get("general_description", "N/A"),
         "question_purpose": target_q.get("question_porpose", "N/A"),
         "evaluation_condition": condition_str,
         "evaluation_condition_latex": math_to_latex(condition_str),
