@@ -26,6 +26,9 @@ import re
 from rapidfuzz import fuzz, process
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
+import warnings
+warnings.filterwarnings('ignore')  # Suppress all warnings
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -38,33 +41,63 @@ logger = logging.getLogger("AuditChecklistPipeline")
 # Load excel/df files to run checklist functions to extract data it's needed!
 
 ## USE COMBINED DATAFRAMES (MAIN PIPLINE)
+# def load_excels_to_ram(imported_df):
+#     raw_sheets = imported_df
+#     all_sheets_df = {}
+#     sheets_metadata = {}
+
+#     try:
+#         for sheet_name in raw_sheets.keys():
+#             norm_sheet_name = normalize_persian_text(sheet_name)
+#             try:
+#                 all_sheets_df[norm_sheet_name] = normalize_dataframe(raw_sheets[sheet_name]["data"])
+#                 sheets_metadata[norm_sheet_name] = normalize_dataframe(raw_sheets[sheet_name]["metadata"])
+#             except Exception as e_inner:
+#                 logger.debug(f"Sheet '{sheet_name}' does not contain standard 'data' key, attempting nested structure: {e_inner}")
+#                 try:
+#                     for _sheet_name in raw_sheets[sheet_name].keys():
+#                         _norm_sheet_name = normalize_persian_text(_sheet_name)
+#                         # if _norm_sheet_name == "data":
+#                         all_sheets_df[f"{norm_sheet_name}_{_norm_sheet_name}"] = normalize_dataframe(raw_sheets[sheet_name][_sheet_name])
+#                 except Exception as e_nested:
+#                     logger.warning(f"Failed to load nested sheets for '{sheet_name}': {e_nested}")
+#                     continue
+
+#         logger.info(f"Successfully loaded and normalized {len(all_sheets_df.keys())} sheets into RAM.")
+
+#     except Exception as e:
+#         logger.error(f"Critical error during sheet structure processing: {e}")
+
+#     return {"df":all_sheets_df, "metadata": sheets_metadata}
+
 def load_excels_to_ram(imported_df):
     raw_sheets = imported_df
-    all_sheets_df = {}
-    sheets_metadata = {}
+    all_sheets = {}
 
     try:
         for sheet_name in raw_sheets.keys():
             norm_sheet_name = normalize_persian_text(sheet_name)
             try:
-                all_sheets_df[norm_sheet_name] = normalize_dataframe(raw_sheets[sheet_name]["data"])
-                sheets_metadata[norm_sheet_name] = normalize_dataframe(raw_sheets[sheet_name]["metadata"])
+                all_sheets[norm_sheet_name] = normalize_dataframe(raw_sheets[sheet_name]["data"])
             except Exception as e_inner:
                 logger.debug(f"Sheet '{sheet_name}' does not contain standard 'data' key, attempting nested structure: {e_inner}")
                 try:
                     for _sheet_name in raw_sheets[sheet_name].keys():
-                        _norm_sheet_name = normalize_persian_text(_sheet_name)
-                        all_sheets_df[f"{norm_sheet_name}_{_norm_sheet_name}"] = normalize_dataframe(raw_sheets[sheet_name][_sheet_name])
+                        try:
+                            _norm_sheet_name = normalize_persian_text(_sheet_name)
+                            all_sheets[f"{norm_sheet_name}_{_norm_sheet_name}"] = normalize_dataframe(raw_sheets[sheet_name][_sheet_name])
+                        except:
+                            continue
                 except Exception as e_nested:
                     logger.warning(f"Failed to load nested sheets for '{sheet_name}': {e_nested}")
                     continue
 
-        logger.info(f"Successfully loaded and normalized {len(all_sheets_df.keys())} sheets into RAM.")
+        logger.info(f"Successfully loaded and normalized {len(all_sheets.keys())} sheets into RAM.")
 
     except Exception as e:
         logger.error(f"Critical error during sheet structure processing: {e}")
 
-    return {"df":all_sheets_df, "metadata": sheets_metadata}
+    return {"df":all_sheets}    #TODO: metadata key
 
 
 # ## USE PATH FILES TO USE IN CLI OR DIRECTED RUN MAIN FUNCTIONS IN CHECKLIST_PROCESS.PY
@@ -296,7 +329,7 @@ def extract_data_points(data_points, loaded_sheets, fuzzy_threshold = 50):
 
         # Step 1: Try exact substring matching for maximum speed
         for name, df in loaded_sheets["df"].items():
-            if sheet_anchor in name:
+            if sheet_anchor == name:
                 target_df = df
                 matched_sheet_name = name
                 logger.info(f"Exact sheet match found: '{sheet_anchor}' matched with '{name}' for variable '{var_name}'.")
