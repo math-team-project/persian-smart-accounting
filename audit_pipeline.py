@@ -1,9 +1,9 @@
 """
 audit_pipeline.py
 ----------------
-پوسته‌ی سبک روی بسته‌ی audit_summarizer برای استفاده در داشبورد (main/app.py).
+پوسته‌ی سبک روی بسته‌ی audit_summarizer برای استفاده در داشبورد (app.py).
 
-برخلاف main/pipeline.py (که چک‌لیست حسابرسی مالی را روی فایل‌های اکسل اجرا
+برخلاف pipeline.py (که چک‌لیست حسابرسی مالی را روی فایل‌های اکسل اجرا
 می‌کند)، این ماژول یک گزارش حسابرسی متنی (PDF/DOC/DOCX) را می‌گیرد و با کمک
 مدل زبانی، خلاصه‌ی قابل‌فهم و آماده‌ی جلسه تولید می‌کند (معادل audit_summarizer/main.py
 اما بدون CLI و به‌صورت مستقیماً قابل‌فراخوانی، برای اجرا در ترد پس‌زمینه).
@@ -35,7 +35,7 @@ import time
 from pathlib import Path
 from typing import Any, Optional
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
+ROOT_DIR = Path(__file__).resolve().parent
 AUDIT_SUMMARIZER_DIR = ROOT_DIR / "audit_summarizer"
 if str(AUDIT_SUMMARIZER_DIR) not in sys.path:
     sys.path.insert(0, str(AUDIT_SUMMARIZER_DIR))

@@ -1,0 +1,1366 @@
+[
+  {
+    "question_id": "Q1",
+    "question_text": "آیا مانده سرفصل‏های تراز کل با اقلام مندرج در صورت وضعیت مالی و صورت تغییرات در وضعیت مالی مطابقت دارد؟",
+    "question_purpose": "تأیید صحت انتقال (Data Porting) مانده‌های نهایی از دفتر کل به صورت وضعیت مالی. هدف این است که اطمینان حاصل شود دارایی‌های با نقدشوندگی بالا (موجودی نقد) و دارایی‌های سرمایه‌ای (ثابت مشهود) که بدنه اصلی ترازنامه را تشکیل می‌دهند، بدون تغییر، حذف یا خطای محاسباتی از تراز آزمایشی استخراج شده‌اند. این کنترل، ریسک اشتباه در ارائه (Presentation Risk) را پوشش می‌دهد., صحه‎‌گذاری بر انطباق عملکرد مالی با جریانات نقدی خزانه و شناسایی صحیح بدهی‌های بلندمدت. این کنترل تضمین می‌کند که درآمدهای حاصل از اعتبارات دولتی (تخصیص‌ها) و مبالغ بازگردانده شده به خزانه (رد درآمد) با دفاتر قانونی همخوانی داشته و تعهدات پرسنلی (ذخیره سنوات) که یک قلم تعهدی مهم است، به درستی از تراز کل به صورت تغییرات مالی منتقل شده است., اطمینان از جامعیت (Completeness) و طبقه‌بندی صحیح حساب‌های فرعی و اقلام غیرعملیاتی. این کنترل ریسک مخفی ماندن مغایرت‌ها در سرفصل‌های «سایر» را کاهش می‌دهد. هدف این است که ثابت شود تمامی دارایی‌های انتقالی (پیش‌پرداخت‌ها)، مطالبات بلندمدت (سایر دارایی‌ها) و درآمدهای غیرمتعارف (سایر درآمدها) که مستقیماً از بودجه عمومی نیستند، به درستی در گزارشگری نهایی لحاظ شده‌اند.",
+    "is_evaluable": true,
+    "evaluation_condition": "traz_cash == fs_cash && traz_ar_non_exchange == fs_ar_non_exchange && traz_fixed_assets == fs_fixed_assets && traz_ap_exchange == fs_ap_exchange && traz_expenses == abs(fs_expenses) && traz_opening_net_value == fs_opening_net_value && traz_intangible_assets == fs_intangible_assets && traz_longterm_invest == fs_longterm_invest && traz_employee_benefits == fs_employee_benefits && traz_treasury_allocated == fs_treasury_allocated && traz_government_revenue == fs_government_revenue && traz_sent_to_treasury == abs(fs_sent_to_treasury) && traz_prepayments == fs_prepayments && traz_other_assets == fs_other_assets && traz_other_noncurrent_liab == fs_other_noncurrent_liab && traz_other_revenues_code440 == fs_other_revenues",
+    "condition_breakdown": [
+      {
+        "condition": "[110234473507.0 == 110234473507.0]",
+        "result": true
+      },
+      {
+        "condition": "[10149042108.0 == 10149042108.0]",
+        "result": true
+      },
+      {
+        "condition": "[930623919515.0 == 930623919515.0]",
+        "result": true
+      },
+      {
+        "condition": "[12057773251.0 == 12057773251.0]",
+        "result": true
+      },
+      {
+        "condition": "[2607500000.0 == abs(-150027736305.0)]",
+        "result": false
+      },
+      {
+        "condition": "[992674152406.0 == 992674152405.8594]",
+        "result": true
+      },
+      {
+        "condition": "[32387008784.0 == 32387008784.0]",
+        "result": true
+      },
+      {
+        "condition": "[25301169258.0 == 25301169258.0]",
+        "result": true
+      },
+      {
+        "condition": "[24569309765.0 == 24569309765.0]",
+        "result": true
+      },
+      {
+        "condition": "[175005286000.0 == 175005286000.0]",
+        "result": true
+      },
+      {
+        "condition": "[78732076442.0 == 78732076442.0]",
+        "result": true
+      },
+      {
+        "condition": "[56206000000.0 == abs(-56206000000.0)]",
+        "result": true
+      },
+      {
+        "condition": "[1502834359.0 == 1502834359.0]",
+        "result": true
+      },
+      {
+        "condition": "[36673485202.0 == 36673485202.0]",
+        "result": true
+      },
+      {
+        "condition": "[2489711811.0 == 2489711811.0]",
+        "result": true
+      },
+      {
+        "condition": "[30660000000.0 == 30660000000.0]",
+        "result": true
+      }
+    ],
+    "extracted_data": [
+      {
+        "متغیر": "traz_cash",
+        "مقدار استخراج‌شده": "110,234,473,507"
+      },
+      {
+        "متغیر": "fs_cash",
+        "مقدار استخراج‌شده": "110,234,473,507"
+      },
+      {
+        "متغیر": "traz_ar_non_exchange",
+        "مقدار استخراج‌شده": "10,149,042,108"
+      },
+      {
+        "متغیر": "fs_ar_non_exchange",
+        "مقدار استخراج‌شده": "10,149,042,108"
+      },
+      {
+        "متغیر": "traz_fixed_assets",
+        "مقدار استخراج‌شده": "930,623,919,515"
+      },
+      {
+        "متغیر": "fs_fixed_assets",
+        "مقدار استخراج‌شده": "930,623,919,515"
+      },
+      {
+        "متغیر": "traz_ap_exchange",
+        "مقدار استخراج‌شده": "12,057,773,251"
+      },
+      {
+        "متغیر": "fs_ap_exchange",
+        "مقدار استخراج‌شده": "12,057,773,251"
+      },
+      {
+        "متغیر": "traz_expenses",
+        "مقدار استخراج‌شده": "2,607,500,000"
+      },
+      {
+        "متغیر": "fs_expenses",
+        "مقدار استخراج‌شده": "-150,027,736,305"
+      },
+      {
+        "متغیر": "traz_opening_net_value",
+        "مقدار استخراج‌شده": "992,674,152,406"
+      },
+      {
+        "متغیر": "fs_opening_net_value",
+        "مقدار استخراج‌شده": "992,674,152,405.86"
+      },
+      {
+        "متغیر": "traz_intangible_assets",
+        "مقدار استخراج‌شده": "32,387,008,784"
+      },
+      {
+        "متغیر": "fs_intangible_assets",
+        "مقدار استخراج‌شده": "32,387,008,784"
+      },
+      {
+        "متغیر": "traz_longterm_invest",
+        "مقدار استخراج‌شده": "25,301,169,258"
+      },
+      {
+        "متغیر": "fs_longterm_invest",
+        "مقدار استخراج‌شده": "25,301,169,258"
+      },
+      {
+        "متغیر": "traz_employee_benefits",
+        "مقدار استخراج‌شده": "24,569,309,765"
+      },
+      {
+        "متغیر": "fs_employee_benefits",
+        "مقدار استخراج‌شده": "24,569,309,765"
+      },
+      {
+        "متغیر": "traz_treasury_allocated",
+        "مقدار استخراج‌شده": "175,005,286,000"
+      },
+      {
+        "متغیر": "fs_treasury_allocated",
+        "مقدار استخراج‌شده": "175,005,286,000"
+      },
+      {
+        "متغیر": "traz_government_revenue",
+        "مقدار استخراج‌شده": "78,732,076,442"
+      },
+      {
+        "متغیر": "fs_government_revenue",
+        "مقدار استخراج‌شده": "78,732,076,442"
+      },
+      {
+        "متغیر": "traz_sent_to_treasury",
+        "مقدار استخراج‌شده": "56,206,000,000"
+      },
+      {
+        "متغیر": "fs_sent_to_treasury",
+        "مقدار استخراج‌شده": "-56,206,000,000"
+      },
+      {
+        "متغیر": "traz_prepayments",
+        "مقدار استخراج‌شده": "1,502,834,359"
+      },
+      {
+        "متغیر": "fs_prepayments",
+        "مقدار استخراج‌شده": "1,502,834,359"
+      },
+      {
+        "متغیر": "traz_other_assets",
+        "مقدار استخراج‌شده": "36,673,485,202"
+      },
+      {
+        "متغیر": "fs_other_assets",
+        "مقدار استخراج‌شده": "36,673,485,202"
+      },
+      {
+        "متغیر": "traz_other_noncurrent_liab",
+        "مقدار استخراج‌شده": "2,489,711,811"
+      },
+      {
+        "متغیر": "fs_other_noncurrent_liab",
+        "مقدار استخراج‌شده": "2,489,711,811"
+      },
+      {
+        "متغیر": "traz_other_revenues_code440",
+        "مقدار استخراج‌شده": "30,660,000,000"
+      },
+      {
+        "متغیر": "fs_other_revenues",
+        "مقدار استخراج‌شده": "30,660,000,000"
+      }
+    ],
+    "message": "مانده سرفصل‌ها با تراز کل مطابقت ندارد (به ویژه در اقلام تجمیعی).",
+    "status": "FALSE",
+    "data_points_to_extract": [
+      {
+        "variable_name": "traz_cash",
+        "sheet_anchor": "کل",
+        "row_identifier": "موجودي نقدو بانك",
+        "column_identifier": "(مانده(بدهکار"
+      },
+      {
+        "variable_name": "fs_cash",
+        "sheet_anchor": "ت_دارایی‌ها",
+        "row_identifier": "موجودی نقد",
+        "column_identifier": "سال جاری"
+      },
+      {
+        "variable_name": "traz_ar_non_exchange",
+        "sheet_anchor": "کل",
+        "row_identifier": "120 _ حسابها واسناد دريافتني حاصل از عمليات غيرمبادله اي",
+        "column_identifier": "(مانده(بدهکار"
+      },
+      {
+        "variable_name": "fs_ar_non_exchange",
+        "sheet_anchor": "ت_دارایی‌ها",
+        "row_identifier": "حساب‌های دریافتنی حاصل از عملیات غیر مبادله‌ای",
+        "column_identifier": "سال جاری"
+      },
+      {
+        "variable_name": "traz_fixed_assets",
+        "sheet_anchor": "کل",
+        "row_identifier": "150 _ داراييهاي ثابت مشهود",
+        "column_identifier": "(مانده(بدهکار"
+      },
+      {
+        "variable_name": "fs_fixed_assets",
+        "sheet_anchor": "ت_دارایی‌ها",
+        "row_identifier": "دارایی‌های ثابت مشهود",
+        "column_identifier": "سال جاری"
+      },
+      {
+        "variable_name": "traz_ap_exchange",
+        "sheet_anchor": "کل",
+        "row_identifier": "210 _ حسابها واسناد پرداختني حاصل از عمليات مبادله اي",
+        "column_identifier": "(مانده(بستانکار"
+      },
+      {
+        "variable_name": "fs_ap_exchange",
+        "sheet_anchor": "ت_بدهی‌ها و ارزش خالص",
+        "row_identifier": "حساب‎های پرداختنی حاصل از عملیات مبادله‎ای",
+        "column_identifier": "سال جاری"
+      },
+      {
+        "variable_name": "traz_expenses",
+        "sheet_anchor": "کل",
+        "row_identifier": "610_هزينه",
+        "column_identifier": "(مانده(بدهکار"
+      },
+      {
+        "variable_name": "fs_expenses",
+        "sheet_anchor": "ع",
+        "row_identifier": "جمع [3]",
+        "column_identifier": "سال جاری _ ریال"
+      },
+      {
+        "variable_name": "traz_opening_net_value",
+        "sheet_anchor": "کل",
+        "row_identifier": "310 _ ارزش خالص انباشته",
+        "column_identifier": "(مانده(بستانکار"
+      },
+      {
+        "variable_name": "fs_opening_net_value",
+        "sheet_anchor": "ت_بدهی‌ها و ارزش خالص",
+        "row_identifier": "ارزش خالص انباشته",
+        "column_identifier": "سال قبل"
+      },
+      {
+        "variable_name": "traz_intangible_assets",
+        "sheet_anchor": "کل",
+        "row_identifier": "160 _ داراييهاي ثابت نامشهود",
+        "column_identifier": "(مانده(بدهکار"
+      },
+      {
+        "variable_name": "fs_intangible_assets",
+        "sheet_anchor": "ت_دارایی‌ها",
+        "row_identifier": "دارایی‎های نامشهود",
+        "column_identifier": "سال جاری"
+      },
+      {
+        "variable_name": "traz_longterm_invest",
+        "sheet_anchor": "کل",
+        "row_identifier": "170 _ سرمايه گذاري بلند مدت",
+        "column_identifier": "(مانده(بدهکار"
+      },
+      {
+        "variable_name": "fs_longterm_invest",
+        "sheet_anchor": "ت_دارایی‌ها",
+        "row_identifier": "سرمایه گذاری‎های بلند مدت",
+        "column_identifier": "سال جاری"
+      },
+      {
+        "variable_name": "traz_employee_benefits",
+        "sheet_anchor": "کل",
+        "row_identifier": "260 _ ذخيره مزاياي پايان خدمت كاركنان",
+        "column_identifier": "(مانده(بستانکار"
+      },
+      {
+        "variable_name": "fs_employee_benefits",
+        "sheet_anchor": "ت_بدهی‌ها و ارزش خالص",
+        "row_identifier": "ذخیره مزایای پایان خدمت کارکنان",
+        "column_identifier": "سال جاری"
+      },
+      {
+        "variable_name": "traz_treasury_allocated",
+        "sheet_anchor": "کل",
+        "row_identifier": "410 _ دريافتي از خزانه اعتبارات تخصيص يافته",
+        "column_identifier": "(مانده(بستانکار"
+      },
+      {
+        "variable_name": "fs_treasury_allocated",
+        "sheet_anchor": "ع",
+        "row_identifier": "دریافتی از خزانه از محل اعتبارات تخصیص یافته",
+        "column_identifier": "سال جاری _ ریال"
+      },
+      {
+        "variable_name": "traz_government_revenue",
+        "sheet_anchor": "کل",
+        "row_identifier": "510 _ درآمدهاي دولت",
+        "column_identifier": "(مانده(بستانکار"
+      },
+      {
+        "variable_name": "fs_government_revenue",
+        "sheet_anchor": "ع",
+        "row_identifier": "درآمد های دولت",
+        "column_identifier": "سال جاری _ ریال"
+      },
+      {
+        "variable_name": "traz_sent_to_treasury",
+        "sheet_anchor": "کل",
+        "row_identifier": "710 _ وجوه ارسالي به خزانه",
+        "column_identifier": "(مانده(بدهکار"
+      },
+      {
+        "variable_name": "fs_sent_to_treasury",
+        "sheet_anchor": "ع",
+        "row_identifier": "کسر میشود وجوه ارسالی به خزانه",
+        "column_identifier": "سال جاری _ ریال"
+      },
+      {
+        "variable_name": "traz_prepayments",
+        "sheet_anchor": "کل",
+        "row_identifier": "140 _ پيش پرداختها",
+        "column_identifier": "(مانده(بدهکار"
+      },
+      {
+        "variable_name": "fs_prepayments",
+        "sheet_anchor": "ت_دارایی‌ها",
+        "row_identifier": "پیش‎پرداخت‎ها",
+        "column_identifier": "سال جاری"
+      },
+      {
+        "variable_name": "traz_other_assets",
+        "sheet_anchor": "کل",
+        "row_identifier": "180 _ ساير داراييها",
+        "column_identifier": "(مانده(بدهکار"
+      },
+      {
+        "variable_name": "fs_other_assets",
+        "sheet_anchor": "ت_دارایی‌ها",
+        "row_identifier": "سایر دارایی ها",
+        "column_identifier": "سال جاری"
+      },
+      {
+        "variable_name": "traz_other_noncurrent_liab",
+        "sheet_anchor": "کل",
+        "row_identifier": "270 _ ساير بدهي هاي غير جاري",
+        "column_identifier": "(مانده(بستانکار"
+      },
+      {
+        "variable_name": "fs_other_noncurrent_liab",
+        "sheet_anchor": "ت_بدهی‌ها و ارزش خالص",
+        "row_identifier": "سایر بدهی‎های غیرجاری",
+        "column_identifier": "سال جاری"
+      },
+      {
+        "variable_name": "traz_other_revenues_code440",
+        "sheet_anchor": "کل",
+        "row_identifier": "440.0 ساير درآمدها",
+        "column_identifier": "(مانده(بستانکار"
+      },
+      {
+        "variable_name": "fs_other_revenues",
+        "sheet_anchor": "ع",
+        "row_identifier": "سایر درآمدها",
+        "column_identifier": "سال جاری _ ریال"
+      }
+    ]
+  },
+  {
+    "question_id": "Q6",
+    "question_text": "آیا مانده وجوه مصرف نشده در فرم های اعتبارات مصوب، مانده وجوه سنوات قبل، اعتبارات ابلاغی و ... با مانده صورت مقایسه بودجه و عملکرد مطابقت دارد؟(مانده شامل وجه نقد و اسناد خزانه اسلامی)",
+    "question_purpose": "اگر اختلافی دیدید، معمولاً به خاطر جا افتادن یکی از منابع (مثلاً اسناد خزانه ابلاغی) یا اشتباه در جمع فرم‌ها است. این کنترل یکی از مهم‌ترین تطابق‌های حسابرسی است چون نشان می‌دهد آیا تمام مانده‌های مالی به درستی به سال بعد منتقل شده‌اند یا خیر.",
+    "is_evaluable": true,
+    "evaluation_condition": "(mosavab_cash + mosavab_akhza) + (sanavat_cash + sanavat_akhza) + (eblaghi_cash + eblaghi_akhza) + sayer_cash == tafrigh_unspent_total",
+    "condition_breakdown": [
+      {
+        "condition": "[(49215523581.0 + 2849999999.999851) + (24277165944.04 + 24277165944.04) + (52914286000.0 + 12250000000.0) + 24893199823.0 == 114245021477.04001]",
+        "result": false
+      }
+    ],
+    "extracted_data": [
+      {
+        "متغیر": "tafrigh_unspent_total",
+        "مقدار استخراج‌شده": "114,245,021,477.04"
+      },
+      {
+        "متغیر": "mosavab_cash",
+        "مقدار استخراج‌شده": "49,215,523,581"
+      },
+      {
+        "متغیر": "mosavab_akhza",
+        "مقدار استخراج‌شده": "2,850,000,000"
+      },
+      {
+        "متغیر": "sanavat_cash",
+        "مقدار استخراج‌شده": "24,277,165,944.04"
+      },
+      {
+        "متغیر": "sanavat_akhza",
+        "مقدار استخراج‌شده": "24,277,165,944.04"
+      },
+      {
+        "متغیر": "eblaghi_cash",
+        "مقدار استخراج‌شده": "52,914,286,000"
+      },
+      {
+        "متغیر": "eblaghi_akhza",
+        "مقدار استخراج‌شده": "12,250,000,000"
+      },
+      {
+        "متغیر": "sayer_cash",
+        "مقدار استخراج‌شده": "24,893,199,823"
+      }
+    ],
+    "message": "خیر، ارقام مطابقت ندارند.",
+    "status": "FALSE",
+    "data_points_to_extract": [
+      {
+        "variable_name": "tafrigh_unspent_total",
+        "sheet_anchor": "تفریغ",
+        "row_identifier": "مازاد وجوه مصرف نشده",
+        "column_identifier": "تفاوت بودجه _ نهایی و عملکرد"
+      },
+      {
+        "variable_name": "mosavab_cash",
+        "sheet_anchor": " مصوب",
+        "row_identifier": "جمع كل مصوب",
+        "column_identifier": "مانده مصرف نشده در پایان سال _ وجه نقد"
+      },
+      {
+        "variable_name": "mosavab_akhza",
+        "sheet_anchor": " مصوب",
+        "row_identifier": "جمع كل مصوب",
+        "column_identifier": "مانده مصرف نشده در پایان سال _ اسناد خزانه"
+      },
+      {
+        "variable_name": "sanavat_cash",
+        "sheet_anchor": "وجوه مصرف نشده",
+        "row_identifier": "جمع كل",
+        "column_identifier": "انتقال مانده ازسال قبل _ وجه نقد"
+      },
+      {
+        "variable_name": "sanavat_akhza",
+        "sheet_anchor": "وجوه مصرف نشده",
+        "row_identifier": "جمع كل",
+        "column_identifier": "انتقال مانده ازسال قبل _ وجه نقد"
+      },
+      {
+        "variable_name": "eblaghi_cash",
+        "sheet_anchor": "ابلاغي",
+        "row_identifier": "جمع كل",
+        "column_identifier": "انتقال مانده ازسال قبل _ اسناد خزانه"
+      },
+      {
+        "variable_name": "eblaghi_akhza",
+        "sheet_anchor": "ابلاغي",
+        "row_identifier": "جمع كل",
+        "column_identifier": "مانده مصرف نشده درپایان سال _ اسناد خزانه"
+      },
+      {
+        "variable_name": "sayer_cash",
+        "sheet_anchor": "سايرمنابع جاری",
+        "row_identifier": "جمع کل سایر منابع هزینه ای",
+        "column_identifier": "مانده پايان سال مالي"
+      }
+    ]
+  },
+  {
+    "question_id": "Q7",
+    "question_text": "آیا مانده عدم تخصیص مندرج در فرم اعتبارات مصوب (مابه التفاوت اعتبارات مصوب با دریافتی از خزانه) با قسمت منابع مندرح در صورت مقایسه بودجه و عملکرد مطابقت دارد؟",
+    "question_purpose": "در بودجه‌ریزی دولتی، «عدم تخصیص» به آن بخش از بودجه مصوب‌شده گفته می‌شود که سازمان برنامه و بودجه هنوز آن را به دستگاه اجرایی ابلاغ نکرده است (یعنی معادل است با «اعتبار مصوب» منهای «اعتبار تخصیص‌یافته»).این سوال بررسی می‌کند که آیا این عدد کلیدی در جدول بودجه مصوب با قسمت منابع جدول مقایسه بودجه و عملکرد همخوانی دارد یا خیر. در واقع، اطمینان حاصل می‌شود که بستن حساب‌های بودجه‌ای در انتهای سال، به‌درستی انجام شده و عدد عدم‌تخصیص در جایگاه خود در صورت‌های مالی منعکس شده است.",
+    "is_evaluable": true,
+    "evaluation_condition": "Math.abs(tafrigh_unallocated_diff) == (mosavab_total_approved - mosavab_takhsis)",
+    "condition_breakdown": [
+      {
+        "condition": "[abs(-41615180003.0) == (221296000000.0 - 179680820000.0)]",
+        "result": false
+      }
+    ],
+    "extracted_data": [
+      {
+        "متغیر": "tafrigh_unallocated_diff",
+        "مقدار استخراج‌شده": "-41,615,180,003"
+      },
+      {
+        "متغیر": "mosavab_total_approved",
+        "مقدار استخراج‌شده": "221,296,000,000"
+      },
+      {
+        "متغیر": "mosavab_takhsis",
+        "مقدار استخراج‌شده": "179,680,820,000"
+      }
+    ],
+    "message": "خیر. ارقام همخوانی ندارند.",
+    "status": "FALSE",
+    "data_points_to_extract": [
+      {
+        "variable_name": "tafrigh_unallocated_diff",
+        "sheet_anchor": "تفریغ",
+        "row_identifier": "جمع منابع",
+        "column_identifier": "تفاوت بودجه _ نهایی و عملکرد _ ریال"
+      },
+      {
+        "variable_name": "mosavab_total_approved",
+        "sheet_anchor": " مصوب",
+        "row_identifier": "جمع كل مصوب",
+        "column_identifier": "اعتبارات _ اعتبارمصوب"
+      },
+      {
+        "variable_name": "mosavab_takhsis",
+        "sheet_anchor": " مصوب",
+        "row_identifier": "جمع كل مصوب",
+        "column_identifier": "اعتبارات _ تخصیص یافته"
+      }
+    ]
+  },
+  {
+    "question_id": "Q12",
+    "question_text": "آیا دریافتی از خزانه مندرج در یادداشت‏های درآمد با فرم اعتبارات مصوب سال جاری،  اعتبارات ابلاغی و ... مطابقت دارد؟",
+    "question_purpose": "تمام منابع مالی پارک از طریق خزانه (اعتبارات جاری، عمرانی و درآمدهای اختصاصی) تأمین می‌شود. در یادداشت‌های صورت‌های مالی (بندهای ۱۷، ۱۸ و ۱۹) مبالغ دریافتی از خزانه به تفکیک ثبت شده است. در فرم‌های «اعتبارات مصوب» و «اعتبارات ابلاغی» نیز همین مبالغ به تفکیک بودجه مصوب و ابلاغی وجود دارد. این کنترل اطمینان می‌دهد که جمع وجوهی که از خزانه دریافت شده، در هر دو بخش (یادداشت‌ها و فرم‌های بودجه) به‌درستی و با یکدیگر همخوانی دارد تا از صحت ثبت درآمدهای دولتی اطمینان حاصل شود.",
+    "is_evaluable": true,
+    "evaluation_condition": "((mosavab_expense_cash + mosavab_expense_akhza) + (eblaghi_expense_cash + eblaghi_expense_akhza) == note_17_1_expense_revenue) && ((mosavab_capital_cash + mosavab_capital_akhza) == note_18_capital_revenue) && ((mosavab_sarmaye_cash + mosavab_sarmaye_akhza) + (eblaghi_sarmaye_cash + eblaghi_sarmaye_akhza) == note_17_2_capital_revenue)",
+    "condition_breakdown": [
+      {
+        "condition": "[((116221000000.0 + 0.0) + (40314286000.0 + 0.0) == 156535286000.0)]",
+        "result": true
+      },
+      {
+        "condition": "[((54519819997.0 + 0.0) == 54519819997.0)]",
+        "result": true
+      },
+      {
+        "condition": "[((5116000000.0 + 3824000000.0) + (350000000.0 + 12250000000.0) == 18470000000.0)]",
+        "result": false
+      }
+    ],
+    "extracted_data": [
+      {
+        "متغیر": "note_17_1_expense_revenue",
+        "مقدار استخراج‌شده": "156,535,286,000"
+      },
+      {
+        "متغیر": "note_17_2_capital_revenue",
+        "مقدار استخراج‌شده": "18,470,000,000"
+      },
+      {
+        "متغیر": "note_18_capital_revenue",
+        "مقدار استخراج‌شده": "54,519,819,997"
+      },
+      {
+        "متغیر": "mosavab_expense_cash",
+        "مقدار استخراج‌شده": "116,221,000,000"
+      },
+      {
+        "متغیر": "mosavab_expense_akhza",
+        "مقدار استخراج‌شده": "0"
+      },
+      {
+        "متغیر": "mosavab_capital_cash",
+        "مقدار استخراج‌شده": "54,519,819,997"
+      },
+      {
+        "متغیر": "mosavab_capital_akhza",
+        "مقدار استخراج‌شده": "0"
+      },
+      {
+        "متغیر": "mosavab_sarmaye_cash",
+        "مقدار استخراج‌شده": "5,116,000,000"
+      },
+      {
+        "متغیر": "mosavab_sarmaye_akhza",
+        "مقدار استخراج‌شده": "3,824,000,000"
+      },
+      {
+        "متغیر": "eblaghi_expense_cash",
+        "مقدار استخراج‌شده": "40,314,286,000"
+      },
+      {
+        "متغیر": "eblaghi_expense_akhza",
+        "مقدار استخراج‌شده": "0"
+      },
+      {
+        "متغیر": "eblaghi_sarmaye_cash",
+        "مقدار استخراج‌شده": "350,000,000"
+      },
+      {
+        "متغیر": "eblaghi_sarmaye_akhza",
+        "مقدار استخراج‌شده": "12,250,000,000"
+      }
+    ],
+    "message": "خیر. ارقام ثبت شده در یادداشت درآمدهای خزانه با مجموع مبالغ (نقد و اسناد خزانه) دریافت شده در فرم‌های بودجه‌ای مطابقت ندارد. (مغایرت ممکن است در بخش هزینه‌ای یا تملک باشد).",
+    "status": "FALSE",
+    "data_points_to_extract": [
+      {
+        "variable_name": "note_17_1_expense_revenue",
+        "sheet_anchor": "يادداشتها_17-1",
+        "row_identifier": "جمع کل",
+        "column_identifier": "سال جاری"
+      },
+      {
+        "variable_name": "note_17_2_capital_revenue",
+        "sheet_anchor": "يادداشتها_17-2",
+        "row_identifier": "جمع کل",
+        "column_identifier": "سال جاری"
+      },
+      {
+        "variable_name": "note_18_capital_revenue",
+        "sheet_anchor": "يادداشتها_-18",
+        "row_identifier": "جمع کل",
+        "column_identifier": "سال جاری"
+      },
+      {
+        "variable_name": "mosavab_expense_cash",
+        "sheet_anchor": "مصوب",
+        "row_identifier": "جمع عملکرد اعتبارات مصوب هزینه ای",
+        "column_identifier": "دریافتی ازخزانه _ وجه نقد"
+      },
+      {
+        "variable_name": "mosavab_expense_akhza",
+        "sheet_anchor": "مصوب",
+        "row_identifier": "جمع عملکرد اعتبارات مصوب هزینه ای",
+        "column_identifier": "دریافتی ازخزانه _ استاد خزانه اسلامی"
+      },
+      {
+        "variable_name": "mosavab_capital_cash",
+        "sheet_anchor": "مصوب",
+        "row_identifier": "جمع عملکرد اعتبارات مصوب اختصاصی",
+        "column_identifier": "دریافتی ازخزانه _ وجه نقد"
+      },
+      {
+        "variable_name": "mosavab_capital_akhza",
+        "sheet_anchor": "مصوب",
+        "row_identifier": "جمع عملکرد اعتبارات مصوب اختصاصی",
+        "column_identifier": "دریافتی ازخزانه _ استاد خزانه اسلامی"
+      },
+      {
+        "variable_name": "mosavab_sarmaye_cash",
+        "sheet_anchor": "مصوب",
+        "row_identifier": "جمع عملکرد اعتبارات مصوب تملک داراییهای سرمایه ای",
+        "column_identifier": "دریافتی ازخزانه _ وجه نقد"
+      },
+      {
+        "variable_name": "mosavab_sarmaye_akhza",
+        "sheet_anchor": "مصوب",
+        "row_identifier": "جمع عملکرد اعتبارات مصوب تملک داراییهای سرمایه ای",
+        "column_identifier": "دریافتی ازخزانه _ استاد خزانه اسلامی"
+      },
+      {
+        "variable_name": "eblaghi_expense_cash",
+        "sheet_anchor": "ابلاغي",
+        "row_identifier": "جمع عملکرد اعتبارات ابلاغی  هزینه ای",
+        "column_identifier": "دریافتی ازخزانه _ وجه نقد"
+      },
+      {
+        "variable_name": "eblaghi_expense_akhza",
+        "sheet_anchor": "ابلاغي",
+        "row_identifier": "جمع عملکرد اعتبارات ابلاغی  هزینه ای",
+        "column_identifier": "دریافتی ازخزانه _ اسناد خزانه"
+      },
+      {
+        "variable_name": "eblaghi_sarmaye_cash",
+        "sheet_anchor": "ابلاغي",
+        "row_identifier": "جمع عملکرد اعتبارات ابلاغی تملک دارایی های سرمایه ای",
+        "column_identifier": "دریافتی ازخزانه _ وجه نقد"
+      },
+      {
+        "variable_name": "eblaghi_sarmaye_akhza",
+        "sheet_anchor": "ابلاغي",
+        "row_identifier": "جمع عملکرد اعتبارات ابلاغی تملک دارایی های سرمایه ای",
+        "column_identifier": "دریافتی ازخزانه _ اسناد خزانه"
+      }
+    ]
+  },
+  {
+    "question_id": "Q21",
+    "question_text": "آیا اسناد خزانه اسلامی مندرج در فرم های اعتبارات مصوب سال جاری و ابلاغی با تاییدیه تخصیص اعتبارات تملک دارایی‏های سرمایه‏ای مطابقت دارد؟",
+    "question_purpose": "هدف سوال: اطمینان از صحت و تمامیت اسناد خزانه اسلامی تخصیص یافته به دستگاه. این کنترل بررسی می‌کند که آیا مبالغ اوراق بهاداری که پارک مدعی دریافت آن‌هاست، توسط خزانه کل کشور نیز به عنوان 'پرداخت شده' تأیید شده است یا خیر، تا از ثبت دارایی‌های واهی یا ثبت نشدن بخشی از اوراق جلوگیری شود.",
+    "is_evaluable": true,
+    "evaluation_condition": "(performance_approved_bills + performance_eblaghi_bills) == treasury_confirmed_bills",
+    "condition_breakdown": [
+      {
+        "condition": "[(3824000000.0 + 12250000000.0) == 974000000.0]",
+        "result": false
+      }
+    ],
+    "extracted_data": [
+      {
+        "متغیر": "performance_approved_bills",
+        "مقدار استخراج‌شده": "3,824,000,000"
+      },
+      {
+        "متغیر": "performance_eblaghi_bills",
+        "مقدار استخراج‌شده": "12,250,000,000"
+      },
+      {
+        "متغیر": "treasury_confirmed_bills",
+        "مقدار استخراج‌شده": "974,000,000"
+      }
+    ],
+    "message": "مجموع اسناد خزانه مندرج در فرم‌های عملکرد با تأییدیه خزانه مطابقت ندارد",
+    "status": "FALSE",
+    "data_points_to_extract": [
+      {
+        "variable_name": "performance_approved_bills",
+        "sheet_anchor": "مصوب",
+        "row_identifier": "جمع عملکرد اعتبارات مصوب تملک داراییهای سرمایه ای",
+        "column_identifier": "دریافتی ازخزانه _ استاد خزانه اسلامی"
+      },
+      {
+        "variable_name": "performance_eblaghi_bills",
+        "sheet_anchor": "ابلاغي",
+        "row_identifier": "جمع عملکرد اعتبارات ابلاغی تملک دارایی های سرمایه ای",
+        "column_identifier": "دریافتی ازخزانه _ اسناد خزانه"
+      },
+      {
+        "variable_name": "treasury_confirmed_bills",
+        "sheet_anchor": "تاییدیه مصارف اداره کل خزانه",
+        "row_identifier": "مجموع اسناد خزانه اسلامي طرح",
+        "column_identifier": "پرداختی"
+      }
+    ]
+  },
+  {
+    "question_id": "Q26",
+    "question_text": "آیا مانده اعتبار تخصیص یافته( کد 930) در تراز کل در تاریخ 29 اسفند جاری با مانده وجوه مصرف نشده اعتبارات هزینه‏ای و تملک دارایی‏های سرمایه‏ای سال جاری در صورت‏های مالی مطابقت دارد؟",
+    "question_purpose": "هدف سوال: این کنترل بررسی می‌کند که آیا اعتباراتی که در دفاتر کل به عنوان 'تخصیص یافته و مصرف نشده' (حساب ۹۳۰) ثبت شده‌اند، با مبالغی که در گزارش‌های بودجه‌ای صورت‌های مالی به عنوان 'وجوه مصرف نشده' پایان سال ارائه شده است، همخوانی دارد یا خیر.",
+    "is_evaluable": true,
+    "evaluation_condition": "round(allocated_credit_930) == round(sum(unused_funds_sarmayeh_current_year) + sum(unused_funds_hazine_current_year))",
+    "condition_breakdown": [
+      {
+        "condition": "[round(41447656156.0) == round(sum([0.0, 0.0]) + sum([35399141738.0, 35399141738.0]))]",
+        "result": false
+      }
+    ],
+    "extracted_data": [
+      {
+        "متغیر": "allocated_credit_930",
+        "مقدار استخراج‌شده": "41,447,656,156"
+      },
+      {
+        "متغیر": "unused_funds_sarmayeh_current_year",
+        "مقدار استخراج‌شده": "0, 0"
+      },
+      {
+        "متغیر": "unused_funds_hazine_current_year",
+        "مقدار استخراج‌شده": "35,399,141,738, 35,399,141,738"
+      }
+    ],
+    "message": "مطابقت ندارد.",
+    "status": "FALSE",
+    "data_points_to_extract": [
+      {
+        "variable_name": "allocated_credit_930",
+        "sheet_anchor": "کل",
+        "row_identifier": "930 _ اعتبار تخصيص يافته",
+        "column_identifier": "(مانده(بدهکار"
+      },
+      {
+        "variable_name": "unused_funds_sarmayeh_current_year",
+        "sheet_anchor": "مصوب",
+        "row_identifier": "جمع عملکرد اعتبارات مصوب تملک داراییهای سرمایه ای",
+        "column_identifier": [
+          "مانده مصرف نشده در پایان سال _ وجه نقد",
+          "مانده مصرف نشده در پایان سال _ وجه نقد"
+        ]
+      },
+      {
+        "variable_name": "unused_funds_hazine_current_year",
+        "sheet_anchor": "مصوب",
+        "row_identifier": "جمع عملکرد اعتبارات مصوب هزینه ای",
+        "column_identifier": [
+          "مانده مصرف نشده در پایان سال _ وجه نقد",
+          "مانده مصرف نشده در پایان سال _ وجه نقد"
+        ]
+      }
+    ]
+  },
+  {
+    "question_id": "Q27",
+    "question_text": "آیا مانده اعتبار ابلاغی (کد 950) در تراز کل در تاریخ 29 اسفند جاری با مانده وجوه مصرف نشده اعتبارات ابلاغی سال جاری در صورت‏های مالی مطابقت دارد؟",
+    "question_purpose": "هدف سوال: این کنترل بررسی می‌کند که آیا اعتباراتی که در طول سال به صورت ابلاغی (خارج از بودجه مصوب اولیه) دریافت شده‌اند، به درستی در دفاتر کل (حساب ۹۵۰) ثبت شده و مانده مصرف‌نشده آن‌ها با گزارش‌های عملکردی صورت‌های مالی همخوانی دارد یا خیر.",
+    "is_evaluable": true,
+    "evaluation_condition": "round(eblaghi_control_950_balance) == round(sum(unused_funds_sarmayeh_current_year) + sum(unused_funds_hazine_current_year))",
+    "condition_breakdown": [
+      {
+        "condition": "[round(34297854822.0) == round(sum([350000000.0, 12250000000.0]) + sum([22141433305.0, 0.0]))]",
+        "result": false
+      }
+    ],
+    "extracted_data": [
+      {
+        "متغیر": "eblaghi_control_950_balance",
+        "مقدار استخراج‌شده": "34,297,854,822"
+      },
+      {
+        "متغیر": "unused_funds_sarmayeh_current_year",
+        "مقدار استخراج‌شده": "350,000,000, 12,250,000,000"
+      },
+      {
+        "متغیر": "unused_funds_hazine_current_year",
+        "مقدار استخراج‌شده": "22,141,433,305, 0"
+      }
+    ],
+    "message": "مطابقت ندارد.",
+    "status": "FALSE",
+    "data_points_to_extract": [
+      {
+        "variable_name": "eblaghi_control_950_balance",
+        "sheet_anchor": "کل",
+        "row_identifier": "950 _ اعتبارابلاغي",
+        "column_identifier": "(مانده(بدهکار"
+      },
+      {
+        "variable_name": "unused_funds_sarmayeh_current_year",
+        "sheet_anchor": "ابلاغي",
+        "row_identifier": "جمع عملکرد اعتبارات ابلاغی تملک دارایی های سرمایه ای",
+        "column_identifier": [
+          "مانده مصرف نشده درپایان سال _ وجه نقد",
+          "مانده مصرف نشده درپایان سال _ اسناد خزانه"
+        ]
+      },
+      {
+        "variable_name": "unused_funds_hazine_current_year",
+        "sheet_anchor": "ابلاغي",
+        "row_identifier": "جمع عملکرد اعتبارات ابلاغی  هزینه ای",
+        "column_identifier": [
+          "مانده مصرف نشده درپایان سال _ وجه نقد",
+          "مانده مصرف نشده درپایان سال _ اسناد خزانه"
+        ]
+      }
+    ]
+  },
+  {
+    "question_id": "Q28",
+    "question_text": "آیا مانده اعتبار مصوب (کد 920) در تراز کل در تاریخ 29 اسفند جاری با عدم تخصیص مندرج در صورت مقایسه بودجه و عملکرد بعلاوه مانده وجوه مصرف نشده اعتبارات اختصاصی سال جاری در فرم اعتبارات مصوب ، مطابقت دارد؟",
+    "question_purpose": "هدف سوال: این کنترل بررسی می‌کند که آیا حساب 'اعتبار مصوب' در دفاتر کل (که نشان‌دهنده سقف بودجه تخصیص‌نیافته است) با گزارش‌های عملکردی (شامل عدم تخصیص در تفریغ و وجوه باقی‌مانده اختصاصی) همخوانی دارد یا خیر.",
+    "is_evaluable": true,
+    "evaluation_condition": "round(approved_credit_920_balance) == round(abs(non_allocation_comparison) + sum(unused_special_funds))",
+    "condition_breakdown": [
+      {
+        "condition": "[round(54139184448.0) == round(abs(-41615180003.0) + sum([13816381843.0, 13816381843.0]))]",
+        "result": false
+      }
+    ],
+    "extracted_data": [
+      {
+        "متغیر": "approved_credit_920_balance",
+        "مقدار استخراج‌شده": "54,139,184,448"
+      },
+      {
+        "متغیر": "non_allocation_comparison",
+        "مقدار استخراج‌شده": "-41,615,180,003"
+      },
+      {
+        "متغیر": "unused_special_funds",
+        "مقدار استخراج‌شده": "13,816,381,843, 13,816,381,843"
+      }
+    ],
+    "message": "مطابقت ندارد.",
+    "status": "FALSE",
+    "data_points_to_extract": [
+      {
+        "variable_name": "approved_credit_920_balance",
+        "sheet_anchor": "کل",
+        "row_identifier": "920 _ اعتبار مصوب",
+        "column_identifier": "(مانده(بدهکار"
+      },
+      {
+        "variable_name": "non_allocation_comparison",
+        "sheet_anchor": "تفریغ",
+        "row_identifier": "جمع منابع",
+        "column_identifier": "تفاوت بودجه _ نهایی و عملکرد"
+      },
+      {
+        "variable_name": "unused_special_funds",
+        "sheet_anchor": "مصوب",
+        "row_identifier": "جمع عملکرد اعتبارات مصوب اختصاصی",
+        "column_identifier": [
+          "مانده مصرف نشده در پایان سال _ وجه نقد",
+          "مانده مصرف نشده در پایان سال _ وجه نقد"
+        ]
+      }
+    ]
+  },
+  {
+    "question_id": "Q29",
+    "question_text": "آیا مانده اعتبار پرداخت‏های غیر قطعی ( کد 980) در تراز کل در تاریخ 29 اسفند جاری با  علی الحساب ها (حساب‏های انتظامی) ، پیش پرداخت ها و پیش پرداخت‏های سرمایه‏ای(در دارایی‏های ثابت مشهود) و ودایع در صورت‏های مالی، مطابقت دارد",
+    "question_purpose": "هدف سوال: این کنترل اطمینان حاصل می‌کند که تمام پرداخت‌های غیرقطعی (پیش‌پرداخت و علی‌الحساب) که در بخش مالی ثبت شده‌اند، به طور همزمان در سرفصل‌های کنترلی بودجه (حساب ۹۸۰) نیز منعکس شده باشند تا سقف اعتبارات مصرف شده به درستی محاسبه گردد.",
+    "is_evaluable": true,
+    "evaluation_condition": "round(uncleared_payments_980) == round(prepayments_balance + advances_ali_al_hesab + prepayments_total + vadayeh_deposits + capital_in_progress)",
+    "condition_breakdown": [
+      {
+        "condition": "[round(14497311121.0) == round(1502834359.0 + 1073603123.0 + 1502834359.0 + 476240000.0 + 30351721935.0)]",
+        "result": false
+      }
+    ],
+    "extracted_data": [
+      {
+        "متغیر": "uncleared_payments_980",
+        "مقدار استخراج‌شده": "14,497,311,121"
+      },
+      {
+        "متغیر": "prepayments_balance",
+        "مقدار استخراج‌شده": "1,502,834,359"
+      },
+      {
+        "متغیر": "advances_ali_al_hesab",
+        "مقدار استخراج‌شده": "1,073,603,123"
+      },
+      {
+        "متغیر": "prepayments_total",
+        "مقدار استخراج‌شده": "1,502,834,359"
+      },
+      {
+        "متغیر": "vadayeh_deposits",
+        "مقدار استخراج‌شده": "476,240,000"
+      },
+      {
+        "متغیر": "capital_in_progress",
+        "مقدار استخراج‌شده": "30,351,721,935"
+      }
+    ],
+    "message": "مطابقت ندارد.",
+    "status": "FALSE",
+    "data_points_to_extract": [
+      {
+        "variable_name": "uncleared_payments_980",
+        "sheet_anchor": "کل",
+        "row_identifier": "980 _ اعتبار پرداختهاي غيرقطعي",
+        "column_identifier": "(مانده(بدهکار"
+      },
+      {
+        "variable_name": "prepayments_balance",
+        "sheet_anchor": "ت_دارایی‌ها",
+        "row_identifier": "پیش‎پرداخت‎ها",
+        "column_identifier": "سال جاری"
+      },
+      {
+        "variable_name": "advances_ali_al_hesab",
+        "sheet_anchor": "يادداشتها_-29",
+        "row_identifier": "حسابهای انتظامی - علی الحساب _ 14-16",
+        "column_identifier": "سال جاری _ ریال"
+      },
+      {
+        "variable_name": "prepayments_total",
+        "sheet_anchor": "يادداشتها_-7",
+        "row_identifier": "جمع کل (1)",
+        "column_identifier": "سال جاری"
+      },
+      {
+        "variable_name": "vadayeh_deposits",
+        "sheet_anchor": "يادداشتها_-5-1",
+        "row_identifier": "ودايع - سپرده شرکت در مناقصه",
+        "column_identifier": "سال جاری"
+      },
+      {
+        "variable_name": "capital_in_progress",
+        "sheet_anchor": "دارایی ثابت مشهود",
+        "row_identifier": "دارایی در جریان تکمیل _ 8-6",
+        "column_identifier": "یادداشت های توضیحی همراه صورتهای مالی _ سال مالی منتهی 29 اسفند ماه سال جاری _ جدول بهاي تمام شده و استهلاك انباشته داراييهاي ثابت مشهود به شرح زير است : _ بهاي تمام شده - ريال _ مانده در سال جاری/12/29"
+      }
+    ]
+  },
+  {
+    "question_id": "Q30",
+    "question_text": "آیا مانده اعتبار مصرف شده (  کد 990) در تراز کل در تاریخ 29 اسفند جاری با هزینه در فرمهای اعتبارات مصوب سال جاری، مانده وجوه مصرف نشده سنوات قبل، اعتبارات ابلاغی و هزینه از محل پیش پرداخت و علی الحساب سنوات قبل، مطابقت دارد؟",
+    "question_purpose": "هدف سوال: اطمینان از صحت ثبت مخارج بودجه‌ای در دفاتر کل حسابداری. این کنترل تایید می‌کند که هر ریال هزینه‌ای که در فرم‌های بودجه‌ای (تفریغ بودجه) به عنوان عملکرد گزارش شده، در حساب 990 دفاتر نیز ثبت شده است.",
+    "is_evaluable": true,
+    "evaluation_condition": "consumed_credit_traz_990 == (sum(approved_exp_current) + sum(unused_exp_prev) + sum(eblaghi_exp_current) + sum(finalized_prepayments_exp))",
+    "condition_breakdown": [
+      {
+        "condition": "[166040190185.0 == (sum([68503878403.0, 31672946330.0, 14390000000.0]) + sum([0.0, 0.0, 0.0, 0.0, 0.0]) + sum([18172852695.0, 0.0]) + sum([2624888000.0, 768177405.0]))]",
+        "result": false
+      }
+    ],
+    "extracted_data": [
+      {
+        "متغیر": "consumed_credit_traz_990",
+        "مقدار استخراج‌شده": "166,040,190,185"
+      },
+      {
+        "متغیر": "approved_exp_current",
+        "مقدار استخراج‌شده": "68,503,878,403, 31,672,946,330, 14,390,000,000"
+      },
+      {
+        "متغیر": "unused_exp_prev",
+        "مقدار استخراج‌شده": "0, 0, 0, 0, 0"
+      },
+      {
+        "متغیر": "eblaghi_exp_current",
+        "مقدار استخراج‌شده": "18,172,852,695, 0"
+      },
+      {
+        "متغیر": "finalized_prepayments_exp",
+        "مقدار استخراج‌شده": "2,624,888,000, 768,177,405"
+      }
+    ],
+    "message": "مطابقت ندارد. مجموع هزینه‌های فرم‌های بودجه‌ای با مانده دفتر کل مغایر است.",
+    "status": "FALSE",
+    "data_points_to_extract": [
+      {
+        "variable_name": "consumed_credit_traz_990",
+        "sheet_anchor": "کل",
+        "row_identifier": "990 _ اعتبار مصرف شده",
+        "column_identifier": "(مانده(بدهکار"
+      },
+      {
+        "variable_name": "approved_exp_current",
+        "sheet_anchor": "مصوب",
+        "row_identifier": [
+          "جمع عملکرد اعتبارات مصوب هزینه ای",
+          "جمع عملکرد اعتبارات مصوب اختصاصی",
+          "جمع عملکرد اعتبارات مصوب تملک داراییهای سرمایه ای"
+        ],
+        "column_identifier": "صورتحساب عملکرد اعتبارات مصوب بودجه (هزینه ای ، تملک داراییهای سرمایه ای ، اختصاصی ) سال جاری _ مصرفی _ هزینه"
+      },
+      {
+        "variable_name": "unused_exp_prev",
+        "sheet_anchor": "وجوه مصرف نشده",
+        "row_identifier": [
+          "جمع عملکرد مانده مصرف نشده اعتبارات هزینه ای",
+          "جمع عملکرد مانده مصرف نشده اعتبارات ابلاغی هزینه ای",
+          "جمع عملکرد مانده مصرف نشده اعتبارات اختصاصی",
+          "جمع عملکرد مانده مصرف نشده اعتبارات تملک داراییهای سرمایه ای",
+          "جمع عملکرد مانده مصرف نشده اعتبارات ابلاغی تملک داراییهای سرمایه ای"
+        ],
+        "column_identifier": "مصرفی _ هزینه"
+      },
+      {
+        "variable_name": "eblaghi_exp_current",
+        "sheet_anchor": "ابلاغي",
+        "row_identifier": [
+          "جمع عملکرد اعتبارات ابلاغی هزینه ای",
+          "جمع عملکرد اعتبارات ابلاغی تملک دارایی های سرمایه ای"
+        ],
+        "column_identifier": "مصرفی _ هزینه"
+      },
+      {
+        "variable_name": "finalized_prepayments_exp",
+        "sheet_anchor": "وضعيت پردا غ ق",
+        "row_identifier": "جمع كل",
+        "column_identifier": [
+          "هزینه ازمحل پرداختهای غیر قطعی سنوات قبل _ پیش پرداخت",
+          "هزینه ازمحل پرداختهای غیر قطعی سنوات قبل _ علی الحساب"
+        ]
+      }
+    ]
+  },
+  {
+    "question_id": "Q33",
+    "question_text": "آیا مانده انتقالی از سال قبل در فرم وجوه مصرف نشده با مانده سنوات قبل فرم شماره 1 اصلاحیه بودجه تفصیلی در اعتبارات تملک دارایی‏های سرمایه‏ای مطابقت دارد؟",
+    "question_purpose": "هدف سوال: در بودجه‌ریزی دولتی، بخشی از اعتبارات سال جاری از مانده‌های مصرف‌نشده سال قبل تأمین می‌شود. این مانده‌ها باید در دو جایگاه اصلی ثبت شوند:۱. در اصلاحیه بودجه تفصیلی (فرمت شماره ۱) که نشان می‌دهد چه مقدار از بودجه سال جاری از محل مانده سال قبل تأمین شده است ۲. در صورت‌های مالی (فرم وجوه مصرف نشده) که نشان می‌دهد چه مقدار از مانده سال قبل واقعاً به سال جاری منتقل شده است.هدف این سوال، اطمینان از همخوانی مبلغ مانده انتقالی سرمایه‌ای (تملک دارایی‌ها) بین این دو سند است. اگر این دو عدد با هم برابر نباشند، یعنی بودجه مصوب با واقعیت مالی تطابق ندارد و پایه بودجه‌ریزی سال جاری اشتباه است.",
+    "is_evaluable": true,
+    "evaluation_condition": "round((sum(not_used_budget_capital) + sum(not_used_budget_eblaghi_capital)) / 1000000) == sum(form1_not_used_capital)",
+    "condition_breakdown": [
+      {
+        "condition": "[round((sum([450000000.0, 5030000000.0]) + sum([1001116623.0, 7000000000.0])) / 1000000) == sum([12000.0, 1480.0])]",
+        "result": false
+      }
+    ],
+    "extracted_data": [
+      {
+        "متغیر": "not_used_budget_capital",
+        "مقدار استخراج‌شده": "450,000,000, 5,030,000,000"
+      },
+      {
+        "متغیر": "not_used_budget_eblaghi_capital",
+        "مقدار استخراج‌شده": "1,001,116,623, 7,000,000,000"
+      },
+      {
+        "متغیر": "form1_not_used_capital",
+        "مقدار استخراج‌شده": "12,000, 1,480"
+      }
+    ],
+    "message": "عدم مطابقت: اختلاف بین مانده واقعی سرمایه‌ای در صورت مالی و منابع پیش‌بینی شده در بودجه.",
+    "status": "FALSE",
+    "data_points_to_extract": [
+      {
+        "variable_name": "not_used_budget_capital",
+        "sheet_anchor": "وجوه مصرف نشده",
+        "row_identifier": "جمع عملکرد مانده مصرف نشده اعتبارات تملک داراییهای سرمایه ای",
+        "column_identifier": [
+          "انتقال مانده ازسال قبل _ وجه نقد",
+          "انتقال مانده ازسال قبل _ اسناد خزانه"
+        ]
+      },
+      {
+        "variable_name": "not_used_budget_eblaghi_capital",
+        "sheet_anchor": "وجوه مصرف نشده",
+        "row_identifier": "جمع عملکرد مانده مصرف نشده اعتبارات ابلاغی تملک داراییهای سرمایه ای",
+        "column_identifier": [
+          "انتقال مانده ازسال قبل _ وجه نقد",
+          "انتقال مانده ازسال قبل _ اسناد خزانه"
+        ]
+      },
+      {
+        "variable_name": "form1_not_used_capital",
+        "sheet_anchor": "فرم 1",
+        "row_identifier": [
+          "از محل مانده اعتبار سال قبل _ اعتبارات متفرقه و ردیفهای متمرکز",
+          "از محل مانده اعتبار سال قبل _ درآمد عمومی"
+        ],
+        "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار سال جاری"
+      }
+    ]
+  },
+  {
+    "question_id": "Q35",
+    "question_text": "آیا مانده انتقالی از سال قبل در فرم وجوه مصرف نشده با مانده سنوات قبل فرم شماره 1 اصلاحیه بودجه تفصیلی در اعتبارات ابلاغی تملک دارایی‏های سرمایه‏ای مطابقت دارد؟",
+    "question_purpose": "هدف سوال: این کنترل بررسی می‌کند که مانده انتقالی از سال قبل برای اعتبارات ابلاغیِ تملک دارایی‌های سرمایه‌ای (یعنی اعتبارات تکمیلی یا فوق‌العاده‌ای که در طول سال توسط دستگاه‌های بالادستی ابلاغ شده، ولی بخشی از قانون بودجه مصوب اولیه نیست) در دو جایگاه مختلف، همخوانی دارد یا خیر.",
+    "is_evaluable": true,
+    "evaluation_condition": "round(sum(unused_eblaghi_capital) / 1000000) == form1_eblaghi_capital_prev_balance",
+    "condition_breakdown": [
+      {
+        "condition": "[round(sum([1001116623.0, 7000000000.0]) / 1000000) == 12000.0]",
+        "result": false
+      }
+    ],
+    "extracted_data": [
+      {
+        "متغیر": "unused_eblaghi_capital",
+        "مقدار استخراج‌شده": "1,001,116,623, 7,000,000,000"
+      },
+      {
+        "متغیر": "form1_eblaghi_capital_prev_balance",
+        "مقدار استخراج‌شده": "12,000"
+      }
+    ],
+    "message": "مطابقت ندارد.",
+    "status": "FALSE",
+    "data_points_to_extract": [
+      {
+        "variable_name": "unused_eblaghi_capital",
+        "sheet_anchor": "وجوه مصرف نشده",
+        "row_identifier": "جمع عملکرد مانده مصرف نشده اعتبارات ابلاغی تملک داراییهای سرمایه ای",
+        "column_identifier": [
+          "انتقال مانده ازسال قبل _ وجه نقد",
+          "انتقال مانده ازسال قبل _ اسناد خزانه"
+        ]
+      },
+      {
+        "variable_name": "form1_eblaghi_capital_prev_balance",
+        "sheet_anchor": "فرم 1",
+        "row_identifier": "اعتبارات متفرقه و ردیفهای متمرکز _ از محل مانده اعتبار سال قبل",
+        "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار سال جاری"
+      }
+    ]
+  },
+  {
+    "question_id": "Q36",
+    "question_text": "آیا نقل و انتقالات از محل مانده وجوه مصرف نشده سنوات قبل و اعتبارات سال جاری مندرج در فرم ضمیمه صورت‏های مالی در اعتبارات هزینه‏ای(مصوب و ابلاغی) با فرم شماره 1 اصلاحیه بودجه تفصیلی مطابقت دارد؟",
+    "question_purpose": "هدف سوال: اطمینان از همخوانی منابع مالی پیش‌بینی شده در بودجه با مبالغ واقعی ثبت شده در حساب‌های مالی. این کنترل بررسی می‌کند که آیا مانده‌های انتقالی از سال گذشته و اعتبارات تخصیص یافته سال جاری در هر دو سند (بودجه و صورت مالی) با مبالغ و طبقه‌بندی یکسان درج شده‌اند یا خیر.",
+    "is_evaluable": true,
+    "evaluation_condition": "round(financial_cost_prev_balances[0]/1000000) == budget_cost_data[0] && financial_cost_current_appr/1000000 == budget_cost_data[1] && round(financial_cost_prev_balances[1]/1000000) == budget_cost_data[2] && round(financial_cost_current_notif/1000000) == budget_cost_data[3]",
+    "condition_breakdown": [
+      {
+        "condition": "[round([8951991964.0, 9183908310.0][0]/1000000) == [8952.0, 145500.0, 10239.0, 40314.0][0]]",
+        "result": true
+      },
+      {
+        "condition": "[145500000000.0/1000000 == [8952.0, 145500.0, 10239.0, 40314.0][1]]",
+        "result": true
+      },
+      {
+        "condition": "[round([8951991964.0, 9183908310.0][1]/1000000) == [8952.0, 145500.0, 10239.0, 40314.0][2]]",
+        "result": false
+      },
+      {
+        "condition": "[round(40314286000.0/1000000) == [8952.0, 145500.0, 10239.0, 40314.0][3]]",
+        "result": true
+      }
+    ],
+    "extracted_data": [
+      {
+        "متغیر": "budget_cost_data",
+        "مقدار استخراج‌شده": "8,952, 145,500, 10,239, 40,314"
+      },
+      {
+        "متغیر": "financial_cost_prev_balances",
+        "مقدار استخراج‌شده": "8,951,991,964, 9,183,908,310"
+      },
+      {
+        "متغیر": "financial_cost_current_appr",
+        "مقدار استخراج‌شده": "145,500,000,000"
+      },
+      {
+        "متغیر": "financial_cost_current_notif",
+        "مقدار استخراج‌شده": "40,314,286,000"
+      }
+    ],
+    "message": "مطابقت ندارد.",
+    "status": "FALSE",
+    "data_points_to_extract": [
+      {
+        "variable_name": "budget_cost_data",
+        "sheet_anchor": "فرم 1",
+        "row_identifier": [
+          "از محل مانده اعتبار سال قبل _ درآمد عمومی",
+          "از محل اعتبار مصوب _ درآمد عمومی",
+          "از محل مانده اعتبار سال قبل _ اعتبارات متفرقه و ردیفهای متمرکز",
+          "از محل اعتبار ابلاغی _ اعتبارات متفرقه و ردیفهای متمرکز"
+        ],
+        "column_identifier": "اعتبارات هِزینه ای _ اعتبار سال جاری"
+      },
+      {
+        "variable_name": "financial_cost_prev_balances",
+        "sheet_anchor": "وجوه مصرف نشده",
+        "row_identifier": [
+          "جمع عملکرد مانده مصرف نشده اعتبارات هزینه ای",
+          "جمع عملکرد مانده مصرف نشده اعتبارات ابلاغی هزینه ای"
+        ],
+        "column_identifier": "انتقال مانده ازسال قبل _ وجه نقد"
+      },
+      {
+        "variable_name": "financial_cost_current_appr",
+        "sheet_anchor": "مصوب",
+        "row_identifier": "جمع عملکرد اعتبارات مصوب هزینه ای",
+        "column_identifier": "اعتبارات _ اعتبارمصوب"
+      },
+      {
+        "variable_name": "financial_cost_current_notif",
+        "sheet_anchor": "ابلاغي",
+        "row_identifier": "جمع عملکرد اعتبارات ابلاغی  هزینه ای",
+        "column_identifier": "اعتبارات _ تخصیص یافته"
+      }
+    ]
+  },
+  {
+    "question_id": "Q45",
+    "question_text": "آیا مانده وجوه مصرف نشده در فرم اعتبارات مصوب سال قبل با مانده فرم شماره 1 بودجه تفصیلی سال جاری  در اعتبارات هزینه‏ای،تملک دارایی‏های سرمایه‏ای و اعتبارات اختصاصی مطابقت دارد؟ ",
+    "question_purpose": "هدف سوال: اطمینان از صحت انتقال منابع مالی از یک سال به سال بعد. این کنترل بررسی می‌کند که آیا تمام وجوهی که در پایان سال گذشته مصرف نشده باقی مانده‌اند (اعم از نقد و اسناد خزانه)، به طور کامل در بودجه سال جدید به عنوان منبع درآمدی شناسایی شده‌اند یا خیر.",
+    "is_evaluable": true,
+    "evaluation_condition": "round(sum(fs_unused_expense_prev) / 1000000) == budget_form1_expense_prev && round(sum(fs_unused_specific_prev) / 1000000) == budget_form1_specific_prev && round((fs_unused_capital_prev_cash + sum(fs_unused_capital_prev_bonds)) / 1000000) == budget_form1_capital_prev",
+    "condition_breakdown": [
+      {
+        "condition": "[round(sum([9183908310.0, 0.0]) / 1000000) == 8952.0]",
+        "result": false
+      },
+      {
+        "condition": "[round(sum([4690149047.040001, 0.0]) / 1000000) == 4690.0]",
+        "result": true
+      },
+      {
+        "condition": "[round((450000000.0 + sum([440000000.0, 440000000.0])) / 1000000) == 1480.0]",
+        "result": false
+      }
+    ],
+    "extracted_data": [
+      {
+        "متغیر": "fs_unused_expense_prev",
+        "مقدار استخراج‌شده": "9,183,908,310, 0"
+      },
+      {
+        "متغیر": "budget_form1_expense_prev",
+        "مقدار استخراج‌شده": "8,952"
+      },
+      {
+        "متغیر": "fs_unused_specific_prev",
+        "مقدار استخراج‌شده": "4,690,149,047.04, 0"
+      },
+      {
+        "متغیر": "budget_form1_specific_prev",
+        "مقدار استخراج‌شده": "4,690"
+      },
+      {
+        "متغیر": "fs_unused_capital_prev_cash",
+        "مقدار استخراج‌شده": "450,000,000"
+      },
+      {
+        "متغیر": "fs_unused_capital_prev_bonds",
+        "مقدار استخراج‌شده": "440,000,000, 440,000,000"
+      },
+      {
+        "متغیر": "budget_form1_capital_prev",
+        "مقدار استخراج‌شده": "1,480"
+      }
+    ],
+    "message": "مطابقت ندارد. مغایرت در انتقال مانده‌های تملک دارایی‌های سرمایه‌ای مشاهده شد.",
+    "status": "FALSE",
+    "data_points_to_extract": [
+      {
+        "variable_name": "fs_unused_expense_prev",
+        "sheet_anchor": "وجوه مصرف نشده",
+        "row_identifier": "جمع عملکرد مانده مصرف نشده اعتبارات ابلاغی هزینه ای",
+        "column_identifier": [
+          "صورتحساب وضعیت وجوه مصرف نشده سنوات قبل اعتبارات  (هزینه ای ،اختصاصی، تملک داراییهای سرمایه ای ) سال جاری _ انتقال مانده ازسال قبل _ وجه نقد",
+          "صورتحساب وضعیت وجوه مصرف نشده سنوات قبل اعتبارات  (هزینه ای ،اختصاصی، تملک داراییهای سرمایه ای ) سال جاری _ انتقال مانده ازسال قبل _ اسناد خزانه"
+        ]
+      },
+      {
+        "variable_name": "budget_form1_expense_prev",
+        "sheet_anchor": "فرم 1",
+        "row_identifier": "درآمد عمومی _ از محل مانده اعتبار سال قبل",
+        "column_identifier": "اعتبارات هزینه ای _ اعتبار سال جاری"
+      },
+      {
+        "variable_name": "fs_unused_specific_prev",
+        "sheet_anchor": "وجوه مصرف نشده",
+        "row_identifier": "جمع عملکرد مانده مصرف نشده اعتبارات اختصاصی",
+        "column_identifier": [
+          "صورتحساب وضعیت وجوه مصرف نشده سنوات قبل اعتبارات  (هزینه ای ،اختصاصی، تملک داراییهای سرمایه ای ) سال جاری _ انتقال مانده ازسال قبل _ وجه نقد",
+          "صورتحساب وضعیت وجوه مصرف نشده سنوات قبل اعتبارات  (هزینه ای ،اختصاصی، تملک داراییهای سرمایه ای ) سال جاری _ انتقال مانده ازسال قبل _ اسناد خزانه"
+        ]
+      },
+      {
+        "variable_name": "budget_form1_specific_prev",
+        "sheet_anchor": "فرم 1",
+        "row_identifier": "درآمد اختصاصی _ از محل مانده اعتبار سال قبل",
+        "column_identifier": "اعتبارات هزینه ای _ اعتبار سال جاری"
+      },
+      {
+        "variable_name": "fs_unused_capital_prev_cash",
+        "sheet_anchor": "وجوه مصرف نشده",
+        "row_identifier": "تعمیرات اساسی و خرید تجهیزات (10521030)",
+        "column_identifier": "انتقال مانده ازسال قبل _ وجه نقد"
+      },
+      {
+        "variable_name": "fs_unused_capital_prev_bonds",
+        "sheet_anchor": "وجوه مصرف نشده",
+        "row_identifier": [
+          "تعمیر و تجهیز -گناباد - اسناد خزانه",
+          "تعمیر و تجهیز -نیشابور - اسناد خزانه"
+        ],
+        "column_identifier": "انتقال مانده ازسال قبل _ اسناد خزانه"
+      },
+      {
+        "variable_name": "budget_form1_capital_prev",
+        "sheet_anchor": "فرم 1",
+        "row_identifier": "درآمد عمومی _ از محل مانده اعتبار سال قبل",
+        "column_identifier": "اعتبارات تملک دارائی های سرمایه ای _ اعتبار سال جاری"
+      }
+    ]
+  }
+]

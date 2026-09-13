@@ -1,7 +1,7 @@
 """
 هسته پردازشی داشبورد هوشمند حسابرسی.
 
-این ماژول همان گردش‌کاری را اجرا می‌کند که در main/main.ipynb تعریف شده است:
+این ماژول همان گردش‌کاری را اجرا می‌کند که در main.ipynb تعریف شده است:
     1) استخراج فرم‌های بودجه (اصلاحیه / ابلاغ / تاییدیه) با
        extraction_script.scripts.xlsx.budget.budget_process
     2) استخراج صورت‌های مالی با
@@ -18,9 +18,11 @@ evaluation_breakdown / extracted_data / status (TRUE | FALSE | ERROR | MANUAL)
 
 from __future__ import annotations
 import json
+import os
 import shutil
 import sys
 import tempfile
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -33,7 +35,7 @@ warnings.filterwarnings('ignore')  # Suppress all warnings
 # اضافه کردن مسیرهای لازم به sys.path -- دقیقا مطابق سلول اول main.ipynb --
 # تا وارد کردن ماژول‌های extraction_script مستقل از دایرکتوری اجرا کار کند.
 # ---------------------------------------------------------------------------
-ROOT_DIR = Path(__file__).resolve().parent.parent
+ROOT_DIR = Path(__file__).resolve().parent
 _PATHS_TO_ADD = [
     ROOT_DIR,
     ROOT_DIR / "extraction_script" / "scripts",
@@ -69,43 +71,59 @@ from extraction_script.scripts.xlsx.budget.config import (
 from extraction_script.scripts.docs.pdf_to_excel_fa import (
     convert as pdf_converter
 )
+from extraction_script.scripts.docs.file_to_text import (
+    extract_text as extract_audit_report_text,
+    ExtractionError as AuditReportExtractionError,
+)
 
 CHECKLIST_HANDLER_PATH = (
     ROOT_DIR / "extraction_script" / "data" / "Checklist_Question_extracted_handler.json"
 )
 
 # تعریف اسلات‌های آپلود فایل مورد استفاده در رابط کاربری
-# مقدار "icon" نام یک آیکون در main/icons.py است (نه ایموجی).
+# مقدار "icon" نام یک آیکون در icons.py است (نه ایموجی).
 FILE_SLOTS: dict[str, dict[str, Any]] = {
     "revised_budget": {
         "label": "فایل بودجه اصلاحیه",
         "help": "فرم‌های بودجه تفصیلی اصلاحیه (فرم ۱ تا ۱۰)",
         "required": True,
         "icon": "file-spreadsheet",
+        "types": ["xlsx", "xls", "pdf"],
     },
     "financial_statements": {
         "label": "فایل صورت‌های مالی",
         "help": "صورت وضعیت مالی، صورت تغییرات و یادداشت‌های توضیحی",
         "required": True,
         "icon": "file-text",
+        "types": ["xlsx", "xls", "pdf"],
     },
     "balance_sheet": {
         "label": "فایل ترازنامه",
         "help": "تراز آزمایشی (تراز کل / معین)",
         "required": True,
         "icon": "database",
+        "types": ["xlsx", "xls", "pdf"],
     },
     "credit_approvals": {
         "label": "فایل تاییدیه اعتبارات",
         "help": "تاییدیه اعتبارات هزینه‌ای، اختصاصی و تملک دارایی‌های سرمایه‌ای",
         "required": False,
         "icon": "file-down",
+        "types": ["xlsx", "xls", "pdf"],
     },
     "budget_law": {
         "label": "فایل قانون بودجه",
         "help": "ابلاغ بودجه مصوب سازمان برنامه و بودجه",
         "required": False,
         "icon": "file-down",
+        "types": ["xlsx", "xls", "pdf"],
+    },
+    "audit_report_doc": {
+        "label": "گزارش حسابرسی",
+        "help": "متن گزارش حسابرسی (اختیاری، فرمت PDF/DOC/DOCX). در صورت بارگذاری، برای غنی‌سازی گزارش کمیسیون استفاده می‌شود؛ بارگذاری آن الزامی نیست.",
+        "required": False,
+        "icon": "file-text",
+        "types": ["pdf", "doc", "docx"],
     },
 }
 
@@ -211,6 +229,20 @@ def save_uploaded_file(uploaded_file, dest_dir: Path) -> Path:
             ) from exc
 
     return raw_path
+
+
+def save_report_upload(uploaded_file, dest_dir: Path) -> Path:
+    """
+    Saves the (optional) uploaded audit report file (گزارش حسابرسی) to disk
+    as-is, without running it through the xls/pdf -> xlsx conversion pipeline
+    used for the structured (spreadsheet) upload slots. The raw file is later
+    read with extract_audit_report_text().
+    """
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest_path = dest_dir / uploaded_file.name
+    with open(dest_path, "wb") as fh:
+        fh.write(uploaded_file.getbuffer())
+    return dest_path
 
 
 def make_temp_workdir() -> Path:
@@ -343,8 +375,19 @@ def _format_value(value: Any) -> str:
     return str(value)
 
 
-def run_checklist(imported_sheets: dict[str, Any]):
-    """اجرای تمام سوالات چک‌لیست و بازگرداندن نتایج ساختاریافته برای نمایش در داشبورد."""
+def _set_stage(job: Optional[dict[str, Any]], message: str) -> None:
+    """در صورت وجود job (اجرای پس‌زمینه)، مرحله جاری و لاگ پردازش را به‌روزرسانی می‌کند."""
+    if job is None:
+        return
+    job["stage"] = message
+    job.setdefault("logs", []).append(message)
+
+
+def run_checklist(
+    imported_sheets: dict[str, Any],
+    job: Optional[dict[str, Any]] = None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """اجرای تمام سوالات چک‌لیست و بازگرداندن (نتایج کامل، موارد عدم تطابق FALSE)."""
     questions = load_checklist_definitions()
     loaded_sheets = load_excels_to_ram(imported_sheets)
     #TODO: load_excels_to_ram changed in process
@@ -361,15 +404,20 @@ def run_checklist(imported_sheets: dict[str, Any]):
 
     results: list[dict[str, Any]] = []
     false_questions: list[dict[str, Any]] = []
-    for question in questions:
+    total_questions = len(questions)
+    for q_index, question in enumerate(questions, start=1):
         q_id = question["question_id"]
+        if q_index == 1 or q_index % 5 == 0 or q_index == total_questions:
+            _set_stage(
+                job,
+                f"در حال اجرای چک‌لیست حسابرسی... (سوال {q_index} از {total_questions})",
+            )
         evaluable = _has_evaluation_logic(question)
 
         record: dict[str, Any] = {
             "question_id": q_id,
             "question_text": question.get("question_text", ""),
             "question_purpose": question.get("question_porpose", ""),
-            # "general_description": question.get("general_descrintion", ""),
             "is_evaluable": evaluable,
             "evaluation_condition": None,
             "condition_breakdown": [],
@@ -417,12 +465,11 @@ def run_checklist(imported_sheets: dict[str, Any]):
         record["condition_breakdown"] = condition_breakdown
 
         results.append(record)
-        if record["status"] == "FALSE":
+        if record["status"] == "FALSE": 
             record.update({f"data_points_to_extract": question.get("data_points_to_extract")})
             false_questions.append(record)
-        #TODO : false_questions for write report for false questions
 
-    return results
+    return results, false_questions
 
 
 def summarize_checklist(results: list[dict[str, Any]]) -> dict[str, Any]:
@@ -438,6 +485,91 @@ def summarize_checklist(results: list[dict[str, Any]]) -> dict[str, Any]:
         "error_count": counts["ERROR"],
         "manual_count": counts["MANUAL"],
         "compliance_rate": compliance_rate,
+    }
+
+
+# ---------------------------------------------------------------------------
+# تولید گزارش کمیسیون (موارد FALSE + متن اختیاری گزارش حسابرسی)
+# ---------------------------------------------------------------------------
+
+def generate_committee_report_output(
+    false_questions: list[dict[str, Any]],
+    workdir: Path,
+    audit_report_path: Optional[Path] = None,
+    entity_name: Optional[str] = None,
+    job: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
+    # تولید گزارش کمیسیون بر اساس موارد FALSE چک‌لیست، به‌صورت اختیاری همراه با
+    # متن گزارش حسابرسی بارگذاری‌شده توسط کاربر (اگر ارسال شده باشد).
+    #
+    # این تابع هیچ‌گاه خطایی را بالا پرتاب نمی‌کند: اگر تولید گزارش کمیسیون (به هر
+    # دلیلی متن زمانی یا خطای LLM) شکست بخورد، نتیجه چک‌لیست حسابرسی همچنان باید
+    # در داشبورد قابل نمایش بماند.
+    from audit_report_generator.config import LLMConfig
+    from audit_report_generator.report_generator import generate_committee_report
+    from audit_report_generator.exceptions import AuditReportError
+    from dotenv import load_dotenv
+
+    doc_text: Optional[str] = None
+    if audit_report_path is not None:
+        _set_stage(job, "در حال استخراج متن از فایل گزارش حسابرسی بارگذاری‌شده...")
+        try:
+            extracted = extract_audit_report_text(str(audit_report_path))
+            doc_text = extracted.text or None
+        except (AuditReportExtractionError, FileNotFoundError) as exc:
+            _set_stage(job, f"هشدار: استخراج متن گزارش حسابرسی ناموفق بود: {exc}")
+            doc_text = None
+        except Exception as exc:  # noqa: BLE001
+            _set_stage(job, f"هشدار: خطای نامشخص هنگام استخراج متن گزارش حسابرسی: {exc}")
+            doc_text = None
+
+    if doc_text:
+        _set_stage(
+            job,
+            "در حال تولید گزارش کمیسیون با هوش مصنوعی (با ترکیب موارد عدم تطابق چک‌لیست و متن گزارش حسابرسی)... این مرحله ممکن است چند دقیقه طول بکشد.",
+        )
+    else:
+        _set_stage(
+            job,
+            "در حال تولید گزارش کمیسیون با هوش مصنوعی (بر مبنای موارد عدم تطابق چک‌لیست، بدون گزارش حسابرسی)... این مرحله ممکن است چند دقیقه طول بکشد.",
+        )
+
+    load_dotenv()
+    api_key = os.getenv("API_KEY_OPENROUTER")
+    if not api_key:
+        raise ValueError("API_KEY_OPENROUTER در فایل env پیدا نشد!")
+    print(f"کلید با موفقیت بارگذاری شد (فقط ۵ کاراکتر اول نشان داده می‌شود): {api_key[:5]}...")
+
+    config = LLMConfig(
+        api_key=os.environ.get("AUDIT_REPORT_LLM_API_KEY", api_key ),
+        base_url=os.environ.get("AUDIT_REPORT_LLM_BASE_URL", "https://openrouter.ai/api/v1"),
+        model=os.environ.get("AUDIT_REPORT_LLM_MODEL", "nvidia/nemotron-3-ultra-550b-a55b:free"),
+        temperature=0.2,
+    )
+
+    output_path = workdir / "گزارش_کمیسیون.docx"
+    try:
+        generate_committee_report(
+            checklist_json=false_questions,
+            config=config,
+            doc_text=doc_text,
+            output_path=str(output_path),
+            entity_name=entity_name,
+        )
+    except AuditReportError as exc:
+        message = f"تولید گزارش کمیسیون ناموفق بود: {exc}"
+        _set_stage(job, message)
+        return {"error": message}
+    except Exception as exc:  # noqa: BLE001
+        message = f"خطای نامشخص هنگام تولید گزارش کمیسیون: {exc}"
+        _set_stage(job, message)
+        return {"error": message}
+
+    _set_stage(job, "گزارش کمیسیون با موفقیت ساخته شد.")
+    return {
+        "docx_bytes": output_path.read_bytes(),
+        "docx_filename": output_path.name,
+        "used_audit_report_text": bool(doc_text),
     }
 
 
@@ -474,19 +606,111 @@ def flatten_sheets_for_preview(imported_sheets: dict[str, Any]) -> dict[str, Any
 # نقطه ورود اصلی خط پردازش
 # ---------------------------------------------------------------------------
 
-def run_full_pipeline(file_paths: dict[str, Optional[Path]]) -> dict[str, Any]:
-    start = time.time()
-    processed_inputs = build_imported_sheets(file_paths)
-    checklist_results = run_checklist(processed_inputs.imported_sheets)
-    summary = summarize_checklist(checklist_results)
-    # TODO: checklist_results[1] for write report for false questions
+def run_full_pipeline(
+    file_paths: dict[str, Optional[Path]],
+    workdir: Path,
+    job: Optional[dict[str, Any]] = None,
+    audit_report_path: Optional[Path] = None,
+    entity_name: Optional[str] = None,
+) -> dict[str, Any]:
+    """
+    اجرای کامل خط پردازش: استخراج/ادفام فایل‌های اکسل، اجرای چک‌لیست حسابرسی و
+    درنهایت تولید گزارش کمیسیون (به صورت اختیاری، بر اساس موارد عدم تطابق چک‌لیست).
 
+    اگر ``job`` داده شود، مرحله جاری فعلی در ``job["stage"]`` و لاگ کامل در
+    ``job["logs"]`` نگه داشته می‌شود تا داشبورد بتواند به‌صورت زنده (تایمر + مرحله
+    فعلی) وضعیت پردازش را نمایش دهد.
+    """
+    start = time.time()
+
+    _set_stage(job, "در حال استخراج فایل‌های ورودی (بودجه، صورت‌های مالی، ترازنامه و ...)...")
+    processed_inputs = build_imported_sheets(file_paths)
+    for w in processed_inputs.warnings:
+        _set_stage(job, f"هشدار: {w}")
+
+    checklist_results, false_questions = run_checklist(processed_inputs.imported_sheets, job=job)
+    summary = summarize_checklist(checklist_results)
+
+    committee_report = generate_committee_report_output(
+        false_questions,
+        workdir=workdir,
+        audit_report_path=audit_report_path,
+        entity_name=entity_name,
+        job=job,
+    )
+
+    _set_stage(job, "پردازش با موفقیت به اتمام رسید.")
     elapsed = time.time() - start
     return {
         "imported_sheets": processed_inputs.imported_sheets,
         "sheet_source_counts": processed_inputs.sheet_source_counts,
         "warnings": processed_inputs.warnings,
         "checklist_results": checklist_results,
+        "false_questions": false_questions,
         "summary": summary,
+        "committee_report": committee_report,
         "elapsed_seconds": elapsed,
     }
+
+
+# ---------------------------------------------------------------------------
+# اجرای پس‌زمینه (ترد مستقل) با وضعیت زنده برای داشبورد
+# ---------------------------------------------------------------------------
+
+def new_checklist_job() -> dict[str, Any]:
+    """دیکشنری وضعیت اولیه برای پیگیری اجرای پس‌زمینه‌ی چک‌لیست حسابرسی."""
+    return {
+        "status": "idle",  # idle | running | done | error
+        "result": None,
+        "error": None,
+        "thread": None,
+        "started_at": None,
+        "stage": "",
+        "logs": [],
+    }
+
+
+def start_checklist_job(
+    job: dict[str, Any],
+    file_paths: dict[str, Optional[Path]],
+    workdir: Path,
+    audit_report_path: Optional[Path] = None,
+    entity_name: Optional[str] = None,
+) -> None:
+    """
+    اجرای run_full_pipeline در یک ترد پس‌زمینه‌ی جدا، دقیقاً مطابق الگوی
+    start_audit_summary_job در audit_pipeline.py. ترد پس‌زمینه هرگز مستقیماً
+    st.session_state[...] را تنظیم نمی‌کند، فقط فیلدهای درونی همین job dict را تقییر
+    می‌دهد.
+    """
+
+    def _worker() -> None:
+        job["status"] = "running"
+        try:
+            result = run_full_pipeline(
+                file_paths,
+                workdir=workdir,
+                job=job,
+                audit_report_path=audit_report_path,
+                entity_name=entity_name,
+            )
+            job["result"] = result
+            job["status"] = "done"
+        except PipelineError as exc:
+            job["error"] = str(exc)
+            job["status"] = "error"
+        except Exception as exc:  # noqa: BLE001
+            job["error"] = f"خطای نامشخص در پردازش: {exc}"
+            job.setdefault("logs", []).append(f"خطای نامشخص: {exc}")
+            job["status"] = "error"
+        finally:
+            cleanup_workdir(workdir)
+
+    job["status"] = "running"
+    job["started_at"] = time.time()
+    job["stage"] = "در حال شروع..."
+    job["logs"] = []
+    job["_ui_synced"] = False
+    thread = threading.Thread(target=_worker, daemon=True)
+    job["thread"] = thread
+    thread.start()

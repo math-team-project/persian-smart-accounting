@@ -4,7 +4,7 @@
 اپلیکیشن اصلی داشبورد که با Streamlit ساخته شده و شامل دو کارگاه (workspace)
 مستقل از هم است که از طریق نوار کناری قابل‌سوییچ هستند:
 
-    ۱) «چک‌لیست حسابرسی مالی»: گردش‌کاری main/main.ipynb را روی فایل‌های اکسل
+    ۱) «چک‌لیست حسابرسی مالی»: گردش‌کاری main.ipynb را روی فایل‌های اکسل
        آپلودشده اجرا می‌کند (استخراج بودجه/صورت‌های مالی/ترازنامه، اجرای کامل
        چک‌لیست حسابرسی طبق extraction_script/scripts/checklist و نمایش نتایج).
     ۲) «خلاصه‌سازی گزارش حسابرسی»: یک گزارش حسابرسی متنی (PDF/DOC/DOCX) را با
@@ -14,7 +14,7 @@
        بدون مسدودکردن کارگاه دیگر، به‌صورت خودکار نمایش داده می‌شود.
 
 اجرا:
-    streamlit run main/app.py
+    streamlit run app.py
 """
 from __future__ import annotations
 
@@ -44,8 +44,10 @@ from pipeline import (  # noqa: E402
     cleanup_workdir,
     flatten_sheets_for_preview,
     make_temp_workdir,
-    run_full_pipeline,
+    new_checklist_job,
+    save_report_upload,
     save_uploaded_file,
+    start_checklist_job,
 )
 from styles import (  # noqa: E402
     ACCENT,
@@ -65,8 +67,8 @@ st.set_page_config(
 )
 inject_custom_css(st)
 
-if "result" not in st.session_state:
-    st.session_state["result"] = None
+if "checklist_job" not in st.session_state:
+    st.session_state["checklist_job"] = new_checklist_job()
 if "audit_job" not in st.session_state:
     st.session_state["audit_job"] = new_audit_job()
 
@@ -109,6 +111,80 @@ def style_plotly(fig: go.Figure, height: int | None = None) -> go.Figure:
     if height:
         fig.update_layout(height=height)
     return fig
+
+
+def _render_stage_logs(job: dict, *, expanded: bool) -> None:
+    """نمایش گزارش (لاگ) مراحل پردازش چک‌لیست حسابرسی مالی (استخراج فایل‌ها،
+    اجرای سوالات چک‌لیست، تولید گزارش کمیسیون و ...)."""
+    logs = job.get("logs") or []
+    if not logs:
+        return
+    with st.expander(f"گزارش پردازش ({len(logs)} خط)", expanded=expanded):
+        st.code("\n".join(logs), language="text")
+
+
+@st.fragment(run_every="2s")
+def render_checklist_progress(job: dict) -> None:
+    """نمایش زنده‌ی وضعیت پردازش چک‌لیست حسابرسی مالی (اجرا در ترد پس‌زمینه).
+
+    مشابه render_audit_summary_status عمل می‌کند: هر ۲ ثانیه فقط همین بخش
+    (بدون رفرش کل صفحه) بازخوانی می‌شود تا زمان‌سنج و مرحله‌ی جاری فعلی
+    (استخراج فایل‌ها / اجرای چک‌لیست / تولید گزارش کمیسیون) به‌روز بماند.
+    """
+    status = job["status"]
+
+    # ترد پس‌زمینه فقط همین fragment را به‌روز می‌کند (run_every)؛ تب‌های نمایش
+    # نتیجه (که بیرون از این fragment قرار دارند) بدون کمک رفرش کل اپ بازرندری نمی‌شوند.
+    # به همین دلیل به‌محض اتمام/خطای پردازش، یک rerun کل اپ (scope="app") را فقط یک‌بار اجرا
+    # می‌کنیم تا بقیه‌ی صفحه (تب‌های نتیجه) هم بازرندری شوند.
+    if status in ("done", "error") and not job.get("_ui_synced"):
+        job["_ui_synced"] = True
+        st.rerun(scope="app")
+
+    if status == "idle":
+        render_alert(
+            "info",
+            "info",
+            "برای مشاهده داشبورد، ابتدا فایل‌های الزامی را بارگذاری و دکمه پردازش و تحلیل داده‌ها را بزنید.",
+        )
+        return
+
+    if status == "running":
+        elapsed = time.time() - (job.get("started_at") or time.time())
+        stage_text = job.get("stage") or "در حال پردازش..."
+        st.markdown(
+            f"""
+            <div class="psa-alert info">
+                {icon('clock', 22)}
+                <div class="psa-alert-text">
+                    <b>مرحله‌ی فعلی:</b> {stage_text} &nbsp;
+                    ({elapsed:.0f} ثانیه) &nbsp;
+                    <span class="psa-badge processing">{icon('sparkles', 11)}در حال پردازش</span>
+                    <br/>
+                    پردازش چک‌لیست حسابرسی مالی شامل چند مرحله (استخراج فایل‌ها، اجرای
+                    سوالات چک‌لیست و در صورت فعال‌بودن گزارش حسابرسی، تولید گزارش کمیسیون با هوش
+                    مصنوعی) است و ممکن است چند دقیقه طول بکشد.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        _render_stage_logs(job, expanded=True)
+        return
+
+    if status == "error":
+        render_alert("alert-triangle", "error", f"پردازش ناموفق بود: {job.get('error')}")
+        _render_stage_logs(job, expanded=True)
+        return
+
+    if status == "done":
+        result = job["result"]
+        st.markdown(
+            f'<span class="psa-badge done">{icon("check-circle", 11)}پردازش با موفقیت انجام شد '
+            f'({result["elapsed_seconds"]:.0f} ثانیه)</span>',
+            unsafe_allow_html=True,
+        )
+        _render_stage_logs(job, expanded=False)
 
 
 def _render_audit_logs(job: dict, *, expanded: bool) -> None:
@@ -226,8 +302,9 @@ with st.sidebar:
     if active_page == "checklist":
         steps = [
             "فایل‌های الزامی (بودجه اصلاحیه، صورت‌های مالی و ترازنامه) را بارگذاری کنید.",
-            "در صورت وجود، فایل‌های تاییدیه اعتبارات و قانون بودجه را نیز اضافه کنید.",
+            "در صورت وجود، فایل‌های تاییدیه اعتبارات، قانون بودجه و گزارش حسابرسی را نیز اضافه کنید (اختیاری).",
             "روی دکمه «پردازش و تحلیل داده‌ها» بزنید.",
+            "پردازش در پس‌زمینه انجام می‌شود؛ زمان سپری‌شده و مرحله‌ی جاری به‌صورت زنده نمایش داده می‌شود.",
             "نتایج را در تب‌های نمای کلی، چک‌لیست، داده‌ها و خروجی گزارش ببینید.",
         ]
     else:
@@ -249,21 +326,15 @@ with st.sidebar:
     st.divider()
 
     if active_page == "checklist":
-        if st.session_state.pop("show_success", False):
-            st.success(
-                f"پردازش با موفقیت انجام شد "
-                f"({st.session_state['result']['elapsed_seconds']:.1f} ثانیه).",
-                icon=":material/task_alt:",
-            )
-
-        if st.session_state["result"] is not None:
+        checklist_job_sidebar = st.session_state["checklist_job"]
+        if checklist_job_sidebar["status"] in ("done", "error"):
             if st.button(
                 "پاک‌کردن نتایج و شروع مجدد",
                 icon=":material/restart_alt:",
                 width="stretch",
                 key="clear_checklist_results",
             ):
-                st.session_state["result"] = None
+                st.session_state["checklist_job"] = new_checklist_job()
                 for key in FILE_SLOTS:
                     st.session_state.pop(f"upload_{key}", None)
                 st.rerun()
@@ -301,7 +372,8 @@ def render_checklist_page() -> None:
             <div class="psa-badges">
                 <span class="psa-chip">{icon('sparkles', 15)} تحلیل خودکار</span>
                 <span class="psa-chip">{icon('list-checks', 15)} چک‌لیست هوشمند حسابرسی</span>
-                <span class="psa-chip">{icon('file-down', 15)} خروجی اکسل / JSON</span>
+                <span class="psa-chip">{icon('file-text', 15)} گزارش کمیسیون هوشمند</span>
+                <span class="psa-chip">{icon('file-down', 15)} خروجی اکسل / JSON / Word</span>
             </div>
         </div>
         """,
@@ -316,6 +388,9 @@ def render_checklist_page() -> None:
 
     required_keys = [k for k, v in FILE_SLOTS.items() if v["required"]]
     optional_keys = [k for k, v in FILE_SLOTS.items() if not v["required"]]
+
+    checklist_job = st.session_state["checklist_job"]
+    job_running = checklist_job["status"] == "running"
 
     uploaded_files: dict[str, object] = {}
 
@@ -349,9 +424,10 @@ def render_checklist_page() -> None:
                 )
                 uploaded_files[key] = st.file_uploader(
                     slot["label"],
-                    type=["xlsx", "xls", "pdf"],
+                    type=slot.get("types", ["xlsx", "xls", "pdf"]),
                     key=f"upload_{key}",
                     label_visibility="collapsed",
+                    disabled=job_running,
                 )
 
     all_keys = required_keys + optional_keys
@@ -361,12 +437,19 @@ def render_checklist_page() -> None:
         for col, key in zip(row_cols, all_keys[i:i + 2]):
             _render_upload_card(col, key)
 
+    entity_name = st.text_input(
+        "نام سازمان/شرکت (اختیاری - برای درج در سربرگ گزارش کمیسیون)",
+        key="checklist_entity_name",
+        disabled=job_running,
+    )
+
     st.write("")
     process_clicked = st.button(
         "پردازش و تحلیل داده‌ها",
         icon=":material/bolt:",
         type="primary",
         width="stretch",
+        disabled=job_running,
     )
 
     if process_clicked:
@@ -376,34 +459,43 @@ def render_checklist_page() -> None:
         else:
             workdir = make_temp_workdir()
             try:
-                with st.spinner("در حال استخراج داده‌ها و اجرای چک‌لیست حسابرسی... این عملیات ممکن است چند ثانیه طول بکشد."):
-                    file_paths = {}
-                    for key, uploaded in uploaded_files.items():
-                        file_paths[key] = save_uploaded_file(uploaded, workdir) if uploaded is not None else None
-                    result = run_full_pipeline(file_paths)
-                st.session_state["result"] = result
-                st.session_state["show_success"] = True
-                # اجرای مجدد برنامه تا Sidebar با نتیجه جدید رندر شود
+                audit_report_upload = uploaded_files.get("audit_report_doc")
+                audit_report_path = (
+                    save_report_upload(audit_report_upload, workdir) if audit_report_upload is not None else None
+                )
+                file_paths = {}
+                for key, uploaded in uploaded_files.items():
+                    if key == "audit_report_doc":
+                        continue
+                    file_paths[key] = save_uploaded_file(uploaded, workdir) if uploaded is not None else None
+                start_checklist_job(
+                    checklist_job,
+                    file_paths,
+                    workdir,
+                    audit_report_path=audit_report_path,
+                    entity_name=entity_name.strip() or None,
+                )
                 st.rerun()
             except PipelineError as exc:
+                cleanup_workdir(workdir)
                 st.error(str(exc), icon=":material/error:")
             except Exception as exc:  # noqa: BLE001
-                st.error("خطای غیرمنتظره‌ای هنگام پردازش رخ داد.", icon=":material/error:")
+                cleanup_workdir(workdir)
+                st.error("خطای غیرمنتظره‌ای هنگام آماده‌سازی فایل‌ها رخ داد.", icon=":material/error:")
                 with st.expander("جزئیات فنی خطا"):
                     st.exception(exc)
-            finally:
-                cleanup_workdir(workdir)
+
+    # --- وضعیت زنده‌ی پردازش (تایمر + مرحله‌ی جاری) --------------------------
+    render_checklist_progress(checklist_job)
+
+    if checklist_job["status"] in ("idle", "running"):
+        return
+
+    if checklist_job["status"] == "error":
+        return
 
     # --- داشبورد نتایج -------------------------------------------------------
-    result = st.session_state["result"]
-
-    if result is None:
-        render_alert(
-            "info",
-            "info",
-            "برای مشاهده داشبورد، ابتدا فایل‌های الزامی را بارگذاری و دکمه «پردازش و تحلیل داده‌ها» را بزنید.",
-        )
-        return
+    result = checklist_job["result"]
 
     for warning in result.get("warnings", []):
         render_alert("alert-triangle", "warning", warning)
@@ -565,7 +657,7 @@ def render_checklist_page() -> None:
                 continue
             if search_term:
                 haystack = " ".join(
-                    [record["question_text"], record["question_purpose"], record["general_description"]]
+                    [record["question_text"], record["question_purpose"]]
                 ).lower()
                 if search_term.lower() not in haystack:
                     continue
@@ -596,12 +688,6 @@ def render_checklist_page() -> None:
                     st.markdown(
                         f"<div style='margin-bottom:.5rem;'>{icon('target', 15)} "
                         f"<b>هدف بررسی:</b> {record['question_purpose']}</div>",
-                        unsafe_allow_html=True,
-                    )
-                if record["general_description"]:
-                    st.markdown(
-                        f"<div style='margin-bottom:.5rem;'>{icon('info', 15)} "
-                        f"<b>توضیحات تکمیلی:</b> {record['general_description']}</div>",
                         unsafe_allow_html=True,
                     )
 
@@ -668,6 +754,33 @@ def render_checklist_page() -> None:
         )
         st.caption("خروجی شامل خلاصه شاخص‌ها و جزئیات کامل تمام سوالات چک‌لیست حسابرسی است.")
 
+        st.markdown(
+            f'<div class="psa-section-title">{icon("sparkles", 18)} گزارش کمیسیون (موارد عدم تطابق + تحلیل هوش مصنوعی)</div>',
+            unsafe_allow_html=True,
+        )
+        committee_report = result.get("committee_report") or {}
+        if committee_report.get("docx_bytes"):
+            source_note = (
+                "با ترکیب متن گزارش حسابرسی بارگذاری‌شده"
+                if committee_report.get("used_audit_report_text")
+                else "بر اساس موارد عدم تطابق چک‌لیست (بدون گزارش حسابرسی)"
+            )
+            st.caption(f"گزارش کمیسیون {source_note} تولید شد.")
+            st.download_button(
+                "دانلود گزارش کمیسیون (Word)",
+                data=committee_report["docx_bytes"],
+                file_name=committee_report.get("docx_filename", "گزارش_کمیسیون.docx"),
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                icon=":material/download:",
+                width="stretch",
+            )
+        elif committee_report.get("error"):
+            render_alert("alert-triangle", "warning", f"تولید گزارش کمیسیون ناموفق بود: {committee_report['error']}")
+        else:
+            render_alert("info", "info", "گزارش کمیسیون تولید نشد (مورد عدم تطابقی وجود ندارد یا در حال پردازش بود).")
+
+        st.divider()
+
         export_rows = []
         for record in checklist_results:
             export_rows.append(
@@ -676,7 +789,6 @@ def render_checklist_page() -> None:
                     "متن سوال": record["question_text"],
                     "وضعیت": STATUS_META[record["status"]]["label"],
                     "هدف بررسی": record["question_purpose"],
-                    "توضیحات تکمیلی": record["general_description"],
                     "فرمول ارزیابی": record["evaluation_condition"] or "",
                     "نتیجه نهایی": record["message"],
                 }
