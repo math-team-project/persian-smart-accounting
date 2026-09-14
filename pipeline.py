@@ -43,7 +43,7 @@ _PATHS_TO_ADD = [
     ROOT_DIR / "extraction_script" / "scripts" / "xlsx",
     ROOT_DIR / "extraction_script" / "scripts" / "xlsx" / "budget",
     ROOT_DIR / "extraction_script" / "scripts" / "xlsx" / "financial_statements",
-    ROOT_DIR / "extraction_script" / "scripts" / "docs",
+    ROOT_DIR / "extraction_script" / "scripts" / "document_conversion",
 ]
 for _p in _PATHS_TO_ADD:
     _p_str = str(_p)
@@ -68,10 +68,10 @@ from extraction_script.scripts.xlsx.financial_statements.process import (  # noq
 from extraction_script.scripts.xlsx.budget.config import (
     CONTENT_KEYWORD_MAP
 )
-from extraction_script.scripts.docs.pdf_to_excel_fa import (
+from extraction_script.scripts.document_conversion.pdf_to_excel_fa import (
     convert as pdf_converter
 )
-from extraction_script.scripts.docs.file_to_text import (
+from extraction_script.scripts.document_conversion.file_to_text import (
     extract_text as extract_audit_report_text,
     ExtractionError as AuditReportExtractionError,
 )

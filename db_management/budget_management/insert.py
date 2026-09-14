@@ -16,7 +16,12 @@ for _path in (_PROJECT_ROOT, _EXTRACTION_SCRIPT_DIR):
     if _path not in sys.path:
         sys.path.insert(0, _path)
 
-from extraction_script.extraction_multicore_with_bypass_ram import main
+from extraction_script.scripts.xlsx.budget.budget_process import main
+from extraction_script.scripts.xlsx.budget.config import (
+    EXCEL_FILE_PATH,
+    FORMS_PARAM,
+    SHEET_TO_CONFIG_MAP,
+)
 
 # این دو رشته دقیقا همانی هستند که به main() پاس داده می‌شوند
 # و همان مقداری هستند که در ستون budget_type جدول budget_records ذخیره می‌شوند
@@ -253,9 +258,19 @@ def insert_all_data(normal_data: dict, revised_data_: dict) -> None:
 
 if __name__ == "__main__":
     # فراخوانی main() حتما باید داخل این بلاک باشد
-    # (extraction_multicore_with_bypass_ram از ProcessPoolExecutor استفاده می‌کند و در ویندوز
+    # (load_all_sheets_to_memory از ProcessPoolExecutor استفاده می‌کند و در ویندوز
     # بدون این گارد، هر پراسه فرزند، ماژول را از ابتدا اجرا می‌کند)
-    data = main(budget_type=BUDGET_TYPE_NORMAL)
-    revised_data = main(budget_type=BUDGET_TYPE_REVISED)
+    data = main(
+        budget_type=BUDGET_TYPE_NORMAL,
+        excel_file_path=EXCEL_FILE_PATH,
+        sheet_to_config_map=SHEET_TO_CONFIG_MAP,
+        forms_param=FORMS_PARAM,
+    )
+    revised_data = main(
+        budget_type=BUDGET_TYPE_REVISED,
+        excel_file_path=EXCEL_FILE_PATH,
+        sheet_to_config_map=SHEET_TO_CONFIG_MAP,
+        forms_param=FORMS_PARAM,
+    )
 
     insert_all_data(data, revised_data)

@@ -28,6 +28,6 @@ build/
 .ipynb_checkpoints/
 
 #فایل های غیرضروری
-excel_auto_extract.py
 uv.lock
 extraction_script/data/~$*.xlsx
+output/

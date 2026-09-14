@@ -123,17 +123,17 @@ def call_llm(
     """
     config = config or LLMConfig()
     load_dotenv()
-    api_key = os.getenv("API_KEY_B_AI")
+    # ترتیب اولویت: کلید پاس‌داده‌شده صریح (LLMConfig(api_key=...) یا --api-key CLI) اولویت
+    # دارد؛ در غیر این صورت از متغیر محیطی (که ممکن است از یک فایل .env بارگذاری شود)
+    # خوانده می‌شود.
+    api_key = config.api_key or os.environ.get("B_AI_API_KEY") or os.environ.get("API_KEY_B_AI")
     if not api_key:
-        raise ValueError("API_KEY_B_AI در فایل env پیدا نشد!")
-    print(f"کلید با موفقیت بارگذاری شد (فقط ۵ کاراکتر اول نشان داده می‌شود): {api_key[:5]}...")
-
-    # api_key = config.api_key or os.environ.get("B_AI_API_KEY")
-    # if not api_key:
-    #     raise LLMClientError(
-    #         "کلید API یافت نشد. متغیر محیطی B_AI_API_KEY را تنظیم کنید یا "
-    #         "آن را در LLMConfig(api_key=...) پاس دهید."
-    #     )
+        raise LLMClientError(
+            "کلید API یافت نشد. متغیر محیطی B_AI_API_KEY را تنظیم کنید یا "
+            "آن را در LLMConfig(api_key=...) پاس دهید."
+        )
+    if logger:
+        logger(f"کلید API با موفقیت بارگذاری شد (فقط ۵ کاراکتر اول نشان داده می‌شود): {api_key[:5]}...")
 
     headers = {
         "Authorization": f"Bearer {api_key}",

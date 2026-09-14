@@ -37,8 +37,16 @@ import pytesseract
 from pdf2image import convert_from_path
 import os
 
-# مسیر نصب Tesseract
-pytesseract.pytesseract.tesseract_cmd = r'C:/Program Files/Tesseract-OCR/tesseract.exe'
+# مسیر نصب Tesseract: قابل تنظیم با متغیر محیطی TESSERACT_CMD؛ در نبود آن، روی
+# ویندوز از مسیر نصب پیش‌فرض استفاده می‌شود (در صورت وجود)، وگرنه pytesseract
+# به‌صورت پیش‌فرض دستور «tesseract» را در PATH سیستم جستجو می‌کند (رفتار
+# استاندارد در لینوکس/مک).
+_default_windows_tesseract = r"C:/Program Files/Tesseract-OCR/tesseract.exe"
+_tesseract_cmd = os.environ.get("TESSERACT_CMD") or (
+    _default_windows_tesseract if os.path.exists(_default_windows_tesseract) else None
+)
+if _tesseract_cmd:
+    pytesseract.pytesseract.tesseract_cmd = _tesseract_cmd
 
 
 class ExtractionError(Exception):
