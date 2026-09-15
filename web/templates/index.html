@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}داشبورد هوشمند حسابرسی{% endblock %}
+
+{% block content %}
+<div class="mb-10 text-center">
+  <h1 class="text-2xl font-bold text-slate-900 sm:text-3xl">
+    داشبورد هوشمند حسابرسی و حسابداری
+  </h1>
+  <p class="mx-auto mt-3 max-w-2xl text-sm text-slate-500 sm:text-base">
+    یکی از دو کارگاه زیر را برای شروع انتخاب کنید.
+  </p>
+</div>
+
+<div class="grid gap-6 sm:grid-cols-2">
+  <a
+    href="/checklist"
+    class="group flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"
+  >
+    <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+      {{ icon('list-checks', 26) | safe }}
+    </div>
+    <h2 class="mb-2 text-lg font-semibold text-slate-900">بررسی چک‌لیست حسابرسی</h2>
+    <p class="mb-4 flex-1 text-sm text-slate-500">
+      فایل‌های بودجه، صورت‌های مالی و ترازنامه را بارگذاری کنید تا چک‌لیست
+      حسابرسی به‌صورت خودکار اجرا شود، موارد عدم تطابق مشخص شوند و گزارش
+      کمیسیون Word تولید شود.
+    </p>
+    <span class="inline-flex items-center gap-1 text-sm font-medium text-brand-600 group-hover:gap-2">
+      شروع کارگاه
+      {{ icon('chevron-left', 16) | safe }}
+    </span>
+  </a>
+
+  <a
+    href="/audit-summary"
+    class="group flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"
+  >
+    <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+      {{ icon('sparkles', 26) | safe }}
+    </div>
+    <h2 class="mb-2 text-lg font-semibold text-slate-900">خلاصه‌سازی گزارش حسابرسی</h2>
+    <p class="mb-4 flex-1 text-sm text-slate-500">
+      یک گزارش حسابرسی موجود (PDF/DOC/DOCX) را بارگذاری کنید تا با کمک هوش
+      مصنوعی به خلاصه‌ای روان و آماده‌ی جلسه برای اعضای هیئت‌مدیره تبدیل شود.
+    </p>
+    <span class="inline-flex items-center gap-1 text-sm font-medium text-violet-600 group-hover:gap-2">
+      شروع کارگاه
+      {{ icon('chevron-left', 16) | safe }}
+    </span>
+  </a>
+</div>
+{% endblock %}

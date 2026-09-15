@@ -28,7 +28,11 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# NOTE: this file was moved into legacy_streamlit/ during the FastAPI migration
+# (phase 1). It is kept only as a reference/fallback and is no longer the
+# primary entry point. The project root (one level up) must be on sys.path
+# for `import pipeline`, `import icons`, `import styles` etc. to resolve.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from audit_pipeline import (  # noqa: E402
     make_audit_temp_workdir,

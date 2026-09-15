@@ -1,0 +1,68 @@
+{#
+  کامپوننت عمومی نشان‌دهنده‌ی مراحل (stepper)، مستقل از هر گردش‌کاری خاص.
+
+  پارامتر ورودی (متغیر Jinja): ``steps`` -- لیستی از رشته‌ها (عنوان هر مرحله)
+  مثلا ["آپلود", "پردازش", "نتایج"].
+
+  مرحله‌ی «جاری» و «تکمیل‌شده» توسط جاوااسکریپت والد از طریق تابع سراسری
+  ``window.psaSetStep(index)`` (اندیس از ۰) کنترل می‌شود -- این کامپوننت خودش
+  هیچ منطق گردش‌کاری‌ای ندارد.
+#}
+<div class="mb-8" id="psa-stepper" data-step-count="{{ steps | length }}">
+  <ol class="flex items-center">
+    {% for step_label in steps %}
+    <li class="flex flex-1 items-center {{ 'flex-none' if loop.last else '' }}">
+      <div class="flex flex-col items-center gap-1.5">
+        <div
+          class="psa-step-circle flex h-9 w-9 items-center justify-center rounded-full border-2 border-slate-300 bg-white text-sm font-semibold text-slate-400 transition-colors"
+          data-step-index="{{ loop.index0 }}"
+        >
+          {{ loop.index }}
+        </div>
+        <span class="psa-step-label text-xs font-medium text-slate-400" data-step-index="{{ loop.index0 }}">
+          {{ step_label }}
+        </span>
+      </div>
+      {% if not loop.last %}
+      <div class="psa-step-connector mx-2 h-0.5 flex-1 bg-slate-200" data-connector-index="{{ loop.index0 }}"></div>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</div>
+
+<script>
+  window.psaSetStep = function (activeIndex) {
+    const stepper = document.getElementById("psa-stepper");
+    if (!stepper) return;
+    stepper.querySelectorAll(".psa-step-circle").forEach((el) => {
+      const idx = parseInt(el.dataset.stepIndex, 10);
+      el.classList.remove(
+        "border-slate-300", "text-slate-400", "bg-white",
+        "border-brand-600", "text-white", "bg-brand-600",
+        "border-emerald-500", "bg-emerald-500"
+      );
+      if (idx < activeIndex) {
+        el.classList.add("border-emerald-500", "bg-emerald-500", "text-white");
+        el.innerHTML = "✓";
+      } else if (idx === activeIndex) {
+        el.classList.add("border-brand-600", "bg-brand-600", "text-white");
+        el.innerHTML = String(idx + 1);
+      } else {
+        el.classList.add("border-slate-300", "text-slate-400", "bg-white");
+        el.innerHTML = String(idx + 1);
+      }
+    });
+    stepper.querySelectorAll(".psa-step-label").forEach((el) => {
+      const idx = parseInt(el.dataset.stepIndex, 10);
+      el.classList.toggle("text-slate-800", idx <= activeIndex);
+      el.classList.toggle("text-slate-400", idx > activeIndex);
+      el.classList.toggle("font-semibold", idx === activeIndex);
+    });
+    stepper.querySelectorAll(".psa-step-connector").forEach((el) => {
+      const idx = parseInt(el.dataset.connectorIndex, 10);
+      el.classList.toggle("bg-emerald-500", idx < activeIndex);
+      el.classList.toggle("bg-slate-200", idx >= activeIndex);
+    });
+  };
+</script>

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}خلاصه‌سازی گزارش حسابرسی{% endblock %}
+
+{% block content %}
+{% include "components/toast.html" with context %}
+
+<div class="mb-6">
+  <h1 class="text-xl font-bold text-slate-900 sm:text-2xl">خلاصه‌سازی گزارش حسابرسی</h1>
+  <p class="mt-1 text-sm text-slate-500">
+    یک گزارش حسابرسی موجود (PDF/DOC/DOCX) را بارگذاری کنید تا با کمک هوش
+    مصنوعی به خلاصه‌ای روان و آماده‌ی جلسه تبدیل شود.
+  </p>
+</div>
+
+{% with steps = ["آپلود", "پردازش", "نتیجه"] %}
+{% include "components/stepper.html" with context %}
+{% endwith %}
+
+<form id="psa-summary-form">
+  <!-- ================= مرحله ۱: آپلود ================= -->
+  <section id="psa-step-upload" class="psa-step">
+    <div class="max-w-xl">
+      {% include "components/dropzone.html" with context %}
+    </div>
+
+    <div class="mt-6 grid gap-4 sm:grid-cols-2">
+      <div>
+        <label for="organization" class="mb-1.5 block text-sm font-medium text-slate-700">
+          نام سازمان/شرکت (اختیاری &mdash; برای سربرگ سند خلاصه)
+        </label>
+        <input
+          type="text"
+          id="organization"
+          name="organization"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          placeholder="مثلاً پارک علم و فناوری خراسان"
+        />
+      </div>
+      <div>
+        <label for="meeting_context" class="mb-1.5 block text-sm font-medium text-slate-700">
+          توضیح جلسه (اختیاری)
+        </label>
+        <input
+          type="text"
+          id="meeting_context"
+          name="meeting_context"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          placeholder="مثلاً جلسه هیئت‌مدیره - شهریور ۱۴۰۴"
+        />
+      </div>
+    </div>
+
+    <button
+      type="submit"
+      id="psa-submit-btn"
+      class="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {{ icon('sparkles', 16) | safe }}
+      خلاصه‌سازی با هوش مصنوعی
+    </button>
+  </section>
+
+  <!-- ================= مرحله ۲: پردازش ================= -->
+  <section id="psa-step-processing" class="psa-step hidden">
+    {% include "components/progress_bar.html" with context %}
+  </section>
+</form>
+
+<!-- ================= مرحله ۳: نتیجه ================= -->
+<section id="psa-step-results" class="psa-step hidden">
+  <div class="mb-4 flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex items-center gap-2 text-emerald-700">
+      {{ icon('check-circle', 20) | safe }}
+      <div>
+        <p class="text-sm font-semibold">خلاصه گزارش با موفقیت آماده شد</p>
+        <p id="psa-result-source" class="text-xs text-emerald-600"></p>
+      </div>
+    </div>
+    <a
+      id="psa-download-summary"
+      href="#"
+      class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
+    >
+      {{ icon('download', 16) | safe }}
+      دانلود خلاصه (Word)
+    </a>
+  </div>
+
+  <div id="psa-results-warnings" class="mb-4 hidden space-y-1 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700"></div>
+
+  <div class="rounded-xl border border-slate-200 bg-white p-6">
+    <h2 class="mb-4 text-sm font-semibold text-slate-600">پیش‌نمایش خلاصه</h2>
+    <div id="psa-summary-preview" class="psa-scroll max-h-[32rem] overflow-y-auto"></div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="/static/js/audit_summary.js"></script>
+{% endblock %}

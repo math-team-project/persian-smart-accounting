@@ -99,6 +99,18 @@ def _make_logger(job: Optional[dict[str, Any]]):
     return _log
 
 
+def _set_stage(job: Optional[dict[str, Any]], log: Any, message: str) -> None:
+    """آداپتور کوچک هم‌راستا با ``pipeline._set_stage``: علاوه بر افزودن پیام به
+    لاگ (از طریق همان تابع ``log`` که با ``_make_logger`` ساخته شده)،
+    ``job["stage"]`` را هم به‌روزرسانی می‌کند تا لایه‌ی API (دقیقاً مثل کارگاه
+    چک‌لیست) بتواند مرحله‌ی جاری و درصد پیشرفت را نمایش دهد. فقط برای پیام‌های
+    مرحله‌ای اصلی (نه پیام‌های پرحجم داخلی مثل JSON خام پاسخ مدل) صدا زده می‌شود.
+    """
+    log(message)
+    if job is not None:
+        job["stage"] = message
+
+
 def run_audit_summary(
     input_path: Path,
     workdir: Path,
@@ -120,7 +132,7 @@ def run_audit_summary(
     log = _make_logger(job)
     start = time.time()
 
-    log(f"[1/4] در حال استخراج متن از: {input_path.name}")
+    _set_stage(job, log, f"[1/4] در حال استخراج متن از: {input_path.name}")
     try:
         extracted = extract_text(input_path)
     except FileNotFoundError as exc:
@@ -137,7 +149,7 @@ def run_audit_summary(
     prompt_text = extracted.as_prompt_text(max_chars=100_000)
     log(f"  {len(prompt_text)} کاراکتر متن استخراج شد.")
 
-    log("[2/4] در حال ساخت prompt و فراخوانی مدل...")
+    _set_stage(job, log, "[2/4] در حال ساخت prompt و فراخوانی مدل... (این مرحله ممکن است چند دقیقه طول بکشد)")
     prompt = build_summary_prompt(
         prompt_text, language=language, organization_name=organization
     )
@@ -150,7 +162,7 @@ def run_audit_summary(
         log(f"خطا در تماس با مدل: {exc}")
         raise AuditSummaryError(f"خطا در تماس با مدل هوش مصنوعی: {exc}") from exc
 
-    log("[3/4] در حال ساخت سند خروجی...")
+    _set_stage(job, log, "[3/4] در حال ساخت سند خروجی...")
     docx_path = workdir / f"{input_path.stem}_خلاصه.docx"
     render_summary_to_docx(
         summary_markdown,
@@ -160,7 +172,7 @@ def run_audit_summary(
         source_filename=input_path.name,
     )
     docx_bytes = docx_path.read_bytes()
-    log("[4/4] سند Word خلاصه با موفقیت ساخته شد.")
+    _set_stage(job, log, "[4/4] سند Word خلاصه با موفقیت ساخته شد.")
     log(f"گزارش نهایی آماده شد: {docx_path.name}")
 
     return {
@@ -174,13 +186,19 @@ def run_audit_summary(
 
 
 def new_audit_job() -> dict[str, Any]:
-    """یک دیکشنری وضعیت اولیه برای پیگیری اجرای پس‌زمینه‌ی خلاصه‌سازی."""
+    """یک دیکشنری وضعیت اولیه برای پیگیری اجرای پس‌زمینه‌ی خلاصه‌سازی.
+
+    کلید اضافه‌ی ``stage`` دقیقاً معادل ``pipeline.new_checklist_job`` است -- تا لایه‌ی API
+    (مشترک بین هر دو کارگاه) بتواند بدون فرض خاصی درباره‌ی محتوای job، متن
+    مرحله‌ی جاری را برای هر دو کارگاه یکسان بخواند.
+    """
     return {
         "status": "idle",  # idle | running | done | error
         "result": None,
         "error": None,
         "thread": None,
         "started_at": None,
+        "stage": "",
         "source_filename": None,
         "logs": [],
     }
@@ -220,6 +238,7 @@ def start_audit_summary_job(
 
     job["status"] = "running"
     job["started_at"] = time.time()
+    job["stage"] = "در حال شروع..."
     job["source_filename"] = input_path.name
     job["logs"] = []
     thread = threading.Thread(target=_worker, daemon=True)

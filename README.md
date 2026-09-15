@@ -25,16 +25,20 @@ summary of an existing audit report.
 8. [Project Components](#project-components)
 9. [Data](#data)
 10. [Notebooks](#notebooks)
-11. [Troubleshooting](#troubleshooting)
-12. [Development](#development)
-13. [License](#license)
+11. [Testing](#testing)
+12. [Troubleshooting](#troubleshooting)
+13. [Development](#development)
+14. [License](#license)
 
 ---
 
 ## Overview
 
 **Persian Smart Accounting** automates two related but independent workflows,
-both exposed through a single Streamlit dashboard (`app.py`):
+both exposed through a **FastAPI + server-rendered HTML/Tailwind** web
+dashboard (`api/` + `web/`). The UI was originally built with Streamlit; that
+version is preserved for reference under [`legacy_streamlit/`](#project-structure)
+but is no longer the primary interface — see [Architecture](#architecture).
 
 1. **Financial audit checklist** — Upload the budget/financial-statement
    Excel (or PDF/legacy `.xls`) files of an organization for a given fiscal
@@ -62,66 +66,129 @@ of spreadsheets.
 
 ## Architecture
 
-The dashboard is a **Streamlit** application. Two independent "workspaces"
-share the same UI shell but have separate processing pipelines, each running
-in a background thread so the UI stays responsive:
+The dashboard is a **FastAPI** application (`api/`) with a server-rendered
+**Jinja2 + Tailwind** frontend (`web/`) — no separate JS build step, no SPA
+framework. Two independent "workspaces" share the same UI shell/components
+but have separate processing pipelines, each running in a background thread
+so a page can poll job status (`GET /api/<workspace>/jobs/{id}`) without
+blocking:
 
 ```mermaid
 flowchart TD
-    UI[app.py - Streamlit dashboard] --> WS1[Workspace 1: Checklist]
+    UI[web/ - Jinja2 + Tailwind pages] --> WS1[Workspace 1: Checklist]
     UI --> WS2[Workspace 2: Audit report summary]
 
-    WS1 --> P1[pipeline.py: run_full_pipeline]
+    WS1 --> API1[api/routers/checklist.py + services/checklist_service.py]
+    API1 --> P1[pipeline.py: run_full_pipeline]
     P1 --> EX[extraction_script: budget + financial statement extraction]
     EX --> CL[extraction_script/scripts/checklist: run_audit_pipeline]
     CL --> RPT[audit_report_generator: committee .docx report]
 
-    WS2 --> P2[audit_pipeline.py: run_audit_summary]
+    WS2 --> API2[api/routers/summary.py + services/summary_service.py]
+    API2 --> P2[audit_pipeline.py: run_audit_summary]
     P2 --> FI[audit_summarizer: text extraction]
     FI --> LLM[audit_summarizer: LLM summary]
     LLM --> DOC[audit_summarizer: .docx summary]
 ```
 
+Both workspaces are deliberately kept **thin at the API layer**: routers only
+parse the HTTP request and call a service function; services validate/save
+uploads and hand off to the unchanged `pipeline.py`/`audit_pipeline.py`
+background-job functions; a single in-memory `JobManager`
+(`api/jobs/job_manager.py`) tracks job dicts for both workspaces without any
+assumption about which workspace a job belongs to.
+
 ### Project structure
 
 ```
 persian-smart-accounting/
-├── app.py                       # Streamlit entry point (streamlit run app.py)
-├── pipeline.py                  # Checklist workspace: orchestrates extraction + audit checklist + report
-├── audit_pipeline.py            # Audit-summary workspace: thin wrapper around audit_summarizer
-├── icons.py                     # Inline SVG icon library used by the UI
-├── styles.py                    # Custom CSS (dark theme, RTL/Persian layout)
-├── requirements.txt             # All Python dependencies for the whole project
-├── LICENSE                      # MIT License
-├── .streamlit/config.toml       # Streamlit theme/server configuration
-├── main.ipynb                   # Original prototype notebook the checklist pipeline was extracted from
-├── test.ipynb                   # Scratch notebook (filtering FALSE checklist items from a JSON export)
+├── api/                          # FastAPI application (uvicorn api.main:app --reload)
+│   ├── main.py                   # App factory, router registration, global error handler
+│   ├── config.py                 # Settings (pydantic-settings), reads the same env vars as before
+│   ├── templating.py             # Shared Jinja2Templates instance + template globals (icon())
+│   ├── jobs/job_manager.py       # In-memory job registry + lifecycle logging, shared by both workspaces
+│   ├── routers/                  # Thin HTTP endpoints: pages.py (HTML), checklist.py, summary.py (JSON)
+│   ├── services/                 # Upload validation/saving + job orchestration per workspace
+│   ├── schemas/                  # Pydantic response models (common.py holds the shared JobStatus type)
+│   └── utils/                    # icons.py (SVG library), uploads.py (adapter), jobs.py (404 helper)
 │
-├── extraction_script/           # Excel/PDF/DOC data extraction pipelines
-│   ├── data/                    # Sample/reference input files and checklist definitions (see "Data")
+├── web/                          # Server-rendered frontend assets
+│   ├── templates/                # Jinja2 templates: base.html shell + one template per workspace page
+│   │   └── components/           # Reusable partials: dropzone, stepper, progress bar, toast
+│   └── static/                   # css/app.css (fonts + small custom styles), js/*.js (per-workspace logic), fonts/
+│
+├── tests/                        # API-layer tests (FastAPI TestClient), see "Testing"
+├── conftest.py                   # Ensures the project root is importable from tests/
+│
+├── legacy_streamlit/             # Original Streamlit UI (app.py/icons.py/styles.py), kept for reference only
+├── pipeline.py                   # Checklist workspace: orchestrates extraction + audit checklist + report
+├── audit_pipeline.py             # Audit-summary workspace: thin wrapper around audit_summarizer
+├── requirements.txt              # All Python dependencies for the whole project
+├── LICENSE                       # MIT License
+├── main.ipynb                    # Original prototype notebook the checklist pipeline was extracted from
+├── test.ipynb                    # Scratch notebook (filtering FALSE checklist items from a JSON export)
+│
+├── extraction_script/            # Excel/PDF/DOC data extraction pipelines
+│   ├── data/                     # Sample/reference input files and checklist definitions (see "Data")
 │   └── scripts/
 │       ├── xlsx/
-│       │   ├── budget/          # Budget form extraction (parameter-driven + fuzzy auto-detection)
+│       │   ├── budget/           # Budget form extraction (parameter-driven + fuzzy auto-detection)
 │       │   ├── financial_statements/  # Financial statement extraction (fully auto-detected layout)
-│       │   └── taraz/           # Trial balance (تراز آزمایشی) loading helpers
-│       ├── checklist/           # Audit checklist evaluation engine
-│       └── document_conversion/ # PDF/DOC -> text/xlsx conversion utilities (incl. OCR)
+│       │   └── taraz/            # Trial balance (تراز آزمایشی) loading helpers
+│       ├── checklist/            # Audit checklist evaluation engine
+│       └── document_conversion/  # PDF/DOC -> text/xlsx conversion utilities (incl. OCR)
 │
-├── audit_report_generator/      # LLM-powered "committee non-conformity report" package
-├── audit_summarizer/            # Standalone LLM-powered "audit report summary" package (own CLI + tests)
-├── db_management/               # Batch/offline PostgreSQL population scripts (independent of the dashboard)
+├── audit_report_generator/       # LLM-powered "committee non-conformity report" package
+├── audit_summarizer/             # Standalone LLM-powered "audit report summary" package (own CLI + tests)
+├── db_management/                # Batch/offline PostgreSQL population scripts (independent of the dashboard)
 └── docs/
-    └── PROGRESS_REPORT.md       # Living development log (weekly progress, architecture history, backlog)
+    └── PROGRESS_REPORT.md        # Living development log (weekly progress, architecture history, backlog)
 ```
+
+**Extensibility notes (read before adding a third workspace):**
+
+- File-slot definitions have a single source of truth in `pipeline.py`
+  (`FILE_SLOTS`), consumed by `api/routers/pages.py` (to render the form) and
+  `api/services/checklist_service.py` (to validate uploads) — nowhere else.
+  The one exception is the audit-summary workspace's single upload slot,
+  which is a small dict hardcoded in `api/routers/pages.py::audit_summary_page`
+  because `audit_pipeline.py` doesn't define a `FILE_SLOTS`-equivalent
+  structure (that file is out of scope for the API/UI migration). This is
+  documented in a comment at that call site.
+- `JobStatus` (`pending`/`running`/`done`/`error`) has a single definition in
+  `api/schemas/common.py`, imported by both `api/schemas/checklist.py` and
+  `api/schemas/summary.py`.
+- Adding a **third workspace** today would still require touching several
+  files, since each workspace currently needs: a router
+  (`api/routers/<name>.py`, registered in `api/main.py`), a service
+  (`api/services/<name>_service.py`), Pydantic schemas
+  (`api/schemas/<name>.py`), a page template (`web/templates/<name>.html`)
+  and its own JS controller (`web/static/js/<name>.js`), plus a link on
+  `web/templates/index.html` and the nav in `web/templates/base.html`. All of
+  these follow the same copy-paste-and-adapt pattern between the checklist
+  and audit-summary workspaces today; if a third workspace is added, it's
+  worth extracting a small shared "workspace registry" (e.g. a list of
+  `{slug, title, icon, router}` used to generate the landing page cards and
+  nav links automatically) rather than continuing to hand-edit `index.html`
+  and `base.html` for each new workspace. This refactor was **not** done in
+  this phase since only two workspaces exist and it would add abstraction
+  without a second concrete use case to validate it against.
+- The reusable UI building blocks (`web/templates/components/*.html` +
+  their companion `window.psaSetStep` / `psaSetProgress` / `psaShowToast`
+  globals) are already workspace-agnostic and require no changes to support
+  a third workspace.
 
 **Design notes:**
 
 - `extraction_script` has no `__init__.py` files; it (and its sub-packages)
   are used as **implicit namespace packages**. Every entry point that imports
-  from it (`app.py`, `pipeline.py`, `db_management/budget_management/insert.py`)
-  inserts the project root onto `sys.path` first — this is intentional and
-  documented in each file's header comment. Do not add `__init__.py` files to
-  this tree without re-checking all the `sys.path` insertion points.
+  from it (`legacy_streamlit/app.py`, `pipeline.py`,
+  `db_management/budget_management/insert.py`) inserts the project root onto
+  `sys.path` first — this is intentional and documented in each file's header
+  comment. `api/main.py` relies on this too: it can import `pipeline.py`
+  because it's run from the project root (`uvicorn api.main:app`). Do not add
+  `__init__.py` files to this tree without re-checking all the `sys.path`
+  insertion points.
 - `audit_report_generator` and `audit_summarizer` are two **independent**
   LLM-integration packages (different providers, different prompt strategies,
   different output structure) used for two different report types. They are
@@ -141,7 +208,7 @@ persian-smart-accounting/
 - **Python** 3.10 or newer (the codebase uses `from __future__ import
   annotations` and `X | None` union syntax throughout).
 - **PostgreSQL** (only required for `db_management/` batch scripts — not
-  required to run the Streamlit dashboard itself).
+  required to run the web dashboard itself).
 - **System binaries** (required for PDF/DOC processing features):
   - [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) — needed for
     OCR fallback on scanned/image-only PDFs.
@@ -192,8 +259,13 @@ All secrets are read from environment variables (via `python-dotenv`, so a
 
 Additional configuration files:
 
-- `.streamlit/config.toml` — Streamlit theme (dark mode) and server settings
-  (e.g. `maxUploadSize`).
+- `api/config.py` — API-layer-only settings (`PSA_MAX_UPLOAD_MB`,
+  `PSA_JOB_TTL_SECONDS`, `PSA_LOG_LEVEL`), also loaded from `.env`. It does
+  **not** change how `pipeline.py`/`audit_report_generator` read their own
+  LLM environment variables — those are untouched and still read directly
+  via `os.getenv`/`python-dotenv`.
+- `.streamlit/config.toml` — theme/server settings for the legacy Streamlit
+  UI (`legacy_streamlit/app.py`), not used by the FastAPI app.
 - `extraction_script/scripts/xlsx/budget/config.py` — manual layout
   parameters (`FORMS_PARAM`), sheet-name-to-form mapping
   (`SHEET_TO_CONFIG_MAP`), and fuzzy content-keyword mapping
@@ -201,8 +273,8 @@ Additional configuration files:
 - `db_management/budget_management/{setup,tables,insert}.py` — currently
   contain **hardcoded local development database credentials**
   (`smart_acounting_db` / `postgres` / a placeholder password). These scripts
-  are standalone, offline batch tools independent of the Streamlit dashboard;
-  if you intend to use them beyond local development, replace the hardcoded
+  are standalone, offline batch tools independent of the web dashboard; if
+  you intend to use them beyond local development, replace the hardcoded
   credentials with environment variables before doing so.
 
 ## Usage
@@ -210,12 +282,20 @@ Additional configuration files:
 ### Run the dashboard
 
 ```bash
-streamlit run app.py
+uvicorn api.main:app --reload
 ```
 
-This opens the dashboard with two switchable workspaces in the sidebar:
-"چک‌لیست حسابرسی مالی" (financial audit checklist) and "خلاصه‌سازی گزارش
-حسابرسی" (audit report summarization).
+Run this from the project root (see the `sys.path` note under
+[Project structure](#project-structure)). Then open
+[http://127.0.0.1:8000/](http://127.0.0.1:8000/) — the landing page links to
+the two workspaces: "بررسی چک‌لیست حسابرسی" (`/checklist`, the financial
+audit checklist) and "خلاصه‌سازی گزارش حسابرسی" (`/audit-summary`, audit
+report summarization). Interactive API docs are auto-generated by FastAPI at
+`/docs`.
+
+The original Streamlit UI is still available for reference/comparison under
+[`legacy_streamlit/`](#project-structure) (`streamlit run legacy_streamlit/app.py`),
+but it is no longer maintained as the primary interface.
 
 ### Run the audit report summarizer standalone (CLI)
 
@@ -243,7 +323,7 @@ python db_management/budget_management/tables.py  # create the schema
 python db_management/budget_management/insert.py  # extract + insert budget data
 ```
 
-This is a separate, independent workflow from the Streamlit dashboard — it
+This is a separate, independent workflow from the web dashboard — it
 persists extracted budget data into PostgreSQL for downstream querying, but
 is not (yet) read by the dashboard itself.
 
@@ -295,10 +375,11 @@ Output: downloadable .docx meeting-ready summary
 
 | Component | Responsibility |
 |---|---|
-| `app.py` | Streamlit UI: file upload widgets, progress/log rendering, results display, downloads |
-| `pipeline.py` | Orchestrates the checklist workspace end-to-end; background-thread job management |
-| `audit_pipeline.py` | Orchestrates the audit-summary workspace; background-thread job management |
-| `icons.py` / `styles.py` | UI-only: inline SVG icons and custom dark-mode/RTL CSS |
+| `api/` | FastAPI app: routers (HTTP), services (upload validation + job orchestration), schemas (Pydantic response models), the shared in-memory `JobManager` |
+| `web/` | Jinja2 templates + Tailwind classes + small per-workspace JS controllers (upload → poll → render results); no build step |
+| `pipeline.py` | Orchestrates the checklist workspace end-to-end; background-thread job management (unchanged business logic, called from `api/services/checklist_service.py`) |
+| `audit_pipeline.py` | Orchestrates the audit-summary workspace; background-thread job management (unchanged business logic, called from `api/services/summary_service.py`) |
+| `legacy_streamlit/` | Original Streamlit UI (`app.py`, `icons.py`, `styles.py`), preserved for reference; not the primary interface anymore |
 | `extraction_script/scripts/xlsx/budget/` | Budget form extraction: parameter-driven (`config.py`) + fuzzy sheet/content matching |
 | `extraction_script/scripts/xlsx/financial_statements/` | Financial statement extraction with fully automatic layout detection |
 | `extraction_script/scripts/xlsx/taraz/` | Trial balance loading helper |
@@ -332,13 +413,46 @@ application; uploaded files from the dashboard are processed in a separate
 temporary working directory (created by `pipeline.make_temp_workdir()` /
 `audit_pipeline.make_audit_temp_workdir()`) and cleaned up after each run.
 
+## Testing
+
+API-layer tests live in `tests/` and use FastAPI's `TestClient` (`httpx`
+under the hood). They cover job creation, status polling, results/download,
+and error handling (missing upload, invalid file type, unknown job id) for
+**both** workspaces. They never run the real extraction/checklist/LLM
+pipelines: `pipeline.start_checklist_job` and
+`audit_pipeline.start_audit_summary_job` — the only functions that spawn the
+heavy background thread — are monkeypatched with a synchronous stand-in, so
+the tests run in well under a second and need no Tesseract/LibreOffice/LLM
+API access.
+
+```bash
+# from the project root
+pytest tests -q
+```
+
+`audit_summarizer` also has its own independent test suite (see
+[Development](#development)):
+
+```bash
+cd audit_summarizer
+pytest -q
+```
+
+There is currently no automated test suite for the extraction/checklist
+pipeline logic itself (`extraction_script/`, `pipeline.py`,
+`audit_pipeline.py`) — see `docs/PROGRESS_REPORT.md` for known backlog items,
+including this one. This was intentionally out of scope for the API/UI
+migration phases.
+
 ## Troubleshooting
 
 - **`ModuleNotFoundError` when running scripts directly** — most modules rely
   on `sys.path` insertion performed at the top of the entry-point file (e.g.
-  `pipeline.py`, `app.py`, `db_management/budget_management/insert.py`). Run
-  scripts from the project root, or via the documented entry points, rather
-  than executing a deeply nested file directly.
+  `pipeline.py`, `legacy_streamlit/app.py`,
+  `db_management/budget_management/insert.py`). Run scripts from the project
+  root, or via the documented entry points, rather than executing a deeply
+  nested file directly. The FastAPI app is affected too: always run
+  `uvicorn api.main:app` from the project root.
 - **`API_KEY ... در فایل env پیدا نشد` errors** — set the corresponding
   environment variable (see [Configuration](#configuration)) or add it to a
   `.env` file in the project root.
@@ -370,23 +484,23 @@ temporary working directory (created by `pipeline.make_temp_workdir()` /
   `extraction_script/scripts/checklist/checklist_process.md`.
 - **Add a new file type/upload slot** to the checklist workspace: extend
   `FILE_SLOTS` in `pipeline.py` and wire it into
-  `pipeline.build_imported_sheets`.
+  `pipeline.build_imported_sheets` — no change needed in `api/` or `web/`,
+  since `api/routers/pages.py` and `api/services/checklist_service.py` both
+  read `FILE_SLOTS` dynamically (see the extensibility notes under
+  [Project structure](#project-structure)).
 - **Modify LLM behavior**: `audit_summarizer/llm_client.py` (audit summary
   prompt) and `audit_report_generator/prompt_builder.py` (committee report
   prompt) are the two prompt-construction entry points.
-- **Run tests**:
-  ```bash
-  cd audit_summarizer
-  pytest -q
-  ```
-  (there is currently no automated test suite for the extraction/checklist
-  pipelines themselves — see `docs/PROGRESS_REPORT.md` for known backlog
-  items, including this one).
+- **Run tests**: see [Testing](#testing) for the API-layer suite
+  (`pytest tests -q`) and the standalone `audit_summarizer` suite.
 - **Extend the pipeline**: both `pipeline.run_full_pipeline` and
   `audit_pipeline.run_audit_summary` are plain functions designed to be called
-  directly (outside of Streamlit) for scripting/testing purposes; the
+  directly (outside of the web app) for scripting/testing purposes; the
   `job` dict parameter is optional and only needed for live progress
   reporting in the dashboard.
+- **Add a third workspace**: see the extensibility notes under
+  [Project structure](#project-structure) for the current list of files
+  you'd need to touch.
 
 ## License
 

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}خطای غیرمنتظره{% endblock %}
+
+{% block content %}
+<div class="mx-auto flex max-w-lg flex-col items-center rounded-2xl border border-red-200 bg-white p-8 text-center shadow-sm">
+  <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-500">
+    {{ icon('alert-triangle', 30) | safe }}
+  </div>
+  <h1 class="mb-2 text-lg font-bold text-slate-900">خطای غیرمنتظره‌ای رخ داد</h1>
+  <p class="mb-6 text-sm leading-7 text-slate-500">
+    متأسفانه در پردازش این درخواست مشکلی پیش آمد. این مشکل ثبت شده است؛ لطفاً
+    دوباره تلاش کنید یا به صفحه‌ی اصلی بازگردید.
+  </p>
+  <div class="flex gap-3">
+    <a
+      href="{{ request.url.path }}"
+      class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
+    >
+      تلاش دوباره
+    </a>
+    <a
+      href="/"
+      class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+    >
+      بازگشت به صفحه‌ی اصلی
+    </a>
+  </div>
+</div>
+{% endblock %}

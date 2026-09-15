@@ -1,0 +1,94 @@
+/*
+  استایل‌های سراسری رابط کاربری جدید (FastAPI + Jinja2 + Tailwind CDN).
+
+  Tailwind از طریق CDN بارگذاری می‌شود (بدون مرحله‌ی build/Node)، این فایل
+  فقط شامل چیزهایی است که با کلاس‌های یوتیلیتی Tailwind به‌تنهایی ساده نیستند:
+  فونت فارسی self-hosted، چند انیمیشن ساده و ظرافت‌های بصری کارت‌ها.
+*/
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/static/fonts/Vazirmatn-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/static/fonts/Vazirmatn-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/static/fonts/Vazirmatn-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/static/fonts/Vazirmatn-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+
+html,
+body {
+  font-family: "Vazirmatn", "Tahoma", sans-serif;
+}
+
+/* اسکرول‌بار ملایم‌تر برای جدول نتایج چک‌لیست */
+.psa-scroll::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+.psa-scroll::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 999px;
+}
+
+.psa-icon {
+  display: inline-block;
+}
+
+/* انیمیشن نوار پیشرفت نامعین (وقتی درصد دقیق مشخص نیست) */
+@keyframes psa-progress-stripe {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 40px 0;
+  }
+}
+.psa-progress-fill {
+  transition: width 0.4s ease;
+}
+
+/* انیمیشن ورود toast خطا/هشدار */
+@keyframes psa-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.psa-toast {
+  animation: psa-toast-in 0.2s ease-out;
+}
+
+/* جزئیات باز/بسته‌ی هر سطر جدول نتایج */
+details.psa-item > summary {
+  cursor: pointer;
+  list-style: none;
+}
+details.psa-item > summary::-webkit-details-marker {
+  display: none;
+}
+details.psa-item[open] .psa-chevron {
+  transform: rotate(90deg);
+}
+.psa-chevron {
+  transition: transform 0.15s ease;
+}

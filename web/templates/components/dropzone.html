@@ -1,0 +1,78 @@
+{#
+  کامپوننت عمومی «منطقه‌ی آپلود فایل» برای یک اسلات مشخص، مستقل از هر گردش‌کاری
+  (این کارگاه یا کارگاه خلاصه‌سازی گزارش حسابرسی در فاز ۲).
+
+  پارامترهای ورودی (متغیرهای Jinja):
+    slot_key   -- کلید یکتای اسلات (مثلا "revised_budget"، هم‌نام با ورودی فرم)
+    slot       -- دیکشنری اسلات با کلیدهای label/help/required/icon/types
+                  (مستقیماً از pipeline.FILE_SLOTS)
+
+  رفتار (انتخاب فایل، پیش‌نمایش نام فایل، حذف) کاملاً با جاوااسکریپت خالص در
+  همین کامپوننت مدیریت می‌شود و هیچ فرضی درباره‌ی «کدام فرم» این dropzone در
+  آن قرار دارد ندارد -- فقط یک custom event به نام ``psa:file-change`` روی
+  عنصر ``<input>`` منتشر می‌کند تا کد صفحه‌ی والد (checklist.js) بتواند وضعیت
+  کلی فرم را بازبینی کند.
+#}
+<div
+  class="psa-dropzone group relative rounded-xl border-2 border-dashed border-slate-300 bg-white p-4 transition-colors hover:border-brand-400"
+  data-slot="{{ slot_key }}"
+>
+  <div class="flex items-start justify-between gap-2">
+    <div class="flex items-center gap-2 text-slate-700">
+      <span class="text-slate-400">{{ icon(slot.icon, 20) | safe }}</span>
+      <span class="text-sm font-semibold">{{ slot.label }}</span>
+    </div>
+    {% if slot.required %}
+    <span class="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-600">الزامی</span>
+    {% else %}
+    <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">اختیاری</span>
+    {% endif %}
+  </div>
+
+  <p class="mt-1.5 text-xs text-slate-500">{{ slot.help }}</p>
+  <p class="mt-1 text-[11px] text-slate-400">فرمت‌های مجاز: {{ slot.types | join('، ') }}</p>
+
+  <label
+    class="psa-dropzone-label mt-3 flex cursor-pointer items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 hover:bg-slate-100"
+  >
+    <span class="psa-dropzone-filename truncate">فایلی انتخاب نشده</span>
+    <span class="flex shrink-0 items-center gap-1 font-medium text-brand-600">
+      {{ icon('upload-cloud', 14) | safe }}
+      انتخاب فایل
+    </span>
+    <input
+      type="file"
+      class="psa-dropzone-input hidden"
+      name="{{ slot_key }}"
+      accept=".{{ slot.types | join(',.') }}"
+      data-slot="{{ slot_key }}"
+    />
+  </label>
+
+  <div class="psa-dropzone-status mt-2 hidden items-center gap-1 text-xs font-medium text-emerald-600">
+    {{ icon('check-circle', 14) | safe }}
+    <span>بارگذاری شد</span>
+  </div>
+</div>
+
+<script>
+  (function () {
+    document.querySelectorAll(".psa-dropzone-input").forEach((input) => {
+      if (input.dataset.psaBound) return;
+      input.dataset.psaBound = "1";
+      input.addEventListener("change", function () {
+        const dropzone = input.closest(".psa-dropzone");
+        const filenameEl = dropzone.querySelector(".psa-dropzone-filename");
+        const statusEl = dropzone.querySelector(".psa-dropzone-status");
+        const hasFile = input.files && input.files.length > 0;
+        if (filenameEl) {
+          filenameEl.textContent = hasFile ? input.files[0].name : "فایلی انتخاب نشده";
+        }
+        if (statusEl) statusEl.classList.toggle("hidden", !hasFile);
+        dropzone.classList.toggle("border-emerald-400", hasFile);
+        dropzone.classList.toggle("border-slate-300", !hasFile);
+        input.dispatchEvent(new CustomEvent("psa:file-change", { bubbles: true, detail: { slot: input.dataset.slot, hasFile } }));
+      });
+    });
+  })();
+</script>

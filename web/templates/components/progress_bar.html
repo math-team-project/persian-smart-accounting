@@ -1,0 +1,40 @@
+{#
+  کامپوننت عمومی نوار پیشرفت + متن مرحله‌ی جاری، مستقل از هر گردش‌کاری خاص.
+
+  کنترل از طریق تابع سراسری:
+    window.psaSetProgress(percent, stageText)
+  که هم عرض نوار و هم متن زیر آن را به‌روزرسانی می‌کند.
+#}
+<div id="psa-progress" class="rounded-xl border border-slate-200 bg-white p-6">
+  <div class="mb-2 flex items-center justify-between text-sm">
+    <span class="font-medium text-slate-700" id="psa-progress-stage">در حال آماده‌سازی...</span>
+    <span class="font-mono text-slate-500" id="psa-progress-percent">۰٪</span>
+  </div>
+  <div class="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+    <div
+      id="psa-progress-fill"
+      class="psa-progress-fill h-full rounded-full bg-brand-600"
+      style="width: 0%"
+    ></div>
+  </div>
+  <ul id="psa-progress-log" class="psa-scroll mt-4 max-h-32 space-y-1 overflow-y-auto text-xs text-slate-400"></ul>
+</div>
+
+<script>
+  window.psaSetProgress = function (percent, stageText, logs) {
+    const fill = document.getElementById("psa-progress-fill");
+    const percentLabel = document.getElementById("psa-progress-percent");
+    const stageLabel = document.getElementById("psa-progress-stage");
+    const logList = document.getElementById("psa-progress-log");
+    const clamped = Math.max(0, Math.min(100, percent || 0));
+    if (fill) fill.style.width = clamped + "%";
+    if (percentLabel) percentLabel.textContent = clamped.toLocaleString("fa-IR") + "٪";
+    if (stageLabel && stageText) stageLabel.textContent = stageText;
+    if (logList && Array.isArray(logs)) {
+      logList.innerHTML = logs
+        .map((line) => "<li>&#8226; " + String(line).replace(/</g, "&lt;") + "</li>")
+        .join("");
+      logList.scrollTop = logList.scrollHeight;
+    }
+  };
+</script>

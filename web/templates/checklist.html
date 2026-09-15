@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}چک‌لیست حسابرسی مالی{% endblock %}
+
+{% block content %}
+{% include "components/toast.html" with context %}
+
+<div class="mb-6">
+  <h1 class="text-xl font-bold text-slate-900 sm:text-2xl">بررسی چک‌لیست حسابرسی مالی</h1>
+  <p class="mt-1 text-sm text-slate-500">
+    فایل‌های بودجه، صورت‌های مالی و ترازنامه را بارگذاری کنید تا چک‌لیست حسابرسی
+    به‌صورت خودکار اجرا شود.
+  </p>
+</div>
+
+{% with steps = ["آپلود", "پردازش", "نتایج"] %}
+{% include "components/stepper.html" with context %}
+{% endwith %}
+
+<form id="psa-checklist-form">
+  <!-- ================= مرحله ۱: آپلود ================= -->
+  <section id="psa-step-upload" class="psa-step">
+    <h2 class="mb-3 text-sm font-semibold text-slate-600">فایل‌های الزامی</h2>
+    <div class="grid gap-4 sm:grid-cols-2">
+      {% for slot_key, slot in required_slots.items() %}
+        {% include "components/dropzone.html" with context %}
+      {% endfor %}
+    </div>
+
+    <h2 class="mb-3 mt-6 text-sm font-semibold text-slate-600">فایل‌های اختیاری</h2>
+    <div class="grid gap-4 sm:grid-cols-2">
+      {% for slot_key, slot in optional_slots.items() %}
+        {% include "components/dropzone.html" with context %}
+      {% endfor %}
+    </div>
+
+    <div class="mt-6">
+      <label for="entity_name" class="mb-1.5 block text-sm font-medium text-slate-700">
+        نام سازمان/شرکت (اختیاری &mdash; برای سربرگ گزارش کمیسیون)
+      </label>
+      <input
+        type="text"
+        id="entity_name"
+        name="entity_name"
+        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+        placeholder="مثلاً پارک علم و فناوری خراسان"
+      />
+    </div>
+
+    <button
+      type="submit"
+      id="psa-submit-btn"
+      class="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {{ icon('bolt', 16) | safe }}
+      پردازش و تحلیل داده‌ها
+    </button>
+  </section>
+
+  <!-- ================= مرحله ۲: پردازش ================= -->
+  <section id="psa-step-processing" class="psa-step hidden">
+    {% include "components/progress_bar.html" with context %}
+  </section>
+</form>
+
+<!-- ================= مرحله ۳: نتایج ================= -->
+<section id="psa-step-results" class="psa-step hidden">
+  <div class="mb-4 grid gap-4 sm:grid-cols-3">
+    <div class="rounded-xl border border-slate-200 bg-white p-4">
+      <p class="text-xs text-slate-400">نتیجه کلی</p>
+      <p id="psa-summary-headline" class="mt-1 text-lg font-bold text-slate-900">&mdash;</p>
+    </div>
+    <div class="rounded-xl border border-slate-200 bg-white p-4">
+      <p class="text-xs text-slate-400">درصد تطابق</p>
+      <p id="psa-summary-compliance" class="mt-1 text-lg font-bold text-emerald-600">&mdash;</p>
+    </div>
+    <div class="rounded-xl border border-slate-200 bg-white p-4">
+      <p class="text-xs text-slate-400">گزارش کمیسیون</p>
+      <a
+        id="psa-download-report"
+        href="#"
+        class="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:text-brand-700"
+      >
+        {{ icon('download', 16) | safe }}
+        دانلود گزارش کمیسیون (Word)
+      </a>
+      <p id="psa-report-unavailable" class="mt-1 text-sm text-slate-400 hidden">در دسترس نیست</p>
+    </div>
+  </div>
+
+  <div id="psa-results-warnings" class="mb-4 hidden space-y-1 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700"></div>
+
+  <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <div class="relative w-full sm:max-w-xs">
+      <span class="absolute inset-y-0 right-3 flex items-center text-slate-400">{{ icon('search', 15) | safe }}</span>
+      <input
+        type="text"
+        id="psa-search-input"
+        placeholder="جست‌وجو در سوالات چک‌لیست..."
+        class="w-full rounded-lg border border-slate-300 py-2 pe-3 ps-9 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+      />
+    </div>
+    <div class="flex gap-1.5 text-xs" id="psa-status-filters">
+      <button type="button" data-filter="ALL" class="psa-filter-btn rounded-full bg-brand-600 px-3 py-1 font-medium text-white">همه</button>
+      <button type="button" data-filter="FALSE" class="psa-filter-btn rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">عدم تطابق</button>
+      <button type="button" data-filter="TRUE" class="psa-filter-btn rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">تطابق دارد</button>
+      <button type="button" data-filter="MANUAL" class="psa-filter-btn rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">بررسی دستی</button>
+      <button type="button" data-filter="ERROR" class="psa-filter-btn rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">خطا</button>
+    </div>
+  </div>
+
+  <div id="psa-results-list" class="space-y-2"></div>
+  <p id="psa-results-empty" class="hidden py-8 text-center text-sm text-slate-400">موردی یافت نشد.</p>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="/static/js/checklist.js"></script>
+{% endblock %}
