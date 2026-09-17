@@ -78,7 +78,7 @@
   --color-surface-subtle: #f1f5f9;
   --color-track: #eef2f6;
   --stat-fade: #ffffff; /* پایان گرادیان کارت‌های آماری رنگی */
-  --gradient-footer: var(--gradient-footer);
+  --gradient-footer: linear-gradient(180deg, rgba(255, 255, 255, 0.75), var(--color-surface-muted));
 
   /* سربرگ/پابرگ شیشه‌ای و خط مؤی */
   --color-header-bg: rgba(255, 255, 255, 0.82);
@@ -1843,7 +1843,7 @@ details.psa-result-item[open] .psa-chevron {
   position: relative;
   margin-top: 4rem;
   border-top: 1px solid var(--color-hairline);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.75), var(--color-surface-muted));
+  background: var(--gradient-footer);
 }
 
 .psa-footer-title {
