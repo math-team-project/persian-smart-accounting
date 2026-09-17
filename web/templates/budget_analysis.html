@@ -1,0 +1,328 @@
+{% extends "base.html" %}
+{% block title %}تحلیل بودجه{% endblock %}
+
+{% block content %}
+{% include "components/toast.html" with context %}
+
+<!-- ===================== مسیر پروژه ===================== -->
+<nav class="psa-meta mb-3 flex items-center gap-1.5" aria-label="مسیر صفحه">
+  <a href="/" class="psa-footer-link">پروژه‌ها</a>
+  <span aria-hidden="true">{{ icon('chevron-left', 13) | safe }}</span>
+  <a href="/projects/{{ project.id }}" class="psa-footer-link">{{ project.name }}</a>
+  <span aria-hidden="true">{{ icon('chevron-left', 13) | safe }}</span>
+  <span class="text-slate-700">{{ workshop.display_name_fa }}</span>
+</nav>
+
+<!-- ===================== سرصفحهٔ کارگاه ===================== -->
+<header class="mb-6">
+  <span class="psa-eyebrow">
+    {{ icon('trending-up', 14) | safe }}
+    کارگاه پایش و ارزیابی بودجه — پروژهٔ «{{ project.name }}»
+  </span>
+  <h1 class="psa-page-title mt-3">تحلیل بودجه</h1>
+  <p class="psa-page-subtitle">
+    اصلاحیه بودجه تفصیلی سال پایه و سال جاری را بارگذاری کنید (Excel یا PDF چاپ‌شده از
+    Excel) تا معیارهای پایش به‌صورت خودکار ارزیابی شوند، ماتریس انحرافات ساخته شود و
+    گزارش مدیریتی Word تولید گردد. نتیجهٔ این اجرا در تاریخچهٔ پروژهٔ
+    «{{ project.name }}» ثبت می‌شود.
+  </p>
+</header>
+
+{# آدرس API این کارگاه داخل پروژهٔ جاری -- از رجیستری کارگاه‌ها می‌آید تا هیچ
+   آدرسی در جاوااسکریپت هاردکد نباشد. #}
+<script>
+  window.PSA_WORKSHOP = {
+    apiBase: "{{ api_base }}",
+    projectId: {{ project.id }},
+    storageKey: "psa.budget.jobId.p{{ project.id }}"
+  };
+</script>
+
+{% with steps = ["آپلود", "پردازش", "نتیجه"] %}
+{% include "components/stepper.html" with context %}
+{% endwith %}
+
+<form id="psa-budget-form" novalidate>
+  <!-- ================= مرحله ۱: آپلود ================= -->
+  <section id="psa-step-upload" class="psa-step">
+    <div class="grid gap-5 lg:grid-cols-[1fr_20rem]">
+      <div class="space-y-5">
+        <div class="psa-card psa-card-elevated p-5 sm:p-6">
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 class="psa-section-title">
+                {{ icon('file-spreadsheet', 17) | safe }}
+                اسناد بودجه (دو سند الزامی)
+              </h2>
+              <p class="psa-section-hint mt-1">
+                هر سند را انتخاب کنید یا آن را با ماوس روی کادر زیر بکشید و رها کنید.
+              </p>
+            </div>
+            <span class="psa-badge psa-badge-danger">۲ سند الزامی</span>
+          </div>
+          <div class="grid gap-4 sm:grid-cols-2">
+            {% for slot_key, slot in slots.items() %}
+              {% include "components/dropzone.html" with context %}
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="psa-card p-5 sm:p-6">
+          <h2 class="psa-section-title">
+            {{ icon('landmark', 17) | safe }}
+            مشخصات گزارش
+          </h2>
+          <p class="psa-section-hint mt-1">
+            همهٔ این فیلدها اختیاری‌اند. اگر سال را وارد نکنید، سامانه سال را از خود اسناد
+            تشخیص می‌دهد؛ در صورت نبود آن، «در اسناد موجود نیست» درج می‌شود.
+          </p>
+
+          <div class="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <label for="organization" class="psa-label">نام سازمان/پارک</label>
+              <input
+                type="text"
+                id="organization"
+                name="organization"
+                class="psa-input"
+                placeholder="مثلاً پارک علم و فناوری خراسان"
+                autocomplete="organization"
+              />
+            </div>
+            <div>
+              <label for="base_year" class="psa-label">سال پایه (اختیاری)</label>
+              <input
+                type="text"
+                id="base_year"
+                name="base_year"
+                class="psa-input"
+                inputmode="numeric"
+                placeholder="مثلاً ۱۴۰۴"
+              />
+            </div>
+            <div>
+              <label for="current_year" class="psa-label">سال مورد بررسی (اختیاری)</label>
+              <input
+                type="text"
+                id="current_year"
+                name="current_year"
+                class="psa-input"
+                inputmode="numeric"
+                placeholder="مثلاً ۱۴۰۵"
+              />
+            </div>
+            <div>
+              <label for="meeting_context" class="psa-label">توضیح جلسه (اختیاری)</label>
+              <input
+                type="text"
+                id="meeting_context"
+                name="meeting_context"
+                class="psa-input"
+                placeholder="مثلاً جلسه هیأت امنا — شهریور ۱۴۰۵"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ستون راهنما و اقدام -->
+      <aside class="space-y-5">
+        <div class="psa-card p-5">
+          <h2 class="psa-section-title">
+            {{ icon('workflow', 17) | safe }}
+            مسیر پردازش
+          </h2>
+          <ol class="mt-4 space-y-3">
+            {% set flow_steps = [
+              ('استخراج ساختارمند', 'خواندن فرم‌ها، ردیف‌ها و مقادیر دو سند و ساخت نشانی محل هر عدد.'),
+              ('ارزیابی معیارها', 'اجرای محورهای پایش، محاسبهٔ انحراف نسبت به آستانه‌های پیکربندی و تعیین وضعیت.'),
+              ('ماتریس خطادهی', 'ثبت ریزدانهٔ هر نتیجه با فرم، بخش، ردیف، ستون، مقدار و حد مجاز.'),
+              ('تحلیل مدیریتی', 'تولید خلاصه، یافته‌های بااهمیت، ریسک‌ها و موارد نیازمند تصمیم/شفاف‌سازی.'),
+              ('تولید گزارش', 'ساخت فایل Word راست‌به‌چپ با ترتیب بخش‌های مصوب گزارش.')
+            ] %}
+            {% set flow_digits = ['۱', '۲', '۳', '۴', '۵'] %}
+            {% for step_title, step_desc in flow_steps %}
+            <li class="flex gap-3">
+              <span class="psa-badge psa-badge-neutral psa-num shrink-0">{{ flow_digits[loop.index0] }}</span>
+              <span>
+                <span class="block text-xs font-bold text-slate-800">{{ step_title }}</span>
+                <span class="block text-xs leading-6 text-slate-500">{{ step_desc }}</span>
+              </span>
+            </li>
+            {% endfor %}
+          </ol>
+        </div>
+
+        <div class="psa-card p-5">
+          <div class="psa-note">
+            {{ icon('lock', 16) | safe }}
+            <span>
+              فایل‌های ورودی پس از پایان پردازش حذف می‌شوند؛ فقط گزارش نهایی در تاریخچهٔ
+              پروژه باقی می‌ماند.
+            </span>
+          </div>
+
+          <button
+            type="submit"
+            id="psa-submit-btn"
+            class="psa-btn psa-btn-primary psa-btn-lg psa-btn-block mt-4"
+          >
+            {{ icon('gauge', 17) | safe }}
+            اجرای تحلیل بودجه
+          </button>
+          <p class="psa-help text-center">
+            بسته به حجم اسناد، پردازش ممکن است چند دقیقه زمان ببرد.
+          </p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ================= مرحله ۲: پردازش ================= -->
+  <section id="psa-step-processing" class="psa-step hidden">
+    <div class="mx-auto max-w-3xl">
+      {% include "components/progress_bar.html" with context %}
+
+      <div class="mt-4 flex flex-col items-center gap-2">
+        <p class="psa-help text-center">
+          می‌توانید این صفحه را ببندید یا به کارگاه دیگری بروید؛ پردازش در سرور ادامه
+          می‌یابد و با بازگشت به این کارگاه، وضعیت به‌صورت خودکار بازیابی می‌شود.
+          وضعیت زندهٔ همهٔ اجراهای هم‌زمان را می‌توانید در
+          <a href="/projects/{{ project.id }}" class="psa-link">صفحهٔ پروژه</a> ببینید.
+        </p>
+        <button type="button" id="psa-restart-btn" class="psa-btn psa-btn-secondary psa-btn-sm">
+          {{ icon('refresh-cw', 15) | safe }}
+          شروع تحلیل جدید
+        </button>
+      </div>
+    </div>
+  </section>
+</form>
+
+<!-- ================= مرحله ۳: نتیجه ================= -->
+<section id="psa-step-results" class="psa-step hidden">
+  <div class="psa-card psa-card-elevated psa-card-topline p-5 sm:p-6">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex items-start gap-3">
+        <span class="psa-icon-tile psa-icon-tile-md is-emerald">{{ icon('check-circle', 20) | safe }}</span>
+        <div>
+          <h2 class="text-sm font-bold text-slate-900">گزارش مدیریتی بودجه آماده شد</h2>
+          <p id="psa-result-meta" class="psa-section-hint mt-1"></p>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <button type="button" id="psa-restart-btn-results" class="psa-btn psa-btn-ghost psa-btn-sm">
+          {{ icon('refresh-cw', 15) | safe }}
+          تحلیل دیگر
+        </button>
+        <a id="psa-download-report" href="#" class="psa-btn psa-btn-gold shrink-0">
+          {{ icon('download', 16) | safe }}
+          دانلود گزارش (Word)
+        </a>
+        <span id="psa-report-unavailable" class="psa-help hidden">
+          گزارش Word در دسترس نیست.
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div id="psa-results-warnings" class="psa-note is-warning mt-4 hidden flex-col gap-1" role="status"></div>
+
+  <!-- آمار کلی -->
+  <div id="psa-result-stats" class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"></div>
+
+  <!-- خلاصه مدیریتی -->
+  <div class="psa-card mt-4 p-5 sm:p-6">
+    <h2 class="psa-section-title">
+      {{ icon('scan-text', 17) | safe }}
+      خلاصه مدیریتی
+    </h2>
+    <div id="psa-executive-summary" class="psa-prose mt-3 space-y-2 text-sm leading-7 text-slate-700"></div>
+  </div>
+
+  <!-- وضعیت محورهای پایش -->
+  <div class="psa-card mt-4 p-5 sm:p-6">
+    <h2 class="psa-section-title">
+      {{ icon('gauge', 17) | safe }}
+      وضعیت محورهای پایش
+    </h2>
+    <div id="psa-axis-table" class="psa-table-wrap mt-3"></div>
+  </div>
+
+  <!-- مهم‌ترین انحرافات عددی -->
+  <div class="psa-card mt-4 p-5 sm:p-6">
+    <h2 class="psa-section-title">
+      {{ icon('trending-up', 17) | safe }}
+      مهم‌ترین انحرافات عددی
+    </h2>
+    <p class="psa-section-hint mt-1">
+      موارد بحرانی به ترتیب اولویت (عبور قطعی از سقف/کف، بیشترین انحراف نسبت به آستانه،
+      بیشترین مبلغ در معرض ریسک و بیشترین اثر بر مأموریت پارک).
+    </p>
+    <div id="psa-top-findings" class="psa-table-wrap mt-3"></div>
+  </div>
+
+  <!-- موارد انحراف معیارها -->
+  <div class="psa-card mt-4 p-5 sm:p-6">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <h2 class="psa-section-title">
+        {{ icon('gauge', 17) | safe }}
+        موارد انحراف معیارها
+      </h2>
+      <span id="psa-matrix-count" class="psa-badge psa-badge-neutral psa-num">—</span>
+    </div>
+    <div id="psa-matrix-table" class="psa-table-wrap mt-3"></div>
+  </div>
+
+  <!-- یافته‌های بااهمیت -->
+  <div class="psa-card mt-4 p-5 sm:p-6">
+    <h2 class="psa-section-title">
+      {{ icon('list-checks', 17) | safe }}
+      یافته‌های بااهمیت
+    </h2>
+    <div id="psa-findings" class="mt-3 space-y-3"></div>
+  </div>
+
+  <!-- ریسک‌ها -->
+  <div class="psa-card mt-4 p-5 sm:p-6">
+    <h2 class="psa-section-title">
+      {{ icon('alert-triangle', 17) | safe }}
+      ریسک‌ها و آثار مالی
+    </h2>
+    <div id="psa-risks" class="psa-table-wrap mt-3"></div>
+  </div>
+
+  <!-- موارد نیازمند تصمیم و شفاف‌سازی -->
+  <div class="grid gap-5 lg:grid-cols-2">
+    <div class="psa-card mt-4 p-5 sm:p-6">
+      <h2 class="psa-section-title">
+        {{ icon('workflow', 17) | safe }}
+        موارد نیازمند بررسی و تصمیم‌گیری
+      </h2>
+      <div id="psa-decisions" class="mt-3 space-y-3"></div>
+    </div>
+
+    <div class="psa-card mt-4 p-5 sm:p-6">
+      <h2 class="psa-section-title">
+        {{ icon('file-search', 17) | safe }}
+        موارد نیازمند شفاف‌سازی
+      </h2>
+      <div id="psa-clarifications" class="mt-3 space-y-3"></div>
+    </div>
+  </div>
+
+  <!-- نکات تکمیلی -->
+  <div class="psa-card mt-4 p-5 sm:p-6">
+    <h2 class="psa-section-title">
+      {{ icon('info', 17) | safe }}
+      نکات تکمیلی برای جلسه
+    </h2>
+    <ul id="psa-closing-notes" class="mt-3 space-y-2 text-sm leading-7 text-slate-700"></ul>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="/static/js/budget_analysis.js"></script>
+{% endblock %}

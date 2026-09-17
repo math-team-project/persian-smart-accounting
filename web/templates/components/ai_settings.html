@@ -1,0 +1,205 @@
+{#
+  بخش «تنظیمات هوش مصنوعی» صفحهٔ پروژه -- یک فرم برای هر کارگاهی که تنظیماتش
+  واقعاً اعمال می‌شود (کارگاه‌های ``settings_applied`` در رجیستری).
+
+  قواعد امنیتی این قالب:
+    * کلید ذخیره‌شده هرگز در HTML نمی‌آید (نه خام و نه رمزشده)؛ فقط یک نشانگر
+      ماسک‌شده به‌عنوان placeholder نشان داده می‌شود.
+    * خالی گذاشتن هر فیلد یعنی «از پیش‌فرض سامانه استفاده کن» -- این موضوع در
+      راهنمای هر فیلد و در متن بالای فرم صریح گفته شده است.
+
+  ذخیره و «تست اتصال» را ``static/js/ai_settings.js`` انجام می‌دهد؛ آدرس هر فرم
+  از رجیستری/نمایندهٔ سمت سرور می‌آید (data-settings-url) نه هاردکد در JS.
+#}
+<section id="psa-ai-settings" class="mt-8" aria-labelledby="psa-ai-settings-title">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <div>
+      <h2 id="psa-ai-settings-title" class="psa-section-title text-base">
+        {{ icon('settings', 17) | safe }}
+        تنظیمات
+      </h2>
+      <p class="psa-section-hint mt-1">
+        سرویس هوش مصنوعی هر کارگاه را می‌توانید برای همین پروژه جداگانه تعیین کنید.
+        هر فیلدی را خالی بگذارید، همان‌جا از <strong>پیش‌فرض سامانه</strong> استفاده
+        می‌شود و هیچ خطایی رخ نمی‌دهد.
+      </p>
+    </div>
+  </div>
+
+  {% if not ai_settings_panels %}
+  <p class="psa-empty mt-4">
+    {{ icon('info', 16) | safe }}
+    <span>در حال حاضر کارگاهی با تنظیمات قابل‌شخصی‌سازی وجود ندارد.</span>
+  </p>
+  {% endif %}
+
+  <div class="mt-4 space-y-4">
+    {% for panel in ai_settings_panels %}
+    <details
+      class="psa-card psa-ai-panel"
+      data-psa-ai-panel="{{ panel.slug }}"
+      data-settings-url="{{ panel.settings_url }}"
+      {% if panel.api_key_set or panel.api_url or panel.model %}open{% endif %}
+    >
+      <summary class="psa-ai-summary">
+        <span class="psa-icon-tile psa-icon-tile-md is-{{ panel.workshop.accent }}">
+          {{ icon(panel.workshop.icon, 20) | safe }}
+        </span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-sm font-bold text-slate-900">{{ panel.workshop.display_name_fa }}</span>
+          <span class="psa-meta mt-0.5 block" data-psa-ai-summary>
+            {% if panel.api_key_set or panel.api_url or panel.model %}
+            تنظیمات اختصاصی این پروژه فعال است.
+            {% else %}
+            در حال استفاده از پیش‌فرض‌های سامانه.
+            {% endif %}
+          </span>
+        </span>
+        <span
+          class="psa-badge {{ 'psa-badge-success' if panel.api_key_set else 'psa-badge-neutral' }}"
+          data-psa-key-badge
+        >
+          {{ 'کلید اختصاصی' if panel.api_key_set else 'کلید پیش‌فرض' }}
+        </span>
+        {{ icon('chevron-left', 16) | safe }}
+      </summary>
+
+      <form class="psa-ai-form mt-4" data-psa-ai-form novalidate>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="sm:col-span-2">
+            <label class="psa-label" for="psa-ai-key-{{ panel.slug }}">
+              {{ icon('key', 14) | safe }}
+              کلید دسترسی سرویس
+            </label>
+            <input
+              type="password"
+              id="psa-ai-key-{{ panel.slug }}"
+              name="api_key"
+              class="psa-input"
+              dir="ltr"
+              autocomplete="new-password"
+              data-psa-field="api_key"
+              placeholder="{{ panel.masked_placeholder if panel.api_key_set else 'خالی بگذارید تا از کلید پیش‌فرض سامانه استفاده شود' }}"
+            />
+            <p class="psa-help">
+              کلید به‌صورت رمزشده ذخیره می‌شود و هرگز به همین فرم برگردانده نمی‌شود.
+              {% if panel.api_key_set %}
+              برای تغییر، مقدار جدید را وارد کنید؛ برای نگه‌داشتن کلید فعلی این فیلد
+              را خالی بگذارید.
+              {% endif %}
+            </p>
+            {# این چک‌باکس همیشه رندر می‌شود و فقط وقتی کلید ذخیره‌شده‌ای وجود دارد
+               دیده می‌شود؛ جاوااسکریپت پس از ذخیره‌ی موفق، آن را بدون نیاز به
+               بارگذاری دوباره‌ی صفحه نمایان می‌کند. #}
+            <label class="psa-check mt-2{% if not panel.api_key_set %} hidden{% endif %}" data-psa-clear-wrap>
+              <input type="checkbox" data-psa-field="clear_api_key" />
+              <span>کلید ذخیره‌شدهٔ این پروژه حذف شود (بازگشت به کلید پیش‌فرض)</span>
+            </label>
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="psa-label" for="psa-ai-url-{{ panel.slug }}">
+              {{ icon('plug', 14) | safe }}
+              آدرس سرویس
+            </label>
+            <input
+              type="text"
+              id="psa-ai-url-{{ panel.slug }}"
+              name="api_url"
+              class="psa-input"
+              dir="ltr"
+              data-psa-field="api_url"
+              value="{{ panel.api_url }}"
+              placeholder="{{ panel.defaults.api_url }}"
+            />
+            <p class="psa-help">خالی یعنی استفاده از پیش‌فرض: <span dir="ltr">{{ panel.defaults.api_url }}</span></p>
+          </div>
+
+          <div>
+            <label class="psa-label" for="psa-ai-model-{{ panel.slug }}">
+              {{ icon('cpu', 14) | safe }}
+              نام مدل
+            </label>
+            <input
+              type="text"
+              id="psa-ai-model-{{ panel.slug }}"
+              name="model"
+              class="psa-input"
+              dir="ltr"
+              data-psa-field="model"
+              value="{{ panel.model }}"
+              placeholder="{{ panel.defaults.model }}"
+            />
+          </div>
+
+          <div>
+            <label class="psa-label" for="psa-ai-temp-{{ panel.slug }}">
+              {{ icon('gauge', 14) | safe }}
+              میزان خلاقیت (دما)
+            </label>
+            <input
+              type="number"
+              id="psa-ai-temp-{{ panel.slug }}"
+              name="temperature"
+              class="psa-input"
+              dir="ltr"
+              step="0.05"
+              min="0"
+              max="2"
+              data-psa-field="temperature"
+              {% if panel.temperature is not none %}value="{{ panel.temperature }}"{% endif %}
+              placeholder="{{ panel.defaults.temperature }}"
+            />
+            <p class="psa-help">کم‌تر = پاسخ‌های دقیق‌تر و یکنواخت‌تر. پیش‌فرض: {{ panel.defaults.temperature | fa_digits }}</p>
+          </div>
+
+          <div>
+            <label class="psa-label" for="psa-ai-tokens-{{ panel.slug }}">
+              {{ icon('scan-text', 14) | safe }}
+              حداکثر طول خروجی
+            </label>
+            <input
+              type="number"
+              id="psa-ai-tokens-{{ panel.slug }}"
+              name="max_output_tokens"
+              class="psa-input"
+              dir="ltr"
+              min="1"
+              step="500"
+              data-psa-field="max_output_tokens"
+              {% if panel.max_output_tokens is not none %}value="{{ panel.max_output_tokens }}"{% endif %}
+              placeholder="{{ panel.defaults.max_output_tokens }}"
+            />
+            <p class="psa-help">
+              سقف طول گزارش تولیدی. پیش‌فرض: {{ panel.defaults.max_output_tokens | fa_number | fa_digits }}
+            </p>
+          </div>
+        </div>
+
+        <div class="psa-note mt-4">
+          {{ icon('info', 16) | safe }}
+          <span>
+            هر فیلد خالی از پیش‌فرض سامانه استفاده می‌کند. تنظیمات فقط روی اجراهای
+            بعدی همین کارگاه در همین پروژه اثر می‌گذارد.
+          </span>
+        </div>
+
+        <div class="mt-4 flex flex-wrap items-center gap-2">
+          <button type="submit" class="psa-btn psa-btn-primary psa-btn-sm" data-psa-save>
+            {{ icon('check', 15) | safe }}
+            ذخیره تنظیمات
+          </button>
+          {% if panel.workshop.test_connection %}
+          <button type="button" class="psa-btn psa-btn-secondary psa-btn-sm" data-psa-test>
+            {{ icon('bolt', 15) | safe }}
+            تست اتصال
+          </button>
+          {% endif %}
+          <span class="psa-spinner hidden" data-psa-busy aria-hidden="true"></span>
+          <span class="psa-help" data-psa-result role="status" aria-live="polite"></span>
+        </div>
+      </form>
+    </details>
+    {% endfor %}
+  </div>
+</section>

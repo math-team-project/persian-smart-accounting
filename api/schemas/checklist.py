@@ -23,6 +23,9 @@ class JobSummary(BaseModel):
 
 class JobStatusResponse(BaseModel):
     job_id: str
+    # شناسه‌ی ردیف تاریخچه‌ی همین اجرا -- به‌کمک آن، حتی پس از خروج job از حافظه‌ی
+    # سرور هم می‌توان فایل نتیجه را از مسیر ``runs/{run_id}/download`` دانلود کرد.
+    run_id: Optional[int] = None
     status: JobStatus
     stage: str
     progress: int

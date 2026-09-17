@@ -18,6 +18,8 @@ from api.schemas.common import JobStatus, StartJobResponse  # noqa: F401  (بر�
 
 class JobStatusResponse(BaseModel):
     job_id: str
+    # شناسه‌ی ردیف تاریخچه‌ی همین اجرا (برای ساخت لینک دانلود نتیجه).
+    run_id: Optional[int] = None
     status: JobStatus
     stage: str
     progress: int

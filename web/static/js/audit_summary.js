@@ -10,14 +10,22 @@
 
   const POLL_INTERVAL_MS = 1500;
 
-  /* کلید نگه‌داری شناسه‌ی آخرین job در مرورگر -- با این کار جابه‌جایی بین
-     کارگاه‌ها یا بارگذاری دوبارهٔ صفحه، پردازش در حال اجرا/تمام‌شده را از بین
-     نمی‌برد (job ها در حافظه‌ی سرور باقی می‌مانند؛ نگاه کنید
-     ``api/jobs/job_manager.py``). */
-  const STORAGE_KEY = "psa.summary.jobId";
+  /* تنظیمات این کارگاه که از قالب صفحه تزریق می‌شود: پیشوند API همین کارگاه
+     داخل پروژهٔ جاری (``/api/projects/<id>/audit-summary``) و کلید نگه‌داری
+     شناسهٔ job. مسیر API از رجیستری کارگاه‌ها می‌آید، بنابراین هیچ آدرسی این‌جا
+     هاردکد نیست. */
+  const WORKSHOP_CONFIG = window.PSA_WORKSHOP || {};
+  const API_BASE = WORKSHOP_CONFIG.apiBase || "/api/summary";
+
+  /* کلید نگه‌داری شناسه‌ی آخرین job در مرورگر (به‌ازای هر پروژه جداگانه) -- با
+     این کار جابه‌جایی بین کارگاه‌ها یا بارگذاری دوبارهٔ صفحه، پردازش در حال
+     اجرا/تمام‌شده را از بین نمی‌برد (job ها در حافظه‌ی سرور باقی می‌مانند؛
+     نگاه کنید ``api/jobs/job_manager.py``). */
+  const STORAGE_KEY = WORKSHOP_CONFIG.storageKey || "psa.summary.jobId";
 
   const state = {
     jobId: null,
+    runId: null,
     pollTimer: null,
     step: null,
   };
@@ -65,6 +73,7 @@
   function resetWorkspace() {
     stopPolling();
     state.jobId = null;
+    state.runId = null;
     state.step = null;
     clearStoredJobId();
 
@@ -88,11 +97,12 @@
    */
   async function restoreJob() {
     try {
-      const response = await fetch("/api/summary/jobs/" + encodeURIComponent(state.jobId));
+      const response = await fetch(API_BASE + "/jobs/" + encodeURIComponent(state.jobId));
       if (!response.ok) {
         throw new Error(await parseErrorDetail(response));
       }
       const job = await response.json();
+      if (job.run_id) state.runId = job.run_id;
 
       if (job.status === "done") {
         await loadResults();
@@ -101,6 +111,7 @@
       if (job.status === "error") {
         clearStoredJobId();
         state.jobId = null;
+        state.runId = null;
         showStep(0);
         window.psaShowToast(job.error || "پردازش قبلی با خطا متوقف شد.", "error");
         return;
@@ -112,6 +123,7 @@
     } catch (err) {
       clearStoredJobId();
       state.jobId = null;
+      state.runId = null;
       showStep(0);
     }
   }
@@ -134,7 +146,7 @@
 
     submitBtn.disabled = true;
     try {
-      const response = await fetch("/api/summary/jobs", {
+      const response = await fetch(API_BASE + "/jobs", {
         method: "POST",
         body: formData,
       });
@@ -143,6 +155,7 @@
       }
       const data = await response.json();
       state.jobId = data.job_id;
+      state.runId = data.run_id || null;
       storeJobId(state.jobId);
       showStep(1);
       startPolling();
@@ -172,11 +185,12 @@
   async function pollOnce() {
     if (!state.jobId) return;
     try {
-      const response = await fetch("/api/summary/jobs/" + encodeURIComponent(state.jobId));
+      const response = await fetch(API_BASE + "/jobs/" + encodeURIComponent(state.jobId));
       if (!response.ok) {
         throw new Error(await parseErrorDetail(response));
       }
       const job = await response.json();
+      if (job.run_id) state.runId = job.run_id;
       window.psaSetProgress(job.progress, job.stage, job.logs);
 
       if (job.status === "done") {
@@ -198,7 +212,7 @@
 
   async function loadResults() {
     try {
-      const response = await fetch("/api/summary/jobs/" + encodeURIComponent(state.jobId) + "/results");
+      const response = await fetch(API_BASE + "/jobs/" + encodeURIComponent(state.jobId) + "/results");
       if (!response.ok) {
         throw new Error(await parseErrorDetail(response));
       }
@@ -224,8 +238,11 @@
     }
     document.getElementById("psa-result-source").textContent = metaParts.join("  •  ");
 
+    // دانلود از مسیر «اجرا» (نه job) تا فایل ذخیره‌شده در تاریخچه هم قابل دریافت باشد.
     const downloadLink = document.getElementById("psa-download-summary");
-    downloadLink.href = "/api/summary/jobs/" + encodeURIComponent(state.jobId) + "/download";
+    if (state.runId) {
+      downloadLink.href = API_BASE + "/runs/" + encodeURIComponent(state.runId) + "/download";
+    }
 
     const previewBox = document.getElementById("psa-summary-preview");
     previewBox.innerHTML =

@@ -4,18 +4,38 @@
 {% block content %}
 {% include "components/toast.html" with context %}
 
+<!-- ===================== مسیر پروژه ===================== -->
+<nav class="psa-meta mb-3 flex items-center gap-1.5" aria-label="مسیر صفحه">
+  <a href="/" class="psa-footer-link">پروژه‌ها</a>
+  <span aria-hidden="true">{{ icon('chevron-left', 13) | safe }}</span>
+  <a href="/projects/{{ project.id }}" class="psa-footer-link">{{ project.name }}</a>
+  <span aria-hidden="true">{{ icon('chevron-left', 13) | safe }}</span>
+  <span class="text-slate-700">{{ workshop.display_name_fa }}</span>
+</nav>
+
 <!-- ===================== سرصفحهٔ کارگاه ===================== -->
 <header class="mb-6">
   <span class="psa-eyebrow">
     {{ icon('sparkles', 14) | safe }}
-    کارگاه خلاصه‌سازی با هوش مصنوعی
+    کارگاه خلاصه‌سازی با هوش مصنوعی — پروژهٔ «{{ project.name }}»
   </span>
   <h1 class="psa-page-title mt-3">خلاصه‌سازی گزارش حسابرسی</h1>
   <p class="psa-page-subtitle">
     یک گزارش حسابرسی موجود (PDF/DOC/DOCX) را بارگذاری کنید تا متن آن استخراج شده و
     با کمک هوش مصنوعی به خلاصه‌ای روان، ساختارمند و آمادهٔ جلسه تبدیل شود.
+    نتیجهٔ این اجرا در تاریخچهٔ پروژهٔ «{{ project.name }}» ثبت می‌شود.
   </p>
 </header>
+
+{# آدرس API این کارگاه داخل پروژهٔ جاری -- از رجیستری کارگاه‌ها می‌آید و به
+   audit_summary.js داده می‌شود تا هیچ آدرسی در جاوااسکریپت هاردکد نباشد. #}
+<script>
+  window.PSA_WORKSHOP = {
+    apiBase: "{{ api_base }}",
+    projectId: {{ project.id }},
+    storageKey: "psa.summary.jobId.p{{ project.id }}"
+  };
+</script>
 
 {% with steps = ["آپلود", "پردازش", "نتیجه"] %}
 {% include "components/stepper.html" with context %}
@@ -37,7 +57,7 @@
                 فایل را انتخاب کنید یا آن را با ماوس روی کادر زیر بکشید و رها کنید.
               </p>
             </div>
-            <span class="psa-badge psa-badge-gold">{{ icon('cpu', 13) | safe }} پردازش با AI</span>
+            <span class="psa-badge psa-badge-danger">۱ فایل الزامی</span>
           </div>
 
           {% include "components/dropzone.html" with context %}
@@ -140,6 +160,8 @@
         <p class="psa-help text-center">
           می‌توانید این صفحه را ببندید یا به کارگاه دیگری بروید؛ پردازش در سرور ادامه
           می‌یابد و با بازگشت به این کارگاه، وضعیت به‌صورت خودکار بازیابی می‌شود.
+          وضعیت زندهٔ همهٔ اجراهای هم‌زمان را می‌توانید در
+          <a href="/projects/{{ project.id }}" class="psa-link">صفحهٔ پروژه</a> ببینید.
         </p>
         <button type="button" id="psa-restart-btn" class="psa-btn psa-btn-secondary psa-btn-sm">
           {{ icon('refresh-cw', 15) | safe }}

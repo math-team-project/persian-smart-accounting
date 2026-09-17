@@ -30,12 +30,11 @@
    ۱) توکن‌های طراحی
    --------------------------------------------------------------------------- */
 :root {
-  /* برند و سطوح تیره (Navy) */
+  /* برند و سطوح تیره (Navy) -- این مقادیر در هر دو پوسته ثابت می‌مانند، چون
+     «سطح برند»‌اند (کاشی آیکون، نشان، دکمهٔ اصلی) نه متن روی زمینهٔ روشن. */
   --color-primary: #0f172a;
   --color-primary-dark: #0b1120;
-  --color-surface: #ffffff;
   --color-surface-dark: #111827;
-  --color-surface-muted: #f8fafc;
 
   /* رنگ‌های فناوری (Teal / Emerald) */
   --color-teal: #0f766e;
@@ -48,12 +47,55 @@
   --color-gold: #f59e0b;
   --color-gold-deep: #b45309;
 
-  /* رابط روشن */
+  /* ------------------------------------------------------------------
+     توکن‌های «رنگ متن» -- عمداً از توکن‌های «سطح» جدا شده‌اند.
+     دلیل: ``--color-primary`` هم به‌عنوان متن عنوان و هم به‌عنوان سطح تیرهٔ
+     نشان برند به‌کار می‌رود. اگر یک توکن مشترک بود، در پوستهٔ تیره یا متن
+     تیره می‌ماند یا نشان برند روشن می‌شد. پس دو خانواده داریم:
+       * ``*-ink``  -> فقط متن (در پوستهٔ تیره روشن می‌شود)
+       * سطح‌ها     -> فقط پس‌زمینه/حاشیه (در پوستهٔ تیره تیره می‌مانند)
+     ------------------------------------------------------------------ */
+  --color-heading: #0f172a;
+  --color-text: #0f172a;
+  --color-text-strong: #334155;
+  --color-text-soft: #475569;
+  --color-muted: #64748b;
+  --color-faint: #94a3b8;
+  --color-teal-ink: #0d5f59;
+  --color-danger-ink: #b91c1c;
+  --color-danger-deep-ink: #7f1d1d;
+  --color-success-ink: #047857;
+  --color-emerald-ink: #065f46;
+  --color-warning-ink: #78350f;
+  --color-info-ink: #0369a1;
+  --color-info-deep-ink: #0c4a6e;
+  --color-on-accent: #ffffff; /* متن روی دکمه/نشان رنگی */
+
+  /* توکن‌های «سطح» (پس‌زمینه) */
+  --color-surface: #ffffff;
   --color-background: #f8fafc;
+  --color-surface-muted: #f8fafc;
+  --color-surface-subtle: #f1f5f9;
+  --color-track: #eef2f6;
+  --stat-fade: #ffffff; /* پایان گرادیان کارت‌های آماری رنگی */
+  --gradient-footer: var(--gradient-footer);
+
+  /* سربرگ/پابرگ شیشه‌ای و خط مؤی */
+  --color-header-bg: rgba(255, 255, 255, 0.82);
+  --color-header-solid: rgba(255, 255, 255, 0.96);
+  --color-hairline: rgba(226, 232, 240, 0.9);
+
+  /* لایه‌های جوهر (هاور/راه‌راه) و شبکهٔ پس‌زمینه */
+  --overlay-ink-faint: rgba(15, 23, 42, 0.04);
+  --overlay-ink: rgba(15, 23, 42, 0.045);
+  --overlay-ink-strong: rgba(15, 23, 42, 0.06);
+  --bg-glow-ink: rgba(15, 23, 42, 0.07);
+  --bg-grid-ink: rgba(15, 23, 42, 0.045);
+
+  /* حاشیه */
   --color-border: #e2e8f0;
   --color-border-strong: #cbd5e1;
-  --color-muted: #64748b;
-  --color-text: #0f172a;
+
   --color-error: #ef4444;
   --color-success: #10b981;
   --color-warning: #f59e0b;
@@ -79,6 +121,70 @@
   /* حرکت */
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
   --duration: 0.2s;
+
+  /* رنگ نوار مرورگر (موبایل) -- با پوسته عوض می‌شود */
+  color-scheme: light;
+}
+
+/* ---------------------------------------------------------------------------
+   ۱-ب) پوستهٔ تیره
+   فقط توکن‌ها بازنویسی می‌شوند؛ هیچ قاعدهٔ کامپوننتی تکرار نمی‌شود. یعنی هر
+   کلاس ``psa-*`` که با توکن رنگ شده باشد، بی‌هیچ تغییر دیگری در پوستهٔ تیره هم
+   درست دیده می‌شود. ویژگی روی ``<html>`` قرار می‌گیرد (``data-theme="dark"``)
+   و پیش از اولین رنگ‌آمیزی توسط اسکریپت کوچک سربرگ ست می‌شود (بدون پرش رنگ).
+   --------------------------------------------------------------------------- */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* سطوح: آبی-سرمه‌ای تیره به‌جای سفید/خاکستری روشن */
+  --color-background: #0b1120;
+  --color-surface: #121b2c;
+  --color-surface-muted: #0f1728;
+  --color-surface-subtle: #1a2437;
+  --color-track: #1e293b;
+  --stat-fade: #121b2c;
+  --gradient-footer: linear-gradient(180deg, rgba(18, 27, 44, 0.85), rgba(11, 17, 32, 0.95));
+
+  --color-header-bg: rgba(11, 17, 32, 0.82);
+  --color-header-solid: rgba(11, 17, 32, 0.97);
+  --color-hairline: rgba(36, 49, 74, 0.9);
+
+  --color-border: #24314a;
+  --color-border-strong: #33415c;
+
+  /* متن: از تیره به روشن */
+  --color-heading: #f3f6fb;
+  --color-text: #e6ecf5;
+  --color-text-strong: #cfd9e8;
+  --color-text-soft: #b6c2d6;
+  --color-muted: #94a3b8;
+  --color-faint: #7c8aa3;
+
+  /* رنگ‌های معنایی متن: نسخهٔ روشن‌تر برای خوانایی روی زمینهٔ تیره */
+  --color-teal-ink: #5eead4;
+  --color-danger-ink: #fca5a5;
+  --color-danger-deep-ink: #fecaca;
+  --color-success-ink: #6ee7b7;
+  --color-emerald-ink: #a7f3d0;
+  --color-warning-ink: #fcd34d;
+  --color-gold-deep: #fcd34d; /* فقط برای متن استفاده می‌شود */
+  --color-info-ink: #7dd3fc;
+  --color-info-deep-ink: #bae6fd;
+
+  /* لایه‌های جوهر: در پوستهٔ تیره جوهر روشن است، نه تیره */
+  --overlay-ink-faint: rgba(255, 255, 255, 0.05);
+  --overlay-ink: rgba(255, 255, 255, 0.06);
+  --overlay-ink-strong: rgba(255, 255, 255, 0.09);
+  --bg-glow-ink: rgba(148, 163, 184, 0.12);
+  --bg-grid-ink: rgba(148, 163, 184, 0.09);
+
+  /* سایه‌ها روی سطح تیره باید سنگین‌تر باشند تا عمق دیده شود */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow-2: 0 4px 14px -4px rgba(0, 0, 0, 0.6), 0 2px 6px -2px rgba(0, 0, 0, 0.4);
+  --shadow-3: 0 24px 48px -18px rgba(0, 0, 0, 0.75), 0 8px 20px -12px rgba(0, 0, 0, 0.55);
+  --ring: 0 0 0 3px rgba(45, 212, 191, 0.3);
+  --ring-error: 0 0 0 3px rgba(248, 113, 113, 0.28);
+  --shadow-glow: 0 0 0 1px rgba(45, 212, 191, 0.35), 0 14px 30px -18px rgba(0, 0, 0, 0.7);
 }
 
 /* ---------------------------------------------------------------------------
@@ -138,7 +244,7 @@ body {
   border: 1px solid rgba(15, 118, 110, 0.18);
   border-radius: 999px;
   background: linear-gradient(180deg, rgba(20, 184, 166, 0.1), rgba(20, 184, 166, 0.04));
-  color: var(--color-teal-deep);
+  color: var(--color-teal-ink);
   font-size: 0.72rem;
   font-weight: 600;
   line-height: 1.6;
@@ -149,7 +255,7 @@ body {
   font-weight: 800;
   line-height: 1.5;
   letter-spacing: -0.01em;
-  color: var(--color-primary);
+  color: var(--color-heading);
 }
 
 .psa-page-subtitle {
@@ -166,7 +272,7 @@ body {
   gap: 0.5rem;
   font-size: 0.95rem;
   font-weight: 700;
-  color: var(--color-primary);
+  color: var(--color-heading);
 }
 
 .psa-section-hint {
@@ -213,8 +319,10 @@ body {
 
 /* ---------------------------------------------------------------------------
    ۳) پس‌زمینهٔ صفحه
-   پس‌زمینهٔ اصلی #F8FAFC است، به‌همراه گرادیان‌های شعاعی بسیار ملایم تیل/نیوی
-   و یک شبکهٔ هندسی کم‌کنتراست که در بالای صفحه محو می‌شود.
+   سطح اصلی از توکن ``--color-background`` می‌آید (روشن/تیره)، به‌همراه
+   گرادیان‌های شعاعی بسیار ملایم تیل/نیوی و یک شبکهٔ هندسی کم‌کنتراست که در
+   بالای صفحه محو می‌شود. جوهر شبکه و هاله هم توکن دارند تا در پوستهٔ تیره
+   روشن شود (وگرنه خطوط تیره روی زمینهٔ تیره ناپدید می‌شدند).
    --------------------------------------------------------------------------- */
 .psa-bg {
   position: fixed;
@@ -230,7 +338,7 @@ body {
   inset: 0;
   background:
     radial-gradient(820px 420px at 86% -12%, rgba(20, 184, 166, 0.12), transparent 62%),
-    radial-gradient(680px 360px at 6% 2%, rgba(15, 23, 42, 0.07), transparent 60%),
+    radial-gradient(680px 360px at 6% 2%, var(--bg-glow-ink), transparent 60%),
     radial-gradient(560px 320px at 50% 112%, rgba(245, 158, 11, 0.06), transparent 66%);
 }
 
@@ -240,8 +348,8 @@ body {
   inset: 0;
   opacity: 0.5;
   background-image:
-    linear-gradient(to right, rgba(15, 23, 42, 0.045) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(15, 23, 42, 0.045) 1px, transparent 1px);
+    linear-gradient(to right, var(--bg-grid-ink) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--bg-grid-ink) 1px, transparent 1px);
   background-size: 64px 64px;
   -webkit-mask-image: radial-gradient(ellipse 92% 58% at 50% 0%, #000 26%, transparent 76%);
   mask-image: radial-gradient(ellipse 92% 58% at 50% 0%, #000 26%, transparent 76%);
@@ -280,8 +388,8 @@ body {
   position: sticky;
   top: 0;
   z-index: 40;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
-  background: rgba(255, 255, 255, 0.82);
+  border-bottom: 1px solid var(--color-hairline);
+  background: var(--color-header-bg);
   -webkit-backdrop-filter: blur(14px) saturate(170%);
   backdrop-filter: blur(14px) saturate(170%);
 }
@@ -301,7 +409,7 @@ body {
   align-items: center;
   gap: 0.65rem;
   text-decoration: none;
-  color: var(--color-primary);
+  color: var(--color-heading);
 }
 
 .psa-brand-mark {
@@ -310,7 +418,7 @@ body {
   width: 40px;
   height: 40px;
   border-radius: var(--radius-md);
-  color: #fff;
+  color: var(--color-on-accent);
   background: linear-gradient(145deg, var(--color-primary) 0%, #14304a 55%, var(--color-teal) 100%);
   box-shadow: var(--shadow-teal), inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
@@ -341,7 +449,7 @@ body {
   gap: 0.4rem;
   padding: 0.5rem 0.85rem;
   border-radius: var(--radius-sm);
-  color: #475569;
+  color: var(--color-text-soft);
   font-size: 0.85rem;
   font-weight: 600;
   text-decoration: none;
@@ -349,12 +457,12 @@ body {
 }
 
 .psa-nav-link:hover {
-  background-color: rgba(15, 23, 42, 0.045);
-  color: var(--color-primary);
+  background-color: var(--overlay-ink);
+  color: var(--color-heading);
 }
 
 .psa-nav-link.is-active {
-  color: var(--color-teal-deep);
+  color: var(--color-teal-ink);
   background-color: rgba(20, 184, 166, 0.12);
 }
 
@@ -377,8 +485,8 @@ body {
   padding: 0.35rem 0.75rem;
   border: 1px solid var(--color-border);
   border-radius: 999px;
-  background: rgba(248, 250, 252, 0.9);
-  color: #334155;
+  background: var(--color-surface-muted);
+  color: var(--color-text-strong);
   font-size: 0.76rem;
   font-weight: 600;
 }
@@ -398,13 +506,13 @@ body {
   height: 40px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: #fff;
-  color: var(--color-primary);
+  background: var(--color-surface);
+  color: var(--color-heading);
   cursor: pointer;
   transition: background-color var(--duration) var(--ease), border-color var(--duration) var(--ease);
 }
 .psa-menu-btn:hover {
-  background: #f1f5f9;
+  background: var(--color-surface-subtle);
   border-color: var(--color-border-strong);
 }
 
@@ -412,7 +520,7 @@ body {
 .psa-mobile-nav {
   display: none;
   border-top: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--color-header-solid);
 }
 .psa-mobile-nav[data-open="true"] {
   display: block;
@@ -424,17 +532,148 @@ body {
   gap: 0.6rem;
   padding: 0.75rem 0.9rem;
   border-radius: var(--radius-sm);
-  color: #334155;
+  color: var(--color-text-strong);
   font-size: 0.9rem;
   font-weight: 600;
   text-decoration: none;
 }
 .psa-mobile-link:hover {
-  background: rgba(15, 23, 42, 0.04);
+  background: var(--overlay-ink-faint);
 }
 .psa-mobile-link.is-active {
-  color: var(--color-teal-deep);
+  color: var(--color-teal-ink);
   background: rgba(20, 184, 166, 0.12);
+}
+
+/* عنوان بخش داخل منوی موبایل («کارگاه‌ها») */
+.psa-mobile-nav-title {
+  padding: 0.6rem 0.9rem 0.15rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+/* ---------------------------------------------------------------------------
+   منوی بازشوی کارگاه‌ها و دکمهٔ پوسته در سربرگ
+   ---------------------------------------------------------------------------
+   منو با ویژگی ``hidden`` باز/بسته می‌شود؛ بنابراین اگر جاوااسکریپت اجرا نشود
+   منو بسته می‌ماند و صفحه سالم است (پیوند «پروژه‌ها» و مسیر صفحهٔ پروژه همچنان
+   در دسترس‌اند). وضعیت باز/بسته هم با کلاس ``is-open`` و هم با ``aria-expanded``
+   اعلام می‌شود.
+   --------------------------------------------------------------------------- */
+.psa-dropdown {
+  position: relative;
+}
+
+.psa-dropdown-caret {
+  display: inline-flex;
+  margin-inline-start: 0.1rem;
+  transition: transform var(--duration) var(--ease);
+}
+.psa-dropdown.is-open .psa-dropdown-caret {
+  transform: rotate(180deg);
+}
+.psa-dropdown.is-open .psa-dropdown-trigger {
+  color: var(--color-teal-ink);
+  background-color: rgba(20, 184, 166, 0.12);
+}
+
+.psa-dropdown-menu {
+  position: absolute;
+  inset-inline-start: 0;
+  top: calc(100% + 0.5rem);
+  z-index: 50;
+  min-width: 19rem;
+  padding: 0.4rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-3);
+  animation: psa-slide-down 0.18s var(--ease);
+}
+/* ویژگی ``hidden`` باید همیشه برنده باشد (حتی اگر روزی display این منو عوض شود) */
+.psa-dropdown-menu[hidden] {
+  display: none;
+}
+
+.psa-dropdown-caption {
+  padding: 0.45rem 0.6rem 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.psa-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-strong);
+  text-decoration: none;
+  transition: background-color var(--duration) var(--ease), color var(--duration) var(--ease);
+}
+.psa-dropdown-item:hover {
+  background: var(--overlay-ink);
+  color: var(--color-heading);
+}
+.psa-dropdown-item:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+.psa-dropdown-item.is-active {
+  background: rgba(20, 184, 166, 0.12);
+  color: var(--color-teal-ink);
+}
+
+.psa-dropdown-item-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.psa-dropdown-item-name {
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.7;
+}
+.psa-dropdown-item-badge {
+  font-size: 0.7rem;
+  color: var(--color-muted);
+  line-height: 1.6;
+}
+.psa-dropdown-item.is-active .psa-dropdown-item-badge {
+  color: var(--color-teal-ink);
+}
+
+.psa-dropdown-divider {
+  margin: 0.35rem 0.25rem;
+}
+
+/* دکمهٔ تغییر پوسته (روشن/تیره) */
+.psa-theme-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-strong);
+  cursor: pointer;
+  transition: background-color var(--duration) var(--ease), border-color var(--duration) var(--ease),
+    color var(--duration) var(--ease);
+}
+.psa-theme-btn:hover {
+  background: var(--color-surface-subtle);
+  border-color: var(--color-border-strong);
+  color: var(--color-heading);
+}
+.psa-theme-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+.psa-theme-icon {
+  display: inline-flex;
 }
 
 /* ---------------------------------------------------------------------------
@@ -475,7 +714,7 @@ body {
 /* اصلی: تیل عمیق */
 .psa-btn-primary {
   background: linear-gradient(180deg, #0d7f76 0%, var(--color-teal) 100%);
-  color: #fff;
+  color: var(--color-on-accent);
   box-shadow: var(--shadow-teal), inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 .psa-btn-primary:hover:not(:disabled) {
@@ -489,15 +728,15 @@ body {
 
 /* ثانویه: سطح روشن با حاشیه */
 .psa-btn-secondary {
-  background: #fff;
+  background: var(--color-surface);
   border-color: var(--color-border-strong);
-  color: #334155;
+  color: var(--color-text-strong);
   box-shadow: var(--shadow-1);
 }
 .psa-btn-secondary:hover:not(:disabled) {
   border-color: rgba(20, 184, 166, 0.55);
-  color: var(--color-teal-deep);
-  background: #f8fafc;
+  color: var(--color-teal-ink);
+  background: var(--color-surface-muted);
   transform: translateY(-1px);
 }
 
@@ -515,17 +754,17 @@ body {
 /* شبح: شفاف با پس‌زمینهٔ ملایم در هاور */
 .psa-btn-ghost {
   background: transparent;
-  color: #475569;
+  color: var(--color-text-soft);
 }
 .psa-btn-ghost:hover:not(:disabled) {
-  background: rgba(15, 23, 42, 0.06);
-  color: var(--color-primary);
+  background: var(--overlay-ink-strong);
+  color: var(--color-heading);
 }
 
 /* خطر */
 .psa-btn-danger {
   background: var(--color-error);
-  color: #fff;
+  color: var(--color-on-accent);
 }
 .psa-btn-danger:hover:not(:disabled) {
   background: #dc2626;
@@ -623,7 +862,7 @@ body {
 }
 
 .psa-icon-tile.is-teal {
-  color: var(--color-teal-deep);
+  color: var(--color-teal-ink);
   background: linear-gradient(160deg, rgba(20, 184, 166, 0.18), rgba(20, 184, 166, 0.06));
   border: 1px solid rgba(20, 184, 166, 0.22);
 }
@@ -639,17 +878,17 @@ body {
   border: 1px solid rgba(245, 158, 11, 0.26);
 }
 .psa-icon-tile.is-emerald {
-  color: #047857;
+  color: var(--color-success-ink);
   background: linear-gradient(160deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.06));
   border: 1px solid rgba(16, 185, 129, 0.24);
 }
 .psa-icon-tile.is-red {
-  color: #b91c1c;
+  color: var(--color-danger-ink);
   background: linear-gradient(160deg, rgba(239, 68, 68, 0.18), rgba(239, 68, 68, 0.05));
   border: 1px solid rgba(239, 68, 68, 0.22);
 }
 .psa-icon-tile.is-slate {
-  color: #475569;
+  color: var(--color-text-soft);
   background: linear-gradient(160deg, rgba(100, 116, 139, 0.16), rgba(100, 116, 139, 0.05));
   border: 1px solid rgba(100, 116, 139, 0.2);
 }
@@ -695,7 +934,7 @@ body {
   font-size: 1.28rem;
   font-weight: 800;
   line-height: 1.5;
-  color: var(--color-primary);
+  color: var(--color-heading);
 }
 
 .psa-stat-caption {
@@ -707,21 +946,21 @@ body {
 /* کارت‌های آماری رنگی */
 .psa-stat.is-emerald {
   border-color: rgba(16, 185, 129, 0.28);
-  background: linear-gradient(180deg, rgba(16, 185, 129, 0.07), rgba(255, 255, 255, 1) 62%);
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.07), var(--stat-fade) 62%);
 }
 .psa-stat.is-emerald .psa-stat-value {
-  color: #047857;
+  color: var(--color-success-ink);
 }
 .psa-stat.is-red {
   border-color: rgba(239, 68, 68, 0.26);
-  background: linear-gradient(180deg, rgba(239, 68, 68, 0.06), rgba(255, 255, 255, 1) 62%);
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.06), var(--stat-fade) 62%);
 }
 .psa-stat.is-red .psa-stat-value {
-  color: #b91c1c;
+  color: var(--color-danger-ink);
 }
 .psa-stat.is-gold {
   border-color: rgba(245, 158, 11, 0.3);
-  background: linear-gradient(180deg, rgba(245, 158, 11, 0.08), rgba(255, 255, 255, 1) 62%);
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.08), var(--stat-fade) 62%);
 }
 .psa-stat.is-gold .psa-stat-value {
   color: var(--color-gold-deep);
@@ -731,7 +970,7 @@ body {
 .psa-meter {
   height: 6px;
   border-radius: 999px;
-  background: #eef2f6;
+  background: var(--color-track);
   overflow: hidden;
 }
 .psa-meter > span {
@@ -759,12 +998,12 @@ body {
 }
 
 .psa-badge-success {
-  color: #047857;
+  color: var(--color-success-ink);
   background: rgba(16, 185, 129, 0.12);
   border-color: rgba(16, 185, 129, 0.24);
 }
 .psa-badge-danger {
-  color: #b91c1c;
+  color: var(--color-danger-ink);
   background: rgba(239, 68, 68, 0.11);
   border-color: rgba(239, 68, 68, 0.24);
 }
@@ -774,12 +1013,12 @@ body {
   border-color: rgba(245, 158, 11, 0.28);
 }
 .psa-badge-neutral {
-  color: #475569;
+  color: var(--color-text-soft);
   background: rgba(100, 116, 139, 0.11);
   border-color: rgba(100, 116, 139, 0.2);
 }
 .psa-badge-info {
-  color: #0369a1;
+  color: var(--color-info-ink);
   background: rgba(14, 165, 233, 0.12);
   border-color: rgba(14, 165, 233, 0.24);
 }
@@ -802,8 +1041,8 @@ body {
   padding: 0.12rem 0.4rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
-  background: #f1f5f9;
-  color: #334155;
+  background: var(--color-surface-subtle);
+  color: var(--color-text-strong);
   font-size: 0.7rem;
   font-weight: 700;
   line-height: 1.9;
@@ -816,7 +1055,7 @@ body {
 .psa-result-item.is-false .psa-qid {
   border-color: rgba(239, 68, 68, 0.3);
   background: rgba(239, 68, 68, 0.08);
-  color: #b91c1c;
+  color: var(--color-danger-ink);
 }
 .psa-result-item.is-error .psa-qid {
   border-color: rgba(245, 158, 11, 0.35);
@@ -832,11 +1071,11 @@ body {
   margin-bottom: 0.4rem;
   font-size: 0.82rem;
   font-weight: 600;
-  color: #334155;
+  color: var(--color-text-strong);
 }
 
 .psa-required {
-  color: var(--color-error);
+  color: var(--color-danger-ink);
   margin-inline-start: 0.15rem;
 }
 
@@ -845,7 +1084,7 @@ body {
   padding: 0.62rem 0.85rem;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-text);
   font-family: inherit;
   font-size: 0.88rem;
@@ -855,7 +1094,7 @@ body {
 }
 
 .psa-input::placeholder {
-  color: #94a3b8;
+  color: var(--color-faint);
 }
 
 .psa-input:hover {
@@ -885,7 +1124,7 @@ body {
   margin-top: 0.35rem;
   font-size: 0.78rem;
   font-weight: 600;
-  color: #b91c1c;
+  color: var(--color-danger-ink);
 }
 
 /* جعبهٔ اطلاعات/راهنما
@@ -899,24 +1138,24 @@ body {
   border-radius: var(--radius-md);
   border: 1px solid rgba(14, 165, 233, 0.22);
   background: rgba(14, 165, 233, 0.06);
-  color: #0c4a6e;
+  color: var(--color-info-deep-ink);
   font-size: 0.8rem;
   line-height: 1.9;
 }
 .psa-note.is-warning {
   border-color: rgba(245, 158, 11, 0.28);
   background: rgba(245, 158, 11, 0.08);
-  color: #78350f;
+  color: var(--color-warning-ink);
 }
 .psa-note.is-error {
   border-color: rgba(239, 68, 68, 0.28);
   background: rgba(239, 68, 68, 0.07);
-  color: #7f1d1d;
+  color: var(--color-danger-deep-ink);
 }
 .psa-note.is-success {
   border-color: rgba(16, 185, 129, 0.28);
   background: rgba(16, 185, 129, 0.07);
-  color: #065f46;
+  color: var(--color-emerald-ink);
 }
 
 /* ---------------------------------------------------------------------------
@@ -930,7 +1169,7 @@ body {
   padding: 1rem 1.05rem 1.05rem;
   border: 1.5px dashed var(--color-border-strong);
   border-radius: var(--radius-lg);
-  background: linear-gradient(180deg, #ffffff 0%, #fcfdfe 100%);
+  background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-muted) 100%);
   transition: border-color var(--duration) var(--ease), background-color var(--duration) var(--ease),
     box-shadow var(--duration) var(--ease), transform var(--duration) var(--ease);
 }
@@ -953,7 +1192,7 @@ body {
 .psa-dropzone.is-filled {
   border-style: solid;
   border-color: rgba(16, 185, 129, 0.5);
-  background: linear-gradient(180deg, rgba(16, 185, 129, 0.055), #ffffff 70%);
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.055), var(--color-surface) 70%);
 }
 
 .psa-dropzone-head {
@@ -969,7 +1208,7 @@ body {
   gap: 0.5rem;
   font-size: 0.87rem;
   font-weight: 700;
-  color: var(--color-primary);
+  color: var(--color-heading);
 }
 
 .psa-dropzone-desc {
@@ -1001,13 +1240,13 @@ body {
   padding: 0.55rem 0.7rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: #f8fafc;
+  background: var(--color-surface-muted);
   cursor: pointer;
   transition: background-color var(--duration) var(--ease), border-color var(--duration) var(--ease);
 }
 
 .psa-dropzone-label:hover {
-  background: #f1f5f9;
+  background: var(--color-surface-subtle);
   border-color: var(--color-border-strong);
 }
 
@@ -1024,7 +1263,7 @@ body {
   flex-shrink: 0;
   font-size: 0.74rem;
   font-weight: 700;
-  color: var(--color-teal-deep);
+  color: var(--color-teal-ink);
 }
 
 .psa-dropzone-filename {
@@ -1037,7 +1276,7 @@ body {
 }
 
 .psa-dropzone.is-filled .psa-dropzone-filename {
-  color: #065f46;
+  color: var(--color-emerald-ink);
   font-weight: 600;
 }
 
@@ -1049,7 +1288,7 @@ body {
   margin-top: 0.6rem;
   font-size: 0.74rem;
   font-weight: 700;
-  color: #047857;
+  color: var(--color-success-ink);
 }
 .psa-dropzone.is-filled .psa-dropzone-status {
   display: flex;
@@ -1057,7 +1296,7 @@ body {
 
 /* کاشی آیکون اسلات در حالت پرشده سبز می‌شود (علاوه بر نوار وضعیت متنی) */
 .psa-dropzone.is-filled .psa-dropzone-tile {
-  color: #047857;
+  color: var(--color-success-ink);
   background: rgba(16, 185, 129, 0.14);
   border-color: rgba(16, 185, 129, 0.3);
 }
@@ -1072,7 +1311,7 @@ body {
   height: 38px;
   border: 2px solid var(--color-border-strong);
   border-radius: 999px;
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-muted);
   font-size: 0.85rem;
   font-weight: 700;
@@ -1083,7 +1322,7 @@ body {
 .psa-step-circle.is-active {
   border-color: var(--color-teal);
   background: linear-gradient(180deg, #0d7f76, var(--color-teal));
-  color: #fff;
+  color: var(--color-on-accent);
   box-shadow: 0 0 0 5px rgba(15, 118, 110, 0.12);
   transform: scale(1.04);
 }
@@ -1091,7 +1330,7 @@ body {
 .psa-step-circle.is-done {
   border-color: rgba(16, 185, 129, 0.4);
   background: rgba(16, 185, 129, 0.13);
-  color: #047857;
+  color: var(--color-success-ink);
 }
 
 .psa-step-label {
@@ -1102,12 +1341,12 @@ body {
 }
 
 .psa-step-label.is-active {
-  color: var(--color-primary);
+  color: var(--color-heading);
   font-weight: 700;
 }
 
 .psa-step-label.is-done {
-  color: #047857;
+  color: var(--color-success-ink);
 }
 
 .psa-step-connector {
@@ -1149,8 +1388,8 @@ body {
   z-index: 1;
   padding: 0.6rem 0.85rem;
   border-bottom: 1px solid var(--color-border);
-  background: #f8fafc;
-  color: #475569;
+  background: var(--color-surface-muted);
+  color: var(--color-text-soft);
   font-size: 0.74rem;
   font-weight: 700;
   text-align: start;
@@ -1160,12 +1399,12 @@ body {
 .psa-table tbody td {
   padding: 0.55rem 0.85rem;
   border-bottom: 1px solid rgba(226, 232, 240, 0.75);
-  color: #334155;
+  color: var(--color-text-strong);
   vertical-align: top;
 }
 
 .psa-table tbody tr:nth-child(even) {
-  background: rgba(248, 250, 252, 0.7);
+  background: var(--color-surface-muted);
 }
 
 .psa-table tbody tr:hover {
@@ -1183,7 +1422,7 @@ body {
 
 .psa-table td.is-strong {
   font-weight: 600;
-  color: var(--color-primary);
+  color: var(--color-heading);
 }
 
 /* جدول سبک (داخل جزئیات هر مورد چک‌لیست: متغیر / مقدار) */
@@ -1194,7 +1433,7 @@ body {
 }
 .psa-table-inline td {
   padding: 0.3rem 0.15rem;
-  border-bottom: 1px dashed rgba(226, 232, 240, 0.9);
+  border-bottom: 1px dashed var(--color-hairline);
 }
 .psa-table-inline tr:last-child td {
   border-bottom: 0;
@@ -1205,7 +1444,7 @@ body {
 }
 .psa-table-inline td:last-child {
   font-weight: 600;
-  color: #334155;
+  color: var(--color-text-strong);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1220,7 +1459,7 @@ body {
   position: relative;
   height: 10px;
   border-radius: 999px;
-  background: #eef2f6;
+  background: var(--color-track);
   overflow: hidden;
 }
 
@@ -1255,7 +1494,7 @@ body {
 .psa-progress-percent {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  color: var(--color-teal-deep);
+  color: var(--color-teal-ink);
 }
 
 .psa-progress-log {
@@ -1303,7 +1542,7 @@ body {
 /* اسکلتون */
 .psa-skeleton {
   border-radius: var(--radius-sm);
-  background: linear-gradient(90deg, #eef2f6 25%, #e2e8f0 37%, #eef2f6 63%);
+  background: linear-gradient(90deg, var(--color-track) 25%, var(--color-border) 37%, var(--color-track) 63%);
   background-size: 400% 100%;
   animation: psa-shimmer 1.5s ease-in-out infinite;
 }
@@ -1317,7 +1556,7 @@ body {
   padding: 2.5rem 1rem;
   border: 1px dashed var(--color-border-strong);
   border-radius: var(--radius-lg);
-  background: rgba(248, 250, 252, 0.7);
+  background: var(--color-surface-muted);
   text-align: center;
   color: var(--color-muted);
   font-size: 0.82rem;
@@ -1338,7 +1577,7 @@ body {
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  background: #fff;
+  background: var(--color-surface);
   box-shadow: var(--shadow-1);
   transition: box-shadow var(--duration) var(--ease), border-color var(--duration) var(--ease);
 }
@@ -1387,7 +1626,7 @@ body {
 /* وضعیت نامنطبق */
 .psa-result-item.is-false {
   border-color: rgba(239, 68, 68, 0.3);
-  background: linear-gradient(180deg, rgba(239, 68, 68, 0.045), #fff 55%);
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.045), var(--color-surface) 55%);
 }
 .psa-result-item.is-false::before {
   background: var(--color-error);
@@ -1396,7 +1635,7 @@ body {
 /* خطای پردازش */
 .psa-result-item.is-error {
   border-color: rgba(245, 158, 11, 0.35);
-  background: linear-gradient(180deg, rgba(245, 158, 11, 0.06), #fff 55%);
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.06), var(--color-surface) 55%);
 }
 .psa-result-item.is-error::before {
   background: var(--color-warning);
@@ -1423,14 +1662,14 @@ details.psa-result-item[open] .psa-chevron {
   gap: 0.45rem;
   font-size: 0.78rem;
   line-height: 1.95;
-  color: #475569;
+  color: var(--color-text-soft);
 }
 .psa-condition .psa-condition-mark {
   flex-shrink: 0;
   font-weight: 700;
 }
 .psa-condition.is-passed .psa-condition-mark {
-  color: #047857;
+  color: var(--color-success-ink);
 }
 .psa-condition.is-failed .psa-condition-mark {
   color: #dc2626;
@@ -1444,7 +1683,7 @@ details.psa-result-item[open] .psa-chevron {
 .psa-prose {
   font-size: 0.92rem;
   line-height: 2.15;
-  color: #334155;
+  color: var(--color-text-strong);
 }
 
 .psa-prose h1,
@@ -1452,7 +1691,7 @@ details.psa-result-item[open] .psa-chevron {
 .psa-prose h3,
 .psa-prose h4 {
   margin: 1.5rem 0 0.6rem;
-  color: var(--color-primary);
+  color: var(--color-heading);
   font-weight: 700;
   line-height: 1.7;
 }
@@ -1471,7 +1710,7 @@ details.psa-result-item[open] .psa-chevron {
 
 .psa-prose h3 {
   font-size: 0.96rem;
-  color: var(--color-teal-deep);
+  color: var(--color-teal-ink);
 }
 
 .psa-prose h4 {
@@ -1488,7 +1727,7 @@ details.psa-result-item[open] .psa-chevron {
   margin: 0 0 0.7rem;
   font-size: 0.92rem;
   line-height: 2.15;
-  color: #334155;
+  color: var(--color-text-strong);
 }
 
 .psa-prose ul,
@@ -1510,11 +1749,11 @@ details.psa-result-item[open] .psa-chevron {
 .psa-prose strong,
 .psa-prose b {
   font-weight: 700;
-  color: var(--color-primary);
+  color: var(--color-heading);
 }
 
 .psa-prose a {
-  color: var(--color-teal-deep);
+  color: var(--color-teal-ink);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -1532,7 +1771,7 @@ details.psa-result-item[open] .psa-chevron {
   border-inline-start: 3px solid var(--color-gold);
   border-radius: var(--radius-sm);
   background: rgba(245, 158, 11, 0.07);
-  color: #78350f;
+  color: var(--color-warning-ink);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1545,7 +1784,7 @@ details.psa-result-item[open] .psa-chevron {
   padding: 0.85rem 1rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  background: #fff;
+  background: var(--color-surface);
   box-shadow: var(--shadow-3);
   font-size: 0.85rem;
   line-height: 1.9;
@@ -1554,23 +1793,23 @@ details.psa-result-item[open] .psa-chevron {
 
 .psa-toast.is-error {
   border-color: rgba(239, 68, 68, 0.3);
-  background: linear-gradient(180deg, #fef2f2, #fff);
-  color: #7f1d1d;
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.10), var(--color-surface));
+  color: var(--color-danger-deep-ink);
 }
 .psa-toast.is-warning {
   border-color: rgba(245, 158, 11, 0.32);
-  background: linear-gradient(180deg, #fffbeb, #fff);
-  color: #78350f;
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.12), var(--color-surface));
+  color: var(--color-warning-ink);
 }
 .psa-toast.is-info {
   border-color: rgba(14, 165, 233, 0.3);
-  background: linear-gradient(180deg, #f0f9ff, #fff);
-  color: #0c4a6e;
+  background: linear-gradient(180deg, rgba(14, 165, 233, 0.10), var(--color-surface));
+  color: var(--color-info-deep-ink);
 }
 .psa-toast.is-success {
   border-color: rgba(16, 185, 129, 0.3);
-  background: linear-gradient(180deg, #ecfdf5, #fff);
-  color: #065f46;
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.10), var(--color-surface));
+  color: var(--color-emerald-ink);
 }
 
 .psa-toast-icon {
@@ -1580,7 +1819,7 @@ details.psa-result-item[open] .psa-chevron {
   width: 26px;
   height: 26px;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.06);
+  background: var(--overlay-ink-strong);
 }
 
 .psa-toast-close {
@@ -1603,14 +1842,14 @@ details.psa-result-item[open] .psa-chevron {
 .psa-footer {
   position: relative;
   margin-top: 4rem;
-  border-top: 1px solid rgba(226, 232, 240, 0.9);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.75), rgba(248, 250, 252, 0.9));
+  border-top: 1px solid var(--color-hairline);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.75), var(--color-surface-muted));
 }
 
 .psa-footer-title {
   font-size: 0.9rem;
   font-weight: 700;
-  color: var(--color-primary);
+  color: var(--color-heading);
 }
 
 .psa-footer-text {
@@ -1620,14 +1859,14 @@ details.psa-result-item[open] .psa-chevron {
 }
 
 .psa-footer-link {
-  color: #475569;
+  color: var(--color-text-soft);
   font-size: 0.8rem;
   font-weight: 600;
   text-decoration: none;
   transition: color var(--duration) var(--ease);
 }
 .psa-footer-link:hover {
-  color: var(--color-teal-deep);
+  color: var(--color-teal-ink);
 }
 
 /* نشان فناوری/هوش مصنوعی در پابرگ */
@@ -1639,7 +1878,7 @@ details.psa-result-item[open] .psa-chevron {
   border: 1px solid rgba(20, 184, 166, 0.22);
   border-radius: 999px;
   background: rgba(20, 184, 166, 0.07);
-  color: var(--color-teal-deep);
+  color: var(--color-teal-ink);
   font-size: 0.7rem;
   font-weight: 600;
 }
@@ -1653,7 +1892,7 @@ details.psa-result-item[open] .psa-chevron {
   padding: 0.5rem 0.9rem;
   border-radius: var(--radius-sm);
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-accent);
   font-size: 0.8rem;
   font-weight: 600;
   text-decoration: none;
@@ -1681,7 +1920,7 @@ details.psa-result-item[open] .psa-chevron {
   padding: 0.85rem 0.95rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--color-header-solid);
   box-shadow: var(--shadow-1);
 }
 
@@ -1692,8 +1931,8 @@ details.psa-result-item[open] .psa-chevron {
   padding: 0.34rem 0.75rem;
   border: 1px solid var(--color-border);
   border-radius: 999px;
-  background: #fff;
-  color: #475569;
+  background: var(--color-surface);
+  color: var(--color-text-soft);
   font-size: 0.76rem;
   font-weight: 600;
   cursor: pointer;
@@ -1704,13 +1943,13 @@ details.psa-result-item[open] .psa-chevron {
 
 .psa-chip:hover {
   border-color: var(--color-border-strong);
-  background: #f8fafc;
+  background: var(--color-surface-muted);
 }
 
 .psa-chip.is-active {
   border-color: var(--color-teal);
   background: linear-gradient(180deg, #0d7f76, var(--color-teal));
-  color: #fff;
+  color: var(--color-on-accent);
   box-shadow: var(--shadow-teal);
 }
 
@@ -1725,7 +1964,7 @@ details.psa-result-item[open] .psa-chevron {
   inset-inline-start: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
-  color: #94a3b8;
+  color: var(--color-faint);
   pointer-events: none;
 }
 
@@ -1749,7 +1988,7 @@ details.psa-result-item[open] .psa-chevron {
   gap: 0.5rem;
   font-size: 0.82rem;
   line-height: 1.95;
-  color: #475569;
+  color: var(--color-text-soft);
 }
 
 .psa-feature .psa-feature-mark {
@@ -1761,7 +2000,7 @@ details.psa-result-item[open] .psa-chevron {
   margin-top: 0.42rem;
   border-radius: 999px;
   background: rgba(20, 184, 166, 0.14);
-  color: var(--color-teal-deep);
+  color: var(--color-teal-ink);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1895,6 +2134,185 @@ details.psa-result-item[open] .psa-chevron {
   .psa-card,
   .psa-result-item {
     box-shadow: none;
-    border-color: #cbd5e1;
+    border-color: var(--color-border-strong);
   }
+}
+
+/* ---------------------------------------------------------------------------
+   ۱۶) لایه‌ی پروژه‌ها (داشبورد، پروژه، گفت‌وگوی تأیید حذف)
+   --------------------------------------------------------------------------- */
+
+/* پیوند متنی ساده (متمایز از دکمه‌ها) */
+.psa-link {
+  color: var(--color-teal-ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.psa-link:hover {
+  color: var(--color-teal-ink);
+}
+
+/* گفت‌وگوی بومی مرورگر (<dialog>) برای تأییدهای مخرب مثل حذف پروژه */
+.psa-dialog {
+  width: min(34rem, calc(100vw - 2rem));
+  max-width: none;
+  padding: 0;
+  border: 0;
+  border-radius: 1.25rem;
+  background: transparent;
+  overflow: visible;
+}
+.psa-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(2px);
+}
+.psa-dialog .psa-card {
+  border-color: var(--color-border-strong);
+  box-shadow: 0 24px 60px -24px rgba(15, 23, 42, 0.45);
+}
+
+/* ---------------------------------------------------------------------------
+   بخش «تنظیمات هوش مصنوعی» صفحهٔ پروژه (فاز تنظیمات)
+   یک <details> برای هر کارگاه: سربرگ جمع‌شو + فرم داخل آن.
+   --------------------------------------------------------------------------- */
+.psa-ai-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.psa-ai-summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+}
+
+.psa-ai-summary::-webkit-details-marker {
+  display: none;
+}
+
+.psa-ai-summary:hover {
+  background: rgba(15, 118, 110, 0.035);
+}
+
+.psa-ai-panel[open] > .psa-ai-summary {
+  border-bottom: 1px dashed var(--color-border);
+}
+
+.psa-ai-panel > .psa-ai-summary .psa-icon:last-child {
+  transition: transform 0.18s var(--ease);
+  transform: rotate(180deg);
+  color: var(--color-muted);
+}
+
+.psa-ai-panel[open] > .psa-ai-summary .psa-icon:last-child {
+  transform: rotate(270deg);
+}
+
+.psa-ai-form {
+  padding: 1.1rem 1.25rem 1.25rem;
+}
+
+/* چک‌باکس‌های داخل فرم (حذف کلید ذخیره‌شده) */
+.psa-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.psa-check input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--color-teal);
+  cursor: pointer;
+}
+
+.psa-check input:focus-visible {
+  outline: 2px solid var(--color-teal);
+  outline-offset: 2px;
+}
+
+/* نتیجهٔ ذخیره/تست اتصال */
+.psa-help[data-psa-result].is-success {
+  color: var(--color-success-ink);
+  font-weight: 600;
+}
+
+.psa-help[data-psa-result].is-error {
+  color: var(--color-danger-ink);
+  font-weight: 600;
+}
+
+/* چک‌باکس حذف کلید فقط وقتی کلید ذخیره‌شده‌ای وجود دارد دیده می‌شود. این قاعده
+   عمداً با دو کلاس نوشته شده تا بر display:flex خود .psa-check غلبه کند. */
+.psa-check.hidden {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------
+   ۱۸) نگاشت یوتیلیتی‌های رنگی Tailwind به توکن‌های پوسته
+   ---------------------------------------------------------------------------
+   این پروژه مرحلهٔ build ندارد (Tailwind از CDN می‌آید) و یوتیلیتی‌های رنگ در
+   قالب‌ها *بدون* پیشوند ``dark:`` نوشته شده‌اند؛ بنابراین پوستهٔ تیره باید همان
+   کلاس‌ها را بازنویسی کند.
+
+   چرا این‌جا و نه با ``dark:`` در قالب‌ها:
+     * فهرست کوچک و بسته است (زیر ۱۰ کلاس) و همین‌جا یک‌جا دیده می‌شود،
+     * اگر روزی کلاسی از این فهرست جا بیفتد، در پوستهٔ تیره «عنصر روشن» می‌ماند؛
+       تست ``tests/test_dark_theme.py`` دقیقاً همین را می‌پاید.
+
+   نکتهٔ ویژگی (specificity): ``[data-theme="dark"] .text-slate-900`` یک کلاس
+   بیشتر از ``.text-slate-900`` دارد، پس مستقل از ترتیب تزریق استایل Tailwind
+   همیشه برنده است -- نیازی به ``!important`` نیست.
+   --------------------------------------------------------------------------- */
+
+/* متن: تیره‌های Tailwind به متن پوسته */
+[data-theme="dark"] .text-slate-900 {
+  color: var(--color-heading);
+}
+[data-theme="dark"] .text-slate-800 {
+  color: var(--color-text-strong);
+}
+[data-theme="dark"] .text-slate-700 {
+  color: var(--color-text-soft);
+}
+[data-theme="dark"] .text-slate-600 {
+  color: var(--color-text-soft);
+}
+[data-theme="dark"] .text-slate-500 {
+  color: var(--color-muted);
+}
+[data-theme="dark"] .text-slate-400 {
+  color: var(--color-faint);
+}
+/* متن معنایی (کارت آماری «موارد دارای انحراف») */
+[data-theme="dark"] .text-rose-700 {
+  color: var(--color-danger-ink);
+}
+
+/* حاشیه‌ها */
+[data-theme="dark"] .border-slate-200,
+[data-theme="dark"] .border-slate-300 {
+  border-color: var(--color-border-strong);
+}
+
+/* زمینه‌های بسیار روشن (کادر پیش‌نمایش خلاصه، جعبهٔ کنار نتایج) */
+[data-theme="dark"] .bg-slate-50\/50,
+[data-theme="dark"] .bg-slate-50\/70 {
+  background-color: var(--color-surface-muted);
+}
+
+/* عناصر بومی مرورگر (اسکرول‌بار، فلش ورودی عددی، انتخاب متن) هم با پوسته هم‌رنگ
+   می‌شوند؛ ``color-scheme`` در بلوک ``[data-theme="dark"]`` ست شده است و این
+   قاعده فقط انتخاب متن را خواناتر می‌کند. */
+[data-theme="dark"] ::selection {
+  background: rgba(45, 212, 191, 0.28);
+  color: var(--color-heading);
 }

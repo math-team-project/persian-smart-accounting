@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}{{ 'راه‌اندازی اولیه' if mode == 'setup' else 'ورود به داشبورد' }}{% endblock %}
+
+{% block content %}
+<div class="grid items-start gap-6 lg:grid-cols-[26rem_1fr]">
+
+  <!-- ===================== کارت ورود / راه‌اندازی ===================== -->
+  <section class="psa-card psa-card-elevated psa-card-topline p-6 sm:p-8">
+    <span class="psa-eyebrow">
+      {{ icon('lock', 14) | safe }}
+      {{ 'راه‌اندازی اولیهٔ سامانه' if mode == 'setup' else 'ورود کاربران' }}
+    </span>
+
+    <h1 class="mt-4 text-lg font-bold text-slate-900">
+      {{ 'ساخت نخستین کاربر راهبر' if mode == 'setup' else 'ورود به داشبورد' }}
+    </h1>
+    <p class="mt-2 text-sm leading-7 text-slate-500">
+      {% if mode == 'setup' %}
+        هنوز هیچ کاربری در سامانه وجود ندارد. با ساخت نخستین کاربر، امکان ورود
+        فراهم می‌شود و بلافاصله وارد داشبورد می‌شوید. پس از این مرحله، صفحهٔ
+        راه‌اندازی دیگر در دسترس نخواهد بود.
+      {% else %}
+        برای دیدن پروژه‌ها و اجرای کارگاه‌های حسابرسی، نام کاربری و رمز عبور
+        خود را وارد کنید.
+      {% endif %}
+    </p>
+
+    {% if error %}
+    <div class="psa-note is-error mt-4" role="alert">
+      {{ icon('alert-circle', 16) | safe }}
+      <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    {% if mode == 'setup' %}
+    <form method="post" action="/setup" class="mt-5 space-y-4" novalidate>
+      <div>
+        <label for="username" class="psa-label">نام کاربری</label>
+        <input
+          type="text"
+          id="username"
+          name="username"
+          class="psa-input"
+          value="{{ username or '' }}"
+          autocomplete="username"
+          required
+          autofocus
+        />
+      </div>
+      <div>
+        <label for="password" class="psa-label">رمز عبور</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          class="psa-input"
+          autocomplete="new-password"
+          required
+        />
+        <p class="psa-help">حداقل ۶ نویسه.</p>
+      </div>
+      <div>
+        <label for="password_confirm" class="psa-label">تکرار رمز عبور</label>
+        <input
+          type="password"
+          id="password_confirm"
+          name="password_confirm"
+          class="psa-input"
+          autocomplete="new-password"
+          required
+        />
+      </div>
+      <button type="submit" class="psa-btn psa-btn-primary psa-btn-lg psa-btn-block">
+        {{ icon('shield-check', 17) | safe }}
+        ساخت کاربر و ورود
+      </button>
+    </form>
+    {% else %}
+    <form method="post" action="/login" class="mt-5 space-y-4" novalidate>
+      <input type="hidden" name="next" value="{{ next or '/' }}" />
+      <div>
+        <label for="username" class="psa-label">نام کاربری</label>
+        <input
+          type="text"
+          id="username"
+          name="username"
+          class="psa-input"
+          value="{{ username or '' }}"
+          autocomplete="username"
+          required
+          autofocus
+        />
+      </div>
+      <div>
+        <label for="password" class="psa-label">رمز عبور</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          class="psa-input"
+          autocomplete="current-password"
+          required
+        />
+      </div>
+      <button type="submit" class="psa-btn psa-btn-primary psa-btn-lg psa-btn-block">
+        {{ icon('lock', 17) | safe }}
+        ورود به داشبورد
+      </button>
+    </form>
+
+    {% if setup_available %}
+    <div class="psa-note mt-5">
+      {{ icon('info', 16) | safe }}
+      <span>
+        هنوز هیچ کاربری ساخته نشده است.
+        <a href="/setup" class="psa-link">راه‌اندازی اولیه و ساخت کاربر راهبر</a>
+      </span>
+    </div>
+    {% endif %}
+    {% endif %}
+  </section>
+
+  <!-- ===================== معرفی سامانه ===================== -->
+  <aside class="space-y-5">
+    <div class="psa-card p-6 sm:p-8">
+      <h2 class="psa-page-title text-xl">داشبورد هوشمند حسابرسی و حسابداری</h2>
+      <p class="psa-page-subtitle">
+        اجرای خودکار چک‌لیست حسابرسی مالی روی فایل‌های بودجه، صورت‌های مالی و ترازنامه،
+        شناسایی موارد عدم تطابق، و تبدیل گزارش‌های حسابرسی به خلاصه‌ای آمادهٔ جلسه —
+        سازمان‌دهی‌شده در قالب پروژه‌های مستقل.
+      </p>
+
+      <div class="mt-5 grid gap-4 sm:grid-cols-3">
+        <div class="psa-card p-4">
+          <span class="psa-icon-tile psa-icon-tile-md is-teal">{{ icon('layers', 19) | safe }}</span>
+          <h3 class="mt-2 text-xs font-bold text-slate-900">پروژه‌محور</h3>
+          <p class="mt-1 text-xs leading-6 text-slate-500">هر سازمان یک پروژه؛ همهٔ اجراها و نتایج کنار هم.</p>
+        </div>
+        <div class="psa-card p-4">
+          <span class="psa-icon-tile psa-icon-tile-md is-navy">{{ icon('cpu', 19) | safe }}</span>
+          <h3 class="mt-2 text-xs font-bold text-slate-900">اجرای هم‌زمان</h3>
+          <p class="mt-1 text-xs leading-6 text-slate-500">چند کارگاه به‌طور هم‌زمان، بدون تداخل و از دست رفتن پیشرفت.</p>
+        </div>
+        <div class="psa-card p-4">
+          <span class="psa-icon-tile psa-icon-tile-md is-gold">{{ icon('file-check', 19) | safe }}</span>
+          <h3 class="mt-2 text-xs font-bold text-slate-900">تاریخچهٔ نتایج</h3>
+          <p class="mt-1 text-xs leading-6 text-slate-500">خروجی Word هر اجرا برای دانلود در تاریخچهٔ پروژه می‌ماند.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="psa-card p-5">
+      <div class="psa-note">
+        {{ icon('shield-check', 16) | safe }}
+        <span>
+          فایل‌های ورودی شما پس از پایان هر پردازش از سرور پاک می‌شوند؛ در تاریخچه
+          فقط نتیجهٔ نهایی (گزارش Word) و متادیتای اجرا نگه داشته می‌شود.
+        </span>
+      </div>
+    </div>
+  </aside>
+</div>
+{% endblock %}

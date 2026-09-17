@@ -13,4 +13,12 @@ JobStatus = Literal["pending", "running", "done", "error"]
 
 
 class StartJobResponse(BaseModel):
+    """پاسخ شروع یک اجرا.
+
+    ``run_id`` شناسه‌ی ردیف تاریخچه‌ی همان اجرا در پروژه است -- با آن می‌توان
+    نتیجه را دانلود کرد (``/api/projects/<id>/<workshop>/runs/<run_id>/download``)
+    حتی بعد از اینکه job از حافظه‌ی سرور خارج شد.
+    """
+
     job_id: str
+    run_id: int

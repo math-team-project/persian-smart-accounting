@@ -1,0 +1,91 @@
+{#
+  کامپوننت تاریخچهٔ اجراهای یک پروژه (سرور-رندر).
+
+  این قطعه هم داخل صفحهٔ پروژه استفاده می‌شود و هم به‌تنهایی توسط
+  ``GET /projects/{id}/history`` برگردانده می‌شود تا پنل کارهای در جریان، پس از
+  پایان هر اجرا فهرست تاریخچه را بدون بارگذاری دوبارهٔ کل صفحه تازه کند.
+
+  ورودی: ``runs`` (فهرست دیکشنری‌های آماده از ``api/workshops/runs.py``)
+  و ``project``.
+#}
+{% set status_meta = {
+  'pending': ('در صف اجرا', 'psa-badge-neutral'),
+  'running': ('در حال اجرا', 'psa-badge-info'),
+  'done': ('تکمیل‌شده', 'psa-badge-success'),
+  'error': ('ناموفق', 'psa-badge-danger')
+} %}
+
+{% if runs %}
+<div class="space-y-3">
+  {% for run in runs %}
+  {% set meta = status_meta.get(run.status, ('نامشخص', 'psa-badge-neutral')) %}
+  <article class="psa-card p-4 sm:p-5">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div class="flex min-w-0 items-start gap-3">
+        <span class="psa-icon-tile psa-icon-tile-md is-{{ run.accent }} shrink-0">
+          {{ icon(run.icon, 19) | safe }}
+        </span>
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-2">
+            <h3 class="text-sm font-bold text-slate-900">{{ run.workshop_name_fa }}</h3>
+            <span class="psa-badge {{ meta[1] }}">{{ meta[0] }}</span>
+          </div>
+
+          <p class="psa-meta mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>{{ icon('clock', 13) | safe }} شروع: {{ run.created_at | fa_datetime }}</span>
+            {% if run.finished_at %}
+            <span>{{ icon('check-circle', 13) | safe }} پایان: {{ run.finished_at | fa_datetime }}</span>
+            {% endif %}
+          </p>
+
+          {% if run.chips_fa %}
+          <div class="mt-2.5 flex flex-wrap gap-1.5">
+            {% for chip in run.chips_fa %}
+            <span class="psa-badge psa-badge-neutral">{{ chip }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {% if run.error %}
+          <p class="psa-note is-error mt-3">
+            {{ icon('alert-circle', 15) | safe }}
+            <span>{{ run.error }}</span>
+          </p>
+          {% elif run.file_error %}
+          <p class="psa-note is-warning mt-3">
+            {{ icon('alert-triangle', 15) | safe }}
+            <span>پردازش انجام شد، اما ذخیره‌ی فایل نتیجه روی سرور ناموفق بود: {{ run.file_error }}</span>
+          </p>
+          {% elif run.report_error %}
+          <p class="psa-note is-warning mt-3">
+            {{ icon('alert-triangle', 15) | safe }}
+            <span>اجرای چک‌لیست انجام شد، اما تولید فایل گزارش کمیسیون ناموفق بود: {{ run.report_error }}</span>
+          </p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="flex shrink-0 flex-wrap items-center gap-2">
+        {% if run.download_url %}
+        <a href="{{ run.download_url }}" class="psa-btn psa-btn-gold psa-btn-sm">
+          {{ icon('download', 15) | safe }}
+          دانلود نتیجه
+        </a>
+        {% endif %}
+        {% if run.workshop_url %}
+        <a href="{{ run.workshop_url }}" class="psa-btn psa-btn-ghost psa-btn-sm">
+          {{ icon('refresh-cw', 15) | safe }}
+          اجرای دوباره
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<p class="psa-empty">
+  {{ icon('file-search', 22) | safe }}
+  <span>هنوز اجرایی در این پروژه ثبت نشده است. یکی از کارگاه‌های بالا را اجرا کنید.</span>
+</p>
+{% endif %}

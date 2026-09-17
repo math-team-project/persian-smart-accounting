@@ -11,6 +11,33 @@
   <title>{% block title %}داشبورد هوشمند حسابرسی{% endblock %}</title>
 
   {#
+    تعیین پوسته *پیش از* هر رنگ‌آمیزی: اگر این کار در انتهای صفحه انجام شود،
+    کاربر با هر بار بارگذاری یک «پرش روشن → تیره» می‌بیند. انتخاب کاربر در
+    ``localStorage`` نگه داشته می‌شود و در نبود آن، تنظیم سیستم‌عامل رعایت می‌شود.
+
+    کلید نگه‌داری (``psa.theme``) و مقادیر مجاز (``light`` | ``dark``) قراردادی
+    است و در تست ``tests/test_dark_theme.py`` پاس داشته می‌شود.
+  #}
+  <script>
+    (function () {
+      var theme = "light";
+      try {
+        var stored = window.localStorage.getItem("psa.theme");
+        if (stored === "dark" || stored === "light") {
+          theme = stored;
+        } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+          theme = "dark";
+        }
+      } catch (err) {
+        // حالت ناشناس/مسدود: فقط ترجیح ذخیره‌شده از دست می‌رود، ظاهر درست می‌ماند.
+      }
+      document.documentElement.setAttribute("data-theme", theme);
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", theme === "dark" ? "#0b1120" : "#f8fafc");
+    })();
+  </script>
+
+  {#
     Tailwind از طریق CDN بارگذاری می‌شود (بدون مرحلهٔ build) -- پالت «برند» بر
     پایهٔ کاشی‌های تیل (فناوری/AI) و «نیوی» عمیق (اعتماد مالی) تعریف شده است.
     مقیاس‌های ``slate``/``emerald``/``amber``/``red`` پیش‌فرض Tailwind دقیقاً
@@ -47,8 +74,13 @@
   {% block extra_head %}{% endblock %}
 </head>
 
-{# مسیر جاری برای تعیین وضعیت فعال ناوبری #}
-{% set current_path = request.url.path if request else '/' %}
+  {#
+    مسیر جاری برای تعیین وضعیت فعال ناوبری.
+    ``user`` و ``project`` (در صورت وجود) از خودِ روترها می‌آیند؛ فهرست کارگاه‌ها
+    هم از رجیستری (``workshops``) -- بنابراین ناوبری برای هر کارگاه جدیدی بدون
+    تغییر این قالب به‌روز می‌شود.
+  #}
+  {% set current_path = request.url.path if request else '/' %}
 
 <body class="min-h-screen font-vazir text-slate-900 antialiased">
   {# لایه‌های پس‌زمینه: گرادیان‌های ملایم + شبکهٔ محوشونده + دانهٔ بسیار کم #}
@@ -62,7 +94,7 @@
     فهرست شده‌اند تا Tailwind CDN آن‌ها را همیشه تولید کند.
   #}
   <div
-    class="hidden list-disc pe-5 space-y-1 mb-2 text-lg text-base text-sm font-bold text-slate-900 text-slate-700 mt-4 leading-7 border-b"
+    class="hidden list-disc pe-5 space-y-1 mb-2 text-lg text-base text-sm text-xs font-bold text-slate-900 text-slate-700 text-slate-500 mt-4 mt-3 mt-1.5 leading-7 border-b p-4 items-center justify-between gap-2 flex-wrap"
     aria-hidden="true"
   ></div>
 
@@ -78,29 +110,111 @@
 
       <nav class="psa-nav hidden md:flex" aria-label="ناوبری اصلی">
         <a
-          href="/checklist"
-          class="psa-nav-link {{ 'is-active' if current_path == '/checklist' else '' }}"
-          {% if current_path == '/checklist' %}aria-current="page"{% endif %}
+          href="/"
+          class="psa-nav-link {{ 'is-active' if current_path == '/' else '' }}"
+          {% if current_path == '/' %}aria-current="page"{% endif %}
         >
-          {{ icon('list-checks', 17) | safe }}
-          چک‌لیست حسابرسی
+          {{ icon('layers', 17) | safe }}
+          پروژه‌ها
         </a>
-        <a
-          href="/audit-summary"
-          class="psa-nav-link {{ 'is-active' if current_path == '/audit-summary' else '' }}"
-          {% if current_path == '/audit-summary' %}aria-current="page"{% endif %}
-        >
-          {{ icon('sparkles', 17) | safe }}
-          خلاصه‌سازی گزارش
-        </a>
+
+        {#
+          کارگاه‌ها در یک منوی بازشو جمع شده‌اند (به‌جای یک پیوند برای هر کارگاه).
+          فهرست همچنان از رجیستری (``workshops``) ساخته می‌شود، بنابراین افزودن
+          کارگاه چهارم هیچ تغییری در این قالب لازم ندارد.
+
+          بدون پروژهٔ جاری، اجرای کارگاه معنا ندارد؛ در آن حالت منو رندر نمی‌شود
+          (به‌جای منوی خالی/غیرفعال).
+        #}
+        {% if project is defined and project %}
+        <div class="psa-dropdown" data-psa-dropdown>
+          <button
+            type="button"
+            class="psa-nav-link psa-dropdown-trigger"
+            data-psa-dropdown-trigger
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-controls="psa-workshops-menu"
+          >
+            {{ icon('workflow', 17) | safe }}
+            کارگاه‌ها
+            <span class="psa-dropdown-caret" aria-hidden="true">{{ icon('chevron-down', 15) | safe }}</span>
+          </button>
+
+          <div class="psa-dropdown-menu" id="psa-workshops-menu" data-psa-dropdown-menu role="menu" hidden>
+            <p class="psa-dropdown-caption">
+              کارگاه‌های پروژهٔ «{{ project.name }}»
+            </p>
+
+            {% for workshop_item in workshops %}
+            {% set is_current = current_path == workshop_item.page_url(project.id) %}
+            <a
+              href="{{ workshop_item.page_url(project.id) }}"
+              role="menuitem"
+              class="psa-dropdown-item {{ 'is-active' if is_current else '' }}"
+              data-psa-workshop-link="{{ workshop_item.slug }}"
+              {% if is_current %}aria-current="page"{% endif %}
+            >
+              <span class="psa-icon-tile psa-icon-tile-sm is-{{ workshop_item.accent }}">
+                {{ icon(workshop_item.icon, 17) | safe }}
+              </span>
+              <span class="psa-dropdown-item-text">
+                <span class="psa-dropdown-item-name">{{ workshop_item.display_name_fa }}</span>
+                {% if workshop_item.badge_fa %}
+                <span class="psa-dropdown-item-badge">{{ workshop_item.badge_fa }}</span>
+                {% endif %}
+              </span>
+            </a>
+            {% endfor %}
+
+            <hr class="psa-divider psa-dropdown-divider" />
+
+            <a href="/projects/{{ project.id }}" role="menuitem" class="psa-dropdown-item">
+              <span class="psa-icon-tile psa-icon-tile-sm is-slate">
+                {{ icon('clock', 17) | safe }}
+              </span>
+              <span class="psa-dropdown-item-text">
+                <span class="psa-dropdown-item-name">صفحهٔ پروژه</span>
+                <span class="psa-dropdown-item-badge">وضعیت اجراها و تاریخچه</span>
+              </span>
+            </a>
+          </div>
+        </div>
+        {% endif %}
       </nav>
 
       <div class="flex items-center gap-2">
-        {% if current_path in ['/checklist', '/audit-summary'] %}
-        <span class="psa-workspace-chip hidden sm:inline-flex">
+        {% if project is defined and project %}
+        <a href="/projects/{{ project.id }}" class="psa-workspace-chip hidden sm:inline-flex" title="صفحهٔ پروژه">
           <span class="psa-dot"></span>
-          {{ 'کارگاه چک‌لیست' if current_path == '/checklist' else 'کارگاه خلاصه‌سازی' }}
-        </span>
+          {{ project.name }}
+        </a>
+        {% endif %}
+
+        {#
+          دکمهٔ تغییر پوسته: آیکون خورشید/ماه با جاوااسکریپت عوض می‌شود. وضعیت
+          روشن/تیره با ``aria-pressed`` اعلام می‌شود (وضعیت «تیره فعال») و متن
+          پنهانِ ``sr-only`` برای صفحه‌خوان‌ها به‌روزرسانی می‌گردد.
+        #}
+        <button
+          type="button"
+          id="psa-theme-toggle"
+          class="psa-theme-btn"
+          aria-pressed="false"
+          title="تغییر پوستهٔ روشن/تیره"
+        >
+          <span class="psa-theme-icon" data-psa-theme-icon="light">{{ icon('sun', 18) | safe }}</span>
+          <span class="psa-theme-icon hidden" data-psa-theme-icon="dark">{{ icon('moon', 18) | safe }}</span>
+          <span class="sr-only" data-psa-theme-label>روشن کردن پوستهٔ تیره</span>
+        </button>
+
+        {% if user is defined and user %}
+        <form method="post" action="/logout" class="hidden sm:block">
+          <button type="submit" class="psa-btn psa-btn-ghost psa-btn-sm" title="خروج از حساب کاربری">
+            {{ icon('arrow-left', 15) | safe }}
+            خروج
+          </button>
+        </form>
         {% endif %}
         <button
           type="button"
@@ -120,16 +234,29 @@
       <div class="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3 sm:px-6">
         <a href="/" class="psa-mobile-link {{ 'is-active' if current_path == '/' else '' }}">
           {{ icon('layers', 18) | safe }}
-          صفحهٔ اصلی
+          پروژه‌ها
         </a>
-        <a href="/checklist" class="psa-mobile-link {{ 'is-active' if current_path == '/checklist' else '' }}">
-          {{ icon('list-checks', 18) | safe }}
-          چک‌لیست حسابرسی
+        {% if project is defined and project %}
+        <a href="/projects/{{ project.id }}" class="psa-mobile-link {{ 'is-active' if current_path == '/projects/' ~ project.id else '' }}">
+          {{ icon('clipboard-check', 18) | safe }}
+          {{ project.name }}
         </a>
-        <a href="/audit-summary" class="psa-mobile-link {{ 'is-active' if current_path == '/audit-summary' else '' }}">
-          {{ icon('sparkles', 18) | safe }}
-          خلاصه‌سازی گزارش حسابرسی
-        </a>
+          <p class="psa-mobile-nav-title">کارگاه‌ها</p>
+          {% for workshop_item in workshops %}
+          <a href="{{ workshop_item.page_url(project.id) }}" class="psa-mobile-link {{ 'is-active' if current_path == workshop_item.page_url(project.id) else '' }}">
+            {{ icon(workshop_item.icon, 18) | safe }}
+            {{ workshop_item.display_name_fa }}
+          </a>
+          {% endfor %}
+        {% endif %}
+        {% if user is defined and user %}
+        <form method="post" action="/logout" class="pt-1">
+          <button type="submit" class="psa-mobile-link w-full text-start">
+            {{ icon('arrow-left', 18) | safe }}
+            خروج از حساب کاربری
+          </button>
+        </form>
+        {% endif %}
       </div>
     </nav>
   </header>
@@ -156,14 +283,15 @@
           <p class="psa-footer-title">کارگاه‌ها</p>
           <ul class="mt-3 space-y-2">
             <li>
-              <a href="/" class="psa-footer-link">صفحهٔ اصلی</a>
+              <a href="/" class="psa-footer-link">پروژه‌ها</a>
             </li>
-            <li>
-              <a href="/checklist" class="psa-footer-link">بررسی چک‌لیست حسابرسی مالی</a>
-            </li>
-            <li>
-              <a href="/audit-summary" class="psa-footer-link">خلاصه‌سازی گزارش حسابرسی</a>
-            </li>
+            {% if project is defined and project %}
+              {% for workshop_item in workshops %}
+              <li>
+                <a href="{{ workshop_item.page_url(project.id) }}" class="psa-footer-link">{{ workshop_item.display_name_fa }}</a>
+              </li>
+              {% endfor %}
+            {% endif %}
           </ul>
         </div>
 
@@ -214,6 +342,115 @@
           toggle.focus();
         }
       });
+    })();
+
+    /* ------------------------------------------------------------------
+       منوی بازشوی کارگاه‌ها در سربرگ
+       ------------------------------------------------------------------
+       الگوی استاندارد و دسترس‌پذیر: دکمه با ``aria-expanded`` وضعیت را اعلام
+       می‌کند، منو با ویژگی ``hidden`` پنهان/نمایان می‌شود (پس بدون CSS هم
+       معنادار است)، و بستن با کلیک بیرون، کلید Escape و انتخاب هر مورد انجام
+       می‌شود. جابه‌جایی با کلیدهای بالا/پایین هم پشتیبانی می‌شود.
+    */
+    (function () {
+      var dropdown = document.querySelector("[data-psa-dropdown]");
+      if (!dropdown) return;
+      var trigger = dropdown.querySelector("[data-psa-dropdown-trigger]");
+      var menu = dropdown.querySelector("[data-psa-dropdown-menu]");
+      if (!trigger || !menu) return;
+
+      function items() {
+        return Array.prototype.slice.call(menu.querySelectorAll(".psa-dropdown-item"));
+      }
+
+      function isOpen() {
+        return !menu.hidden;
+      }
+
+      function setOpen(open) {
+        menu.hidden = !open;
+        trigger.setAttribute("aria-expanded", open ? "true" : "false");
+        dropdown.classList.toggle("is-open", open);
+      }
+
+      trigger.addEventListener("click", function (event) {
+        event.stopPropagation();
+        setOpen(!isOpen());
+      });
+
+      // بستن با کلیک بیرون از منو
+      document.addEventListener("click", function (event) {
+        if (isOpen() && !dropdown.contains(event.target)) setOpen(false);
+      });
+
+      // بستن با Escape و بازگشت فوکوس به دکمه
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && isOpen()) {
+          setOpen(false);
+          trigger.focus();
+        }
+      });
+
+      // پیمایش با کلیدهای جهت‌دار بین موارد منو
+      menu.addEventListener("keydown", function (event) {
+        if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+        event.preventDefault();
+        var nodes = items();
+        if (!nodes.length) return;
+        var current = nodes.indexOf(document.activeElement);
+        var step = event.key === "ArrowDown" ? 1 : -1;
+        var next = current === -1 ? 0 : (current + step + nodes.length) % nodes.length;
+        nodes[next].focus();
+      });
+
+      // انتخاب هر مورد، منو را می‌بندد (ناوبری مرورگر خودش انجام می‌شود)
+      items().forEach(function (item) {
+        item.addEventListener("click", function () {
+          setOpen(false);
+        });
+      });
+    })();
+
+    /* ------------------------------------------------------------------
+       تغییر پوستهٔ روشن/تیره
+       ------------------------------------------------------------------
+       مقدار اولیه در سربرگ (پیش از رنگ‌آمیزی) ست شده است؛ اینجا فقط دکمه
+       به آن وصل می‌شود و انتخاب کاربر در ``localStorage`` ذخیره می‌گردد.
+    */
+    (function () {
+      var STORAGE_KEY = "psa.theme";
+      var root = document.documentElement;
+      var toggle = document.getElementById("psa-theme-toggle");
+      var label = document.querySelector("[data-psa-theme-label]");
+
+      function apply(theme) {
+        root.setAttribute("data-theme", theme);
+        var dark = theme === "dark";
+        if (toggle) {
+          toggle.setAttribute("aria-pressed", dark ? "true" : "false");
+          toggle.setAttribute("title", dark ? "روشن کردن پوستهٔ روشن" : "روشن کردن پوستهٔ تیره");
+          toggle.querySelectorAll("[data-psa-theme-icon]").forEach(function (icon) {
+            icon.classList.toggle("hidden", icon.dataset.psaThemeIcon !== theme);
+          });
+        }
+        if (label) label.textContent = dark ? "روشن کردن پوستهٔ روشن" : "روشن کردن پوستهٔ تیره";
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute("content", dark ? "#0b1120" : "#f8fafc");
+      }
+
+      apply(root.getAttribute("data-theme") === "dark" ? "dark" : "light");
+
+      if (toggle) {
+        toggle.addEventListener("click", function () {
+          var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+          apply(next);
+          try {
+            window.localStorage.setItem(STORAGE_KEY, next);
+          } catch (err) {
+            // حالت ناشناس/مسدود: انتخاب فقط برای همین صفحه اعمال می‌شود.
+          }
+        });
+      }
     })();
   </script>
 

@@ -23,6 +23,9 @@ dist/
 build/
 *.egg-info/
 
+# دادهٔ محلی داشبورد (پایگاه‌داده‌ی SQLite + فایل‌های نتیجهٔ اجراها)
+data/
+
 # ژوپیتر نوت‌بوک
 *.ipynb
 .ipynb_checkpoints/

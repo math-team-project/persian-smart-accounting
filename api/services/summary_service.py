@@ -18,7 +18,7 @@ import html
 import logging
 import re
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 # نکته: ``await request.form()`` در لایه‌ی روتر همیشه نمونه‌هایی از
 # ``starlette.datastructures.UploadFile`` برمی‌گرداند (نه زیرکلاس آن
@@ -30,6 +30,7 @@ import audit_pipeline
 from api.jobs.job_manager import JobManager, job_manager
 from api.schemas.summary import JobResultsResponse, JobStatusResponse
 from api.utils.uploads import InMemoryUploadAdapter
+from api.workshops.registry import ResultArtifact
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +63,10 @@ async def start_job(
     organization: Optional[str],
     meeting_context: Optional[str],
     max_upload_bytes: int,
+    *,
+    project_id: int,
+    run_id: int,
+    on_finish: Optional[Callable[[dict[str, Any]], None]] = None,
     manager: JobManager = job_manager,
 ) -> str:
     """اعتبارسنجی و ذخیره‌ی فایل آپلودی، سپس شروع پردازش پس‌زمینه‌ی خلاصه‌سازی.
@@ -70,7 +75,8 @@ async def start_job(
     (اعتبارسنجی + ذخیره‌ی فایل روی دیسک) به‌صورت همزمان (await) اجرا می‌شود؛
     پردازش سنگین (استخراج متن + تماس با مدل زبانی + ساخت docx) توسط
     ``audit_pipeline.start_audit_summary_job`` در یک ترد پس‌زمینه‌ی جدا انجام
-    می‌شود.
+    می‌شود. ``project_id``/``run_id`` برچسب‌های job و ``on_finish`` ثبت‌کننده‌ی
+    تاریخچه است.
     """
     if upload is None or not upload.filename:
         raise AuditSummaryValidationError("لطفاً یک فایل گزارش حسابرسی بارگذاری کنید.")
@@ -91,7 +97,19 @@ async def start_job(
             "خطای غیرمنتظره‌ای هنگام آماده‌سازی فایل بارگذاری‌شده رخ داد."
         ) from exc
 
-    job_id, job = manager.create(audit_pipeline.new_audit_job, workdir=workdir, kind="audit_summary")
+    job_id, job = manager.create(
+        audit_pipeline.new_audit_job,
+        workdir=workdir,
+        kind="audit-summary",
+        project_id=project_id,
+        run_id=run_id,
+        on_finish=on_finish,
+    )
+    # برچسب‌های خصوصی متادیتای اجرا (خودِ audit_pipeline این‌ها را نمی‌خواند) --
+    # فقط برای ثبت در ردیف تاریخچه.
+    job["_source_filename"] = upload.filename
+    job["_organization"] = (organization or "").strip() or None
+    job["_meeting_context"] = (meeting_context or "").strip() or None
     audit_pipeline.start_audit_summary_job(
         job,
         input_path,
@@ -100,19 +118,26 @@ async def start_job(
         meeting_context=(meeting_context or "").strip() or None,
     )
     manager.watch_lifecycle(job_id, job)
-    logger.info("audit-summary job %s started (source=%r)", job_id, upload.filename)
+    logger.info(
+        "audit-summary job %s started (project=%s, run=%s, source=%r)",
+        job_id,
+        project_id,
+        run_id,
+        upload.filename,
+    )
     return job_id
 
 
 # ---------------------------------------------------------------------------
 # تخمین درصد پیشرفت از روی متن مرحله‌ی جاری (job["stage"])، مشابه
-# checklist_service._estimate_progress اما بر اساس نشانگرهای [n/4] که
+# checklist_service.estimate_progress اما بر اساس نشانگرهای [n/4] که
 # audit_pipeline.run_audit_summary تولید می‌کند.
 # ---------------------------------------------------------------------------
 _STAGE_PROGRESS_RE = re.compile(r"^\[(\d)/4\]")
 
 
-def _estimate_progress(job: dict[str, Any]) -> int:
+def estimate_progress(job: dict[str, Any]) -> int:
+    """درصد پیشرفت تقریبی (عمومی -- پنل کارهای در جریان پروژه هم از آن استفاده می‌کند)."""
     status = job.get("status")
     if status == "done":
         return 100
@@ -138,9 +163,10 @@ def build_status_response(job_id: str, job: dict[str, Any]) -> JobStatusResponse
 
     return JobStatusResponse(
         job_id=job_id,
+        run_id=job.get("_run_id"),
         status=status,
         stage=job.get("stage", ""),
-        progress=_estimate_progress(job),
+        progress=estimate_progress(job),
         logs=job.get("logs", [])[-20:],
         error=job.get("error"),
         summary_ready=bool(result.get("docx_bytes")),
@@ -237,3 +263,58 @@ def get_report_bytes(job: dict[str, Any]) -> tuple[bytes, str]:
         raise AuditSummaryValidationError("خلاصه‌ی Word برای این پردازش در دسترس نیست.")
     filename = result.get("docx_filename") or "خلاصه_گزارش_حسابرسی.docx"
     return docx_bytes, filename
+
+
+# ---------------------------------------------------------------------------
+# ثبت تاریخچه: تبدیل job تمام‌شده به artifact ماندگار
+# ---------------------------------------------------------------------------
+def has_download(job: dict[str, Any]) -> bool:
+    """آیا همین حالا فایل نتیجه‌ی این job قابل دانلود است؟"""
+    return bool((job.get("result") or {}).get("docx_bytes"))
+
+
+def summary_chips_fa(summary: dict[str, Any]) -> list[str]:
+    """برچسب‌های کوتاه خلاصه‌ی نتیجه‌ی خلاصه‌سازی برای فهرست تاریخچه."""
+    from api.utils.formatting import fa_number
+
+    chips: list[str] = []
+    if summary.get("source_filename"):
+        chips.append(f"برگرفته از: {summary['source_filename']}")
+    if summary.get("organization"):
+        chips.append(str(summary["organization"]))
+    if summary.get("summary_chars"):
+        chips.append(f"{fa_number(summary['summary_chars'])} نویسه خلاصه")
+    warnings_count = len(summary.get("warnings") or [])
+    if warnings_count:
+        chips.append(f"{fa_number(warnings_count)} هشدار پردازش")
+    return chips
+
+
+def collect_result(job: dict[str, Any]) -> ResultArtifact:
+    """خروجی نهایی خلاصه‌سازی را برای ذخیره در تاریخچه آماده می‌کند.
+
+    در این کارگاه خودِ «خلاصه» نتیجه‌ی اصلی است (نه فقط فایل Word آن)، بنابراین
+    متن خلاصه هم در ``result_summary`` ذخیره می‌شود تا کاربر بعداً بدون اجرای دوباره
+    بتواند آن را بخواند. هیچ محتوایی از فایل ورودی (گزارش حسابرسی) -- نه متن
+    استخراج‌شده و نه مسیر فایل -- ذخیره نمی‌شود؛ تنها نام فایل مبدأ به‌عنوان
+    متادیتای اجرا باقی می‌ماند.
+    """
+    result = job.get("result") or {}
+    summary_markdown = result.get("summary_markdown", "")
+    filename = result.get("docx_filename") or "خلاصه_گزارش_حسابرسی.docx"
+
+    summary = {
+        "source_filename": job.get("_source_filename") or result.get("source_filename") or "",
+        "organization": job.get("_organization"),
+        "meeting_context": job.get("_meeting_context"),
+        "warnings": list(result.get("warnings") or [])[:10],
+        "elapsed_seconds": result.get("elapsed_seconds"),
+        "summary_markdown": summary_markdown,
+        "summary_chars": len(summary_markdown or ""),
+    }
+
+    content = result.get("docx_bytes")
+    if content:
+        summary["result_filename"] = filename
+
+    return ResultArtifact(summary=summary, filename=filename, content=content)

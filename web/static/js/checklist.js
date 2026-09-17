@@ -33,15 +33,22 @@
 
   var POLL_INTERVAL_MS = 1500;
 
-  /* کلید نگه‌داری شناسه‌ی آخرین job در مرورگر.
-     job ها در حافظه‌ی سرور باقی می‌مانند (``api/jobs/job_manager.py``)، بنابراین
-     کافی است شناسه‌ی job را در مرورگر به خاطر بسپاریم تا کاربر بتواند بین
-     کارگاه‌ها جابه‌جا شود (یا صفحه را دوباره بارگذاری کند) و پردازش در حال
-     اجرا/تمام‌شده‌ی خود را از دست ندهد. */
-  var STORAGE_KEY = "psa.checklist.jobId";
+  /* تنظیمات این کارگاه که از قالب صفحه تزریق می‌شود: پیشوند API همین کارگاه
+     داخل پروژهٔ جاری (``/api/projects/<id>/checklist``) و کلید نگه‌داری شناسهٔ
+     job. مسیر API از رجیستری کارگاه‌ها می‌آید، بنابراین هیچ آدرسی این‌جا هاردکد
+     نیست و همین فایل برای هر پروژه‌ای کار می‌کند. */
+  var WORKSHOP_CONFIG = window.PSA_WORKSHOP || {};
+  var API_BASE = WORKSHOP_CONFIG.apiBase || "/api/checklist";
+
+  /* کلید نگه‌داری شناسه‌ی آخرین job در مرورگر -- به‌ازای هر پروژه جداگانه، تا
+     بازگشت به کارگاه در یک پروژه، پردازش پروژهٔ دیگر را بازیابی نکند.
+     خودِ job ها سمت سرور در حافظه می‌مانند (``api/jobs/job_manager.py``)، پس
+     جابه‌جایی بین کارگاه‌ها یا بارگذاری دوبارهٔ صفحه پردازش را از بین نمی‌برد. */
+  var STORAGE_KEY = WORKSHOP_CONFIG.storageKey || "psa.checklist.jobId";
 
   var state = {
     jobId: null,
+    runId: null,
     pollTimer: null,
     items: [],
     activeFilter: "ALL",
@@ -92,6 +99,7 @@
   function resetWorkspace() {
     stopPolling();
     state.jobId = null;
+    state.runId = null;
     state.items = [];
     state.activeFilter = "ALL";
     state.searchTerm = "";
@@ -124,11 +132,12 @@
    */
   async function restoreJob() {
     try {
-      const response = await fetch("/api/checklist/jobs/" + encodeURIComponent(state.jobId));
+      const response = await fetch(API_BASE + "/jobs/" + encodeURIComponent(state.jobId));
       if (!response.ok) {
         throw new Error(await parseErrorDetail(response));
       }
       const job = await response.json();
+      if (job.run_id) state.runId = job.run_id;
 
       if (job.status === "done") {
         await loadResults();
@@ -137,6 +146,7 @@
       if (job.status === "error") {
         clearStoredJobId();
         state.jobId = null;
+        state.runId = null;
         showStep(0);
         window.psaShowToast(job.error || "پردازش قبلی با خطا متوقف شد.", "error");
         return;
@@ -150,6 +160,7 @@
       // job ناشناخته است (سرور ری‌استارت شده یا منقضی شده) -- از ابتدا شروع می‌کنیم.
       clearStoredJobId();
       state.jobId = null;
+      state.runId = null;
       showStep(0);
     }
   }
@@ -172,7 +183,7 @@
 
     submitBtn.disabled = true;
     try {
-      const response = await fetch("/api/checklist/jobs", {
+      const response = await fetch(API_BASE + "/jobs", {
         method: "POST",
         body: formData,
       });
@@ -181,6 +192,7 @@
       }
       const data = await response.json();
       state.jobId = data.job_id;
+      state.runId = data.run_id || null;
       storeJobId(state.jobId);
       showStep(1);
       startPolling();
@@ -210,11 +222,12 @@
   async function pollOnce() {
     if (!state.jobId) return;
     try {
-      const response = await fetch("/api/checklist/jobs/" + encodeURIComponent(state.jobId));
+      const response = await fetch(API_BASE + "/jobs/" + encodeURIComponent(state.jobId));
       if (!response.ok) {
         throw new Error(await parseErrorDetail(response));
       }
       const job = await response.json();
+      if (job.run_id) state.runId = job.run_id;
       window.psaSetProgress(job.progress, job.stage, job.logs);
 
       if (job.status === "done") {
@@ -239,7 +252,7 @@
 
   async function loadResults() {
     try {
-      const response = await fetch("/api/checklist/jobs/" + encodeURIComponent(state.jobId) + "/results");
+      const response = await fetch(API_BASE + "/jobs/" + encodeURIComponent(state.jobId) + "/results");
       if (!response.ok) {
         throw new Error(await parseErrorDetail(response));
       }
@@ -259,30 +272,56 @@
     if (el) el.textContent = value;
   }
 
+  /**
+   * عدد را با ارقام فارسی برمی‌گرداند -- هم‌سبک با فیلتر ``fa_number`` سرور و
+   * ``budget_analysis.js``. اعداد لاتینِ خروجی API (که از JSON می‌آیند) در
+   * نمایش به ارقام فارسی تبدیل می‌شوند تا صفحه‌های فارسی یکدست بمانند.
+   *
+   * تبصره: تنها استثنا «شمارهٔ پرسش» است (``questionIdChip``) که عمداً با ارقام
+   * لاتین نمایش داده می‌شود، چون همان شناسهٔ چک‌لیست منبع و گزارش Word است.
+   */
+  function faNumber(value) {
+    if (value === null || value === undefined || value === "") return "—";
+    var text;
+    if (typeof value === "number" && isFinite(value)) {
+      text = Math.abs(value) >= 1000 ? value.toLocaleString("fa-IR") : String(value);
+    } else {
+      text = String(value);
+    }
+    return text.replace(/[0-9]/g, function (digit) {
+      return "۰۱۲۳۴۵۶۷۸۹".charAt(Number(digit));
+    });
+  }
+
   function renderResults(data) {
     state.items = data.items || [];
     var summary = data.summary || {};
 
     setText(
       "psa-summary-headline",
-      (summary.false_count || 0) + " مورد نامنطبق از " + (summary.total || 0) + " بررسی"
+      faNumber(summary.false_count || 0) +
+        " مورد نامنطبق از " +
+        faNumber(summary.total || 0) +
+        " بررسی"
     );
 
     var compliance = Math.round(summary.compliance_rate || 0);
-    setText("psa-summary-compliance", compliance + "٪");
+    setText("psa-summary-compliance", faNumber(compliance) + "٪");
     var meter = document.getElementById("psa-compliance-meter");
     if (meter) meter.style.width = Math.max(0, Math.min(100, compliance)) + "%";
 
-    setText("psa-stat-total", String(summary.total || 0));
-    setText("psa-stat-true", String(summary.true_count || 0));
-    setText("psa-stat-false", String(summary.false_count || 0));
-    setText("psa-stat-error", String(summary.error_count || 0));
-    setText("psa-stat-manual", String(summary.manual_count || 0));
+    setText("psa-stat-total", faNumber(summary.total || 0));
+    setText("psa-stat-true", faNumber(summary.true_count || 0));
+    setText("psa-stat-false", faNumber(summary.false_count || 0));
+    setText("psa-stat-error", faNumber(summary.error_count || 0));
+    setText("psa-stat-manual", faNumber(summary.manual_count || 0));
 
     var downloadLink = document.getElementById("psa-download-report");
     var unavailableLabel = document.getElementById("psa-report-unavailable");
-    if (data.report_ready) {
-      downloadLink.href = "/api/checklist/jobs/" + encodeURIComponent(state.jobId) + "/report";
+    if (data.report_ready && state.runId) {
+      // دانلود از مسیر «اجرا» انجام می‌شود (نه از مسیر job) تا پس از خروج job از
+      // حافظه‌ی سرور هم فایل ذخیره‌شده در تاریخچه قابل دریافت باشد.
+      downloadLink.href = API_BASE + "/runs/" + encodeURIComponent(state.runId) + "/download";
       downloadLink.classList.remove("hidden");
       unavailableLabel.classList.add("hidden");
     } else {

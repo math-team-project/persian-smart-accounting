@@ -17,7 +17,7 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 # نکته: ``await request.form()`` در لایه‌ی روتر همیشه نمونه‌هایی از
 # ``starlette.datastructures.UploadFile`` برمی‌گرداند (نه زیرکلاس آن
@@ -34,6 +34,7 @@ from api.schemas.checklist import (
     JobSummary,
 )
 from api.utils.uploads import InMemoryUploadAdapter
+from api.workshops.registry import ResultArtifact
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +73,10 @@ async def start_job(
     uploads: dict[str, Optional[UploadFile]],
     entity_name: Optional[str],
     max_upload_bytes: int,
+    *,
+    project_id: int,
+    run_id: int,
+    on_finish: Optional[Callable[[dict[str, Any]], None]] = None,
     manager: JobManager = job_manager,
 ) -> str:
     """اعتبارسنجی و ذخیره‌ی فایل‌های آپلودی، سپس شروع پردازش پس‌زمینه‌ی چک‌لیست.
@@ -80,6 +85,10 @@ async def start_job(
     همزمان (await) اجرا می‌کند؛ پردازش سنگین (استخراج + چک‌لیست + گزارش
     کمیسیون) توسط ``pipeline.start_checklist_job`` در یک ترد پس‌زمینه‌ی جدا
     انجام می‌شود و این تابع بلافاصله پس از شروع آن ترد برمی‌گردد.
+
+    ``project_id``/``run_id`` صرفاً برچسب‌های job هستند (تا چند کارگاه در چند
+    پروژه بدون تداخل هم‌زمان اجرا شوند) و ``on_finish`` پس از پایان کار، ردیف
+    تاریخچه‌ی ``workshop_runs`` را ثبت می‌کند.
     """
     required_keys = [k for k, v in pipeline.FILE_SLOTS.items() if v["required"]]
     missing = [
@@ -130,7 +139,18 @@ async def start_job(
             "خطای غیرمنتظره‌ای هنگام آماده‌سازی فایل‌های بارگذاری‌شده رخ داد."
         ) from exc
 
-    job_id, job = manager.create(pipeline.new_checklist_job, workdir=workdir, kind="checklist")
+    job_id, job = manager.create(
+        pipeline.new_checklist_job,
+        workdir=workdir,
+        kind="checklist",
+        project_id=project_id,
+        run_id=run_id,
+        on_finish=on_finish,
+    )
+    # نام سازمان در متادیتای نتیجه‌ی اجرا (ردیف تاریخچه) نگه داشته می‌شود؛
+    # ``run_full_pipeline`` خروجی خودش این مقدار را برنمی‌گرداند و این کلید
+    # صرفاً یک برچسب خصوصی روی دیکشنری job است (پایپ‌لاین آن را نمی‌خواند).
+    job["_entity_name"] = (entity_name or "").strip() or None
     pipeline.start_checklist_job(
         job,
         file_paths,
@@ -139,7 +159,13 @@ async def start_job(
         entity_name=(entity_name or "").strip() or None,
     )
     manager.watch_lifecycle(job_id, job)
-    logger.info("checklist job %s started (entity_name=%r)", job_id, entity_name)
+    logger.info(
+        "checklist job %s started (project=%s, run=%s, entity_name=%r)",
+        job_id,
+        project_id,
+        run_id,
+        entity_name,
+    )
     return job_id
 
 
@@ -149,7 +175,13 @@ async def start_job(
 _QUESTION_PROGRESS_RE = re.compile(r"سوال\s+(\d+)\s+از\s+(\d+)")
 
 
-def _estimate_progress(job: dict[str, Any]) -> int:
+def estimate_progress(job: dict[str, Any]) -> int:
+    """درصد پیشرفت تقریبی از روی مرحله‌ی جاری job.
+
+    عمومی (public) است چون هم پاسخ وضعیت همین کارگاه و هم پنل «کارهای در جریان»
+    پروژه (که همه‌ی کارگاه‌ها را نشان می‌دهد) از آن استفاده می‌کنند؛ رجیستری
+    کارگاه‌ها این تابع را به‌عنوان تخمین‌زننده‌ی پیشرفت همین کارگاه ثبت می‌کند.
+    """
     status = job.get("status")
     if status == "done":
         return 100
@@ -198,9 +230,10 @@ def build_status_response(job_id: str, job: dict[str, Any]) -> JobStatusResponse
 
     return JobStatusResponse(
         job_id=job_id,
+        run_id=job.get("_run_id"),
         status=status,
         stage=job.get("stage", ""),
-        progress=_estimate_progress(job),
+        progress=estimate_progress(job),
         logs=job.get("logs", [])[-20:],
         error=job.get("error"),
         summary=summary,
@@ -240,3 +273,67 @@ def get_report_bytes(job: dict[str, Any]) -> tuple[bytes, str]:
         raise ChecklistValidationError("گزارش کمیسیون برای این پردازش در دسترس نیست.")
     filename = committee_report.get("docx_filename") or "گزارش_کمیسیون.docx"
     return docx_bytes, filename
+
+
+# ---------------------------------------------------------------------------
+# ثبت تاریخچه: تبدیل job تمام‌شده به artifact ماندگار
+# ---------------------------------------------------------------------------
+def has_download(job: dict[str, Any]) -> bool:
+    """آیا همین حالا فایل نتیجه‌ی این job قابل دانلود است؟"""
+    result = job.get("result") or {}
+    return bool((result.get("committee_report") or {}).get("docx_bytes"))
+
+
+def summary_chips_fa(summary: dict[str, Any]) -> list[str]:
+    """برچسب‌های کوتاه خلاصه‌ی نتیجه‌ی چک‌لیست برای فهرست تاریخچه."""
+    from api.utils.formatting import fa_number, fa_percent
+
+    chips: list[str] = []
+    if summary.get("entity_name"):
+        chips.append(str(summary["entity_name"]))
+    total = summary.get("total")
+    if total is not None:
+        chips.append(
+            f"{fa_number(summary.get('false_count', 0))} مورد نامنطبق از {fa_number(total)} بررسی"
+        )
+    if summary.get("compliance_rate") is not None:
+        chips.append(f"درصد تطابق: {fa_percent(summary.get('compliance_rate'))}")
+    if summary.get("used_audit_report_text"):
+        chips.append("با استفاده از متن گزارش حسابرسی")
+    if summary.get("report_error"):
+        chips.append("گزارش کمیسیون تولید نشد")
+    return chips
+
+
+def collect_result(job: dict[str, Any]) -> ResultArtifact:
+    """خروجی نهایی اجرای چک‌لیست را برای ذخیره در تاریخچه آماده می‌کند.
+
+    فقط *نتیجه* ذخیره می‌شود: فایل Word گزارش کمیسیون + متادیتای شمارشی نتیجه.
+    هیچ محتوایی از فایل‌های ورودی (بودجه/صورت‌های مالی/ترازنامه) -- نه محتوا و نه
+    مسیر -- این‌جا نگه داشته نمی‌شود؛ فایل‌های ورودی همان‌طور که قبلاً هم بود، پس از
+    پایان پردازش توسط ``pipeline.cleanup_workdir`` حذف می‌شوند.
+    """
+    result = job.get("result") or {}
+    summary = dict(result.get("summary") or {})
+    committee_report = result.get("committee_report") or {}
+
+    summary.update(
+        {
+            "warnings": list(result.get("warnings") or [])[:10],
+            "used_audit_report_text": bool(committee_report.get("used_audit_report_text")),
+            "elapsed_seconds": result.get("elapsed_seconds"),
+            "entity_name": job.get("_entity_name"),
+        }
+    )
+
+    filename = committee_report.get("docx_filename") or "گزارش_کمیسیون.docx"
+    content = committee_report.get("docx_bytes")
+    if content:
+        summary["result_filename"] = filename
+    elif committee_report.get("error"):
+        # خودِ اجرای چک‌لیست موفق بوده اما تولید گزارش کمیسیون شکست خورده است (مثلاً
+        # خطای سرویس هوش مصنوعی) -- این تفاوت باید در تاریخچه دیده شود، وگرنه ردیف
+        # بدون فایل نتیجه، شبیه یک اجرای ناقصِ مبهم به نظر می‌رسد.
+        summary["report_error"] = committee_report["error"]
+
+    return ResultArtifact(summary=summary, filename=filename, content=content)

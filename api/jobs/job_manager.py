@@ -34,6 +34,12 @@ class JobManager:
     به‌روزرسانی می‌کنند. این کلاس هیچ فرضی درباره‌ی محتوای دیکشنری ندارد، جز
     اینکه انتظار دارد کلید ``status`` یکی از مقادیر
     ``pending`` / ``running`` / ``done`` / ``error`` باشد.
+
+    از فاز داشبورد/پروژه‌ها به بعد، هر job علاوه بر ``job_id`` یکتای خودش با
+    ``(project_id, workshop_type, run_id)`` هم برچسب‌گذاری می‌شود. این کلید
+    مرکب همان چیزی است که اجازه می‌دهد چند کارگاه در یک پروژه (و چند پروژه
+    به‌طور هم‌زمان) بدون هیچ نشتی بین حالت‌ها اجرا شوند: هر job دیکشنری مستقل
+    خودش را دارد و وضعیت هیچ‌کدام روی دیگری اثر نمی‌گذارد.
     """
 
     def __init__(self, ttl_seconds: int = 3600) -> None:
@@ -50,9 +56,20 @@ class JobManager:
         *,
         workdir: Optional[Path] = None,
         kind: str = "generic",
+        project_id: Optional[int] = None,
+        run_id: Optional[int] = None,
+        on_finish: Optional[Callable[[dict[str, Any]], None]] = None,
     ) -> tuple[str, dict[str, Any]]:
         """یک job جدید می‌سازد و آن را ثبت می‌کند. ``factory`` معمولا یکی از
-        ``pipeline.new_checklist_job`` یا معادل آن در audit_pipeline.py است."""
+        ``pipeline.new_checklist_job`` یا معادل آن در audit_pipeline.py است.
+
+        ``on_finish`` یک callback اختیاری است که درست پس از رسیدن job به وضعیت
+        نهایی (``done`` یا ``error``) و در ترد نگهبان فراخوانی می‌شود -- همان‌جایی
+        که لایه‌ی کارگاه‌ها ردیف تاریخچه‌ی ``workshop_runs`` و فایل نتیجه را ثبت
+        می‌کند (نگاه کنید به ``api/workshops/runs.py``). این callback عمداً در
+        ``pipeline.py``/``audit_pipeline.py`` صدا زده نمی‌شود تا آن دو فایل
+        دست‌نخورده بمانند.
+        """
         job_id = uuid.uuid4().hex
         job = factory()
         # در pipeline.py وضعیت اولیه "idle" نامیده می‌شود؛ لایهی API فقط از واژگان
@@ -62,20 +79,52 @@ class JobManager:
         job["_kind"] = kind
         job["_workdir"] = workdir
         job["_created_at"] = time.time()
+        job["_project_id"] = project_id
+        job["_run_id"] = run_id
+        job["_on_finish"] = on_finish
         with self._lock:
             self._jobs[job_id] = job
-        logger.info("job %s created (kind=%s)", job_id, kind)
+        logger.info(
+            "job %s created (kind=%s, project=%s, run=%s)", job_id, kind, project_id, run_id
+        )
         return job_id, job
 
     def get(self, job_id: str) -> Optional[dict[str, Any]]:
         with self._lock:
             return self._jobs.get(job_id)
 
+    def get_by_run(self, run_id: int) -> Optional[dict[str, Any]]:
+        """job زنده‌ی متناظر با یک ردیف ``workshop_runs`` (اگر هنوز در حافظه باشد)."""
+        with self._lock:
+            for job in self._jobs.values():
+                if job.get("_run_id") == run_id:
+                    return job
+        return None
+
+    def list_for_project(self, project_id: int) -> list[dict[str, Any]]:
+        """همه‌ی job های یک پروژه (مناسب برای پنل «کارهای در جریان»)."""
+        with self._lock:
+            return [job for job in self._jobs.values() if job.get("_project_id") == project_id]
+
     def delete(self, job_id: str) -> None:
         with self._lock:
             job = self._jobs.pop(job_id, None)
         if job is not None:
             logger.info("job %s removed from registry", job_id)
+
+    def delete_for_project(self, project_id: int) -> int:
+        """حذف همه‌ی job های یک پروژه (هنگام حذف خودِ پروژه)."""
+        with self._lock:
+            doomed = [
+                job_id
+                for job_id, job in self._jobs.items()
+                if job.get("_project_id") == project_id
+            ]
+            for job_id in doomed:
+                self._jobs.pop(job_id, None)
+        if doomed:
+            logger.info("removed %d job(s) of project %s", len(doomed), project_id)
+        return len(doomed)
 
     # ------------------------------------------------------------------
     # لاگ‌گیری چرخه‌ی حیات job (created/running/done/error)
@@ -87,8 +136,12 @@ class JobManager:
         دست بزند. با این کار هر دو کارگاه (چک‌لیست و خلاصه‌سازی گزارش) به‌طور
         یکسان رویدادهای running/done/error را در لاگ ثبت می‌کنند، مکمل رویداد
         «created» که همین‌جا در ``create()`` ثبت می‌شود.
+
+        پس از رسیدن job به وضعیت نهایی، callback ``on_finish`` (که در ``create``
+        ثبت شده) یک بار فراخوانی می‌شود.
         """
         kind = job.get("_kind", "generic")
+        on_finish = job.get("_on_finish")
 
         def _watch() -> None:
             last_status = job.get("status")
@@ -103,6 +156,12 @@ class JobManager:
                 logger.error("job %s (kind=%s) failed: %s", job_id, kind, job.get("error"))
             else:
                 logger.info("job %s (kind=%s) completed successfully", job_id, kind)
+
+            if on_finish is not None:
+                try:
+                    on_finish(job)
+                except Exception:  # noqa: BLE001 -- ثبت تاریخچه نباید ترد نگهبان را بکشد
+                    logger.exception("on_finish callback failed for job %s", job_id)
 
         threading.Thread(target=_watch, name=f"job-watch-{job_id}", daemon=True).start()
 

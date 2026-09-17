@@ -43,6 +43,16 @@ psycopg2-binary>=2.9       # PostgreSQL client (db_management scripts)
 
 # --- Configuration / secrets ---------------------------------------------------
 python-dotenv>=1.0
+cryptography>=42.0        # Fernet: encrypts per-project/per-workshop LLM API keys at rest
+
+# --- Dashboard layer: auth + projects + run history (api/ - SQLite) ------------
+# SQLite via SQLAlchemy: no extra service to run for local demo/development. All
+# data access goes through api/repositories/, so moving to another database later
+# is a contained change. NOTE: this is intentionally separate from the legacy
+# psycopg2/PostgreSQL setup in db_management/ (which is untouched).
+sqlalchemy>=2.0
+passlib>=1.7.4           # password hashing (pbkdf2_sha256, pure-python: no extra build)
+itsdangerous>=2.1        # required by Starlette's SessionMiddleware (session cookies)
 
 # --- Testing --------------------------------------------------------------------
 pytest>=8.0

@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}پروژه‌ها — داشبورد هوشمند حسابرسی{% endblock %}
+
+{% block content %}
+<!-- ===================== سرصفحهٔ داشبورد ===================== -->
+<header class="mb-6 flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <span class="psa-eyebrow">
+      {{ icon('layers', 14) | safe }}
+      فضای کاری {{ user.username }}
+    </span>
+    <h1 class="psa-page-title mt-3">پروژه‌های من</h1>
+    <p class="psa-page-subtitle">
+      هر پروژه یک پروندهٔ مستقل است: کارگاه‌ها را داخل آن اجرا می‌کنید، چند اجرا
+      می‌توانند هم‌زمان پیش بروند و نتیجهٔ هر اجرا در تاریخچهٔ همان پروژه می‌ماند.
+    </p>
+  </div>
+  <span class="psa-badge psa-badge-neutral psa-num">
+    {{ projects | length | fa_number }} پروژه
+  </span>
+</header>
+
+{% if error %}
+<div class="psa-note is-error mb-5" role="alert">
+  {{ icon('alert-circle', 16) | safe }}
+  <span>{{ error }}</span>
+</div>
+{% endif %}
+
+<!-- ===================== ساخت پروژهٔ جدید ===================== -->
+<section class="psa-card psa-card-elevated psa-card-topline p-5 sm:p-6" aria-labelledby="psa-new-project-title">
+  <h2 id="psa-new-project-title" class="psa-section-title">
+    {{ icon('workflow', 17) | safe }}
+    پروژهٔ جدید
+  </h2>
+  <p class="psa-section-hint mt-1">
+    نام پروژه معمولاً نام سازمان یا دورهٔ مالی مورد بررسی است (مثلاً «پارک علم و فناوری خراسان — سال ۱۴۰۳»).
+  </p>
+
+  <form method="post" action="/projects" class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start" novalidate>
+    <div class="flex-1">
+      <label for="project-name" class="psa-label">نام پروژه</label>
+      <input
+        type="text"
+        id="project-name"
+        name="name"
+        class="psa-input"
+        placeholder="مثلاً پارک علم و فناوری خراسان — سال ۱۴۰۳"
+        autocomplete="off"
+        maxlength="200"
+        required
+      />
+    </div>
+    <button type="submit" class="psa-btn psa-btn-primary psa-btn-lg sm:mt-7">
+      {{ icon('bolt', 17) | safe }}
+      پروژه جدید
+    </button>
+  </form>
+</section>
+
+<!-- ===================== فهرست پروژه‌ها ===================== -->
+<section class="mt-6" aria-labelledby="psa-projects-title">
+  <h2 id="psa-projects-title" class="psa-section-title text-base">فهرست پروژه‌ها</h2>
+
+  {% if projects %}
+  <div class="mt-4 grid gap-4 md:grid-cols-2">
+    {% for item in projects %}
+    <article class="psa-card psa-card-hover-soft flex flex-col p-5">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex min-w-0 items-start gap-3">
+          <span class="psa-icon-tile psa-icon-tile-md is-teal shrink-0">{{ icon('layers', 19) | safe }}</span>
+          <div class="min-w-0">
+            <h3 class="truncate text-sm font-bold text-slate-900" title="{{ item.name }}">{{ item.name }}</h3>
+            <p class="psa-meta mt-1">
+              {{ icon('clock', 13) | safe }}
+              ایجاد: {{ item.created_at | fa_date }}
+            </p>
+          </div>
+        </div>
+        <span class="psa-badge psa-badge-neutral shrink-0 psa-num">
+          {{ item.run_count | fa_number }} اجرا
+        </span>
+      </div>
+
+      <div class="mt-auto flex flex-wrap items-center gap-2 pt-5">
+        <a href="/projects/{{ item.id }}" class="psa-btn psa-btn-primary psa-btn-sm">
+          ورود به پروژه
+          {{ icon('chevron-left', 15, 1.8) | safe }}
+        </a>
+        <button
+          type="button"
+          class="psa-btn psa-btn-danger psa-btn-sm"
+          data-psa-delete-project="{{ item.id }}"
+          data-psa-project-name="{{ item.name }}"
+        >
+          {{ icon('x-circle', 15) | safe }}
+          حذف پروژه
+        </button>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="psa-empty mt-4">
+    {{ icon('layers', 22) | safe }}
+    <span>هنوز پروژه‌ای نساخته‌اید. با فرم بالا نخستین پروژه را بسازید.</span>
+  </p>
+  {% endif %}
+</section>
+
+<!-- ===================== کارگاه‌های موجود ===================== -->
+{# این بخش از رجیستری کارگاه‌ها ساخته می‌شود؛ افزودن کارگاه جدید نیازی به
+   تغییر این قالب ندارد. #}
+<section class="mt-8" aria-labelledby="psa-workshops-title">
+  <h2 id="psa-workshops-title" class="psa-section-title text-base">کارگاه‌های موجود</h2>
+  <p class="psa-section-hint mt-1">
+    این کارگاه‌ها داخل هر پروژه قابل اجرا هستند.
+  </p>
+
+  <div class="mt-4 grid gap-4 sm:grid-cols-2">
+    {% for workshop_item in workshops %}
+    <div class="psa-card flex items-start gap-3 p-4">
+      <span class="psa-icon-tile psa-icon-tile-md is-{{ workshop_item.accent }}">{{ icon(workshop_item.icon, 19) | safe }}</span>
+      <div>
+        <h3 class="text-xs font-bold text-slate-900">{{ workshop_item.display_name_fa }}</h3>
+        <p class="mt-1 text-xs leading-6 text-slate-500">{{ workshop_item.description_fa }}</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- ===================== تأیید حذف پروژه ===================== -->
+{# حذف پروژه بازگشت‌پذیر نیست؛ تأیید در دو مرحله انجام می‌شود: این گفت‌وگو و
+   سپس ارسال فرم با فیلد ``confirm`` (که سرور بدون آن درخواست را رد می‌کند). #}
+<dialog id="psa-delete-dialog" class="psa-dialog" aria-labelledby="psa-delete-title">
+  <div class="psa-card psa-card-elevated p-6">
+    <div class="flex items-start gap-3">
+      <span class="psa-icon-tile psa-icon-tile-md is-red shrink-0">{{ icon('alert-triangle', 20) | safe }}</span>
+      <div>
+        <h2 id="psa-delete-title" class="text-sm font-bold text-slate-900">حذف کامل پروژه</h2>
+        <p class="mt-2 text-sm leading-7 text-slate-600">
+          پروژهٔ «<span id="psa-delete-project-name" class="font-bold text-slate-900"></span>»
+          و <span class="font-bold text-slate-900">همهٔ داده‌های آن</span> برای همیشه حذف می‌شود:
+        </p>
+        <ul class="mt-3 space-y-1.5">
+          <li class="psa-feature">
+            <span class="psa-feature-mark">{{ icon('x', 11, 3) | safe }}</span>
+            <span>کل تاریخچهٔ اجراها و وضعیت پردازش‌های در جریان</span>
+          </li>
+          <li class="psa-feature">
+            <span class="psa-feature-mark">{{ icon('x', 11, 3) | safe }}</span>
+            <span>همهٔ فایل‌های نتیجه (گزارش‌های Word) روی سرور</span>
+          </li>
+          <li class="psa-feature">
+            <span class="psa-feature-mark">{{ icon('x', 11, 3) | safe }}</span>
+            <span>تنظیمات هوش مصنوعی این پروژه، از جمله کلیدهای ذخیره‌شدهٔ آن</span>
+          </li>
+        </ul>
+        <p class="psa-note is-error mt-4">
+          {{ icon('alert-circle', 16) | safe }}
+          <span>این کار <span class="font-bold">بازگشت‌پذیر نیست</span> و راهی برای بازیابی اطلاعات وجود ندارد.</span>
+        </p>
+      </div>
+    </div>
+
+    <form method="post" id="psa-delete-form" class="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
+      <input type="hidden" name="confirm" value="delete" />
+      <button type="button" id="psa-delete-cancel" class="psa-btn psa-btn-secondary">
+        انصراف
+      </button>
+      <button type="submit" class="psa-btn psa-btn-danger">
+        {{ icon('x-circle', 16) | safe }}
+        بله، پروژه و همهٔ داده‌هایش حذف شود
+      </button>
+    </form>
+  </div>
+</dialog>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="/static/js/project.js"></script>
+{% endblock %}

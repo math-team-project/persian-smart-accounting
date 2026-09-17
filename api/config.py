@@ -18,6 +18,19 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
+DATA_DIR = ROOT_DIR / "data"
+
+# کلید پیش‌فرض امضای کوکی نشست. برای اجرای محلی/دموی یک‌نفره کافی است، اما در
+# استقرار واقعی باید ``PSA_SECRET_KEY`` تنظیم شود؛ در غیر این صورت با ری‌استارت
+# سرور همه‌ی نشست‌ها باطل می‌شوند و هر کسی که این مقدار پیش‌فرض را بداند می‌تواند
+# کوکی نشست جعل کند. ``api/main.py`` هنگام بالا آمدن درباره‌ی آن هشدار می‌دهد.
+DEFAULT_SECRET_KEY = "psa-dev-secret-key-change-me"
+
+
+def _sqlite_url(path: Path) -> str:
+    # مسیر مطلق با اسلش رو به جلو؛ SQLAlchemy فرم ``sqlite:///C:/...`` را در ویندوز
+    # به‌درستی باز می‌کند (برخلاف مسیر ویندوزی با بک‌اسلش).
+    return f"sqlite:///{path.as_posix()}"
 
 
 class Settings(BaseSettings):
@@ -47,9 +60,36 @@ class Settings(BaseSettings):
     job_ttl_seconds: int = Field(default=3600, alias="PSA_JOB_TTL_SECONDS")
     log_level: str = Field(default="INFO", alias="PSA_LOG_LEVEL")
 
+    # --- تنظیمات لایه‌ی داشبورد/پروژه‌ها (فاز جدید: ورود، پروژه‌ها، تاریخچه) ---
+    # پایگاه‌داده‌ی خودِ داشبورد (SQLite/SQLAlchemy) -- کاملاً جدا از PostgreSQL
+    # مربوط به db_management/ که دست‌نخورده باقی مانده است.
+    database_url: str = Field(
+        default_factory=lambda: _sqlite_url(DATA_DIR / "psa.db"),
+        alias="PSA_DB_URL",
+    )
+    # فایل‌های نتیجه‌ی هر اجرا (مثلاً گزارش Word) این‌جا نگه داشته می‌شوند؛ هرگز
+    # فایل ورودی کاربر. با حذف پروژه، پوشه‌ی همان پروژه هم پاک می‌شود.
+    results_dir: Path = Field(default=DATA_DIR / "results", alias="PSA_RESULTS_DIR")
+    secret_key: str = Field(default=DEFAULT_SECRET_KEY, alias="PSA_SECRET_KEY")
+    session_max_age_seconds: int = Field(default=14 * 24 * 3600, alias="PSA_SESSION_MAX_AGE")
+
+    # کلید رمزنگاری کلیدهای API ذخیره‌شده‌ی هر پروژه/کارگاه (اختیاری اما توصیه‌شده).
+    # یک کلید معتبر Fernet است؛ ساخت آن:
+    #   python -c "from cryptography.fernet import Fernet;print(Fernet.generate_key().decode())"
+    # اگر تنظیم نشود، یک کلید پایدار از ``PSA_SECRET_KEY`` مشتق می‌شود (هیچ‌وقت
+    # متن خام ذخیره نمی‌شود) -- اما در آن حالت تغییر ``PSA_SECRET_KEY`` کلیدهای
+    # ذخیره‌شده را غیرقابل‌رمزگشایی می‌کند و کاربر باید آن‌ها را دوباره وارد کند.
+    ai_settings_encryption_key: str | None = Field(
+        default=None, alias="PSA_AI_SETTINGS_ENCRYPTION_KEY"
+    )
+
     @property
     def max_upload_bytes(self) -> int:
         return self.max_upload_mb * 1024 * 1024
+
+    @property
+    def using_default_secret_key(self) -> bool:
+        return self.secret_key == DEFAULT_SECRET_KEY
 
 
 @lru_cache

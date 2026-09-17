@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }} — داشبورد هوشمند حسابرسی{% endblock %}
+
+{% block content %}
+{% include "components/toast.html" with context %}
+{# مسیر پروژه برای جاوااسکریپت (پنل کارهای در جریان و تازه‌سازی تاریخچه) و
+   آدرس API کارگاه‌ها از رجیستری خوانده می‌شود -- نه هاردکد. #}
+<div
+  id="psa-project-root"
+  data-project-id="{{ project.id }}"
+  data-jobs-url="/api/projects/{{ project.id }}/jobs"
+  data-history-url="/projects/{{ project.id }}/history"
+></div>
+
+<!-- ===================== سرصفحهٔ پروژه ===================== -->
+<nav class="psa-meta mb-3 flex items-center gap-1.5" aria-label="مسیر صفحه">
+  <a href="/" class="psa-footer-link">پروژه‌ها</a>
+  <span aria-hidden="true">{{ icon('chevron-left', 13) | safe }}</span>
+  <span class="text-slate-700">{{ project.name }}</span>
+</nav>
+
+<header class="mb-6 flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <span class="psa-eyebrow">
+      {{ icon('layers', 14) | safe }}
+      پروژه
+    </span>
+    <h1 class="psa-page-title mt-3">{{ project.name }}</h1>
+    <p class="psa-page-subtitle">
+      کارگاه مورد نظر را انتخاب کنید، یا وضعیت اجراهای در جریان و تاریخچهٔ نتایج را
+      در همین صفحه ببینید.
+    </p>
+  </div>
+  <span class="psa-meta">
+    {{ icon('clock', 13) | safe }}
+    تاریخ ایجاد: {{ project.created_at | fa_date }}
+  </span>
+</header>
+
+<!-- ===================== کارهای در جریان ===================== -->
+{# وضعیت job ها سمت سرور نگه داشته می‌شود؛ این پنل فقط نمایش می‌دهد. بنابراین
+   رفتن به کارگاه دیگر، بارگذاری دوبارهٔ صفحه یا بستن مرورگر، پیشرفت هیچ اجرایی
+   را از بین نمی‌برد. #}
+<section class="psa-card psa-card-elevated psa-card-topline p-5 sm:p-6" aria-labelledby="psa-jobs-title">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <div>
+      <h2 id="psa-jobs-title" class="psa-section-title">
+        {{ icon('cpu', 17) | safe }}
+        کارهای در جریان
+      </h2>
+      <p class="psa-section-hint mt-1">
+        اجراهای همین پروژه در همهٔ کارگاه‌ها؛ وضعیت هرکدام مستقل و زنده به‌روزرسانی می‌شود.
+      </p>
+    </div>
+    <span id="psa-jobs-count" class="psa-badge psa-badge-neutral psa-num">—</span>
+  </div>
+
+  <div id="psa-jobs-panel" class="mt-4 space-y-3" aria-live="polite">
+    <p class="psa-skeleton">در حال دریافت وضعیت اجراها…</p>
+  </div>
+</section>
+
+<!-- ===================== کارگاه‌ها ===================== -->
+{# کارت‌های کارگاه کاملاً از رجیستری ساخته می‌شوند؛ افزودن کارگاه جدید هیچ
+   تغییری در این قالب لازم ندارد. #}
+<section class="mt-6" aria-labelledby="psa-project-workshops-title">
+  <h2 id="psa-project-workshops-title" class="psa-section-title text-base">کارگاه‌های این پروژه</h2>
+  <p class="psa-section-hint mt-1">
+    هر کارگاه مستقل اجرا می‌شود؛ می‌توانید چند کارگاه را هم‌زمان به کار بگیرید.
+  </p>
+
+  <div class="mt-4 grid gap-5 lg:grid-cols-2">
+    {% for workshop_item in workshops %}
+    <a
+      href="{{ workshop_item.page_url(project.id) }}"
+      class="psa-card psa-card-interactive psa-card-topline group flex flex-col p-6"
+      aria-label="ورود به کارگاه {{ workshop_item.display_name_fa }}"
+    >
+      <div class="flex items-start justify-between gap-3">
+        <span class="psa-icon-tile psa-icon-tile-lg is-{{ workshop_item.accent }}">{{ icon(workshop_item.icon, 26) | safe }}</span>
+        {% if workshop_item.badge_fa %}
+        <span class="psa-badge psa-badge-info">{{ workshop_item.badge_fa }}</span>
+        {% endif %}
+      </div>
+
+      <h3 class="mt-4 text-lg font-bold text-slate-900">{{ workshop_item.display_name_fa }}</h3>
+      <p class="mt-2 text-sm leading-8 text-slate-500">{{ workshop_item.description_fa }}</p>
+
+      {% if workshop_item.highlights_fa %}
+      <ul class="mt-4 space-y-2">
+        {% for highlight in workshop_item.highlights_fa %}
+        <li class="psa-feature">
+          <span class="psa-feature-mark">{{ icon('check', 11, 3) | safe }}</span>
+          <span>{{ highlight }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+      <div class="mt-auto flex items-center justify-end pt-6">
+        <span class="psa-btn psa-btn-primary psa-btn-sm">
+          ورود به کارگاه
+          {{ icon('chevron-left', 15, 1.8, 'psa-cta-shift') | safe }}
+        </span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- ===================== تنظیمات هوش مصنوعی ===================== -->
+{# فقط کارگاه‌هایی که تنظیماتشان واقعاً در اجرا اعمال می‌شود (settings_applied) --
+   فهرست از سمت سرور و از رجیستری می‌آید، نه هاردکد در این قالب. #}
+{% include "components/ai_settings.html" with context %}
+
+<!-- ===================== تاریخچه ===================== -->
+<section class="mt-8" aria-labelledby="psa-history-title">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <div>
+      <h2 id="psa-history-title" class="psa-section-title text-base">تاریخچهٔ اجراها</h2>
+      <p class="psa-section-hint mt-1">
+        نتیجهٔ هر اجرا (گزارش Word) در همین پروژه می‌ماند. فایل‌های ورودی پس از پایان
+        پردازش ذخیره نمی‌شوند.
+      </p>
+    </div>
+    <button type="button" id="psa-history-refresh" class="psa-btn psa-btn-secondary psa-btn-sm">
+      {{ icon('refresh-cw', 15) | safe }}
+      تازه‌سازی
+    </button>
+  </div>
+
+  <div id="psa-history-panel" class="mt-4">
+    {% include "components/run_history.html" with context %}
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="/static/js/project.js"></script>
+<script src="/static/js/ai_settings.js"></script>
+{% endblock %}

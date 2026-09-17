@@ -92,7 +92,9 @@ def test_call_llm_non_streaming_parses_response(mock_post):
     assert payload["model"] == config.model
     assert payload["max_tokens"] == config.max_tokens
     assert payload["messages"][0]["role"] == "user"
-    assert kwargs["headers"]["Authorization"] == "test-key"
+    # کلید با طرح احراز هویت استاندارد «Bearer» فرستاده می‌شود (سازگار با
+    # سرویس‌های هم‌ساخت OpenAI) -- نگاه کنید به audit_summarizer/llm_client.py
+    assert kwargs["headers"]["Authorization"] == "Bearer test-key"
 
 
 @patch("llm_client.requests.post")

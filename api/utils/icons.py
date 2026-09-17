@@ -88,6 +88,16 @@ _ICON_PATHS: dict[str, str] = {
     ),
     "chevron-right": '<polyline points="9 18 15 12 9 6"/>',
     "chevron-left": '<polyline points="15 18 9 12 15 6"/>',
+    "chevron-down": '<polyline points="6 9 12 15 18 9"/>',
+    # آیکون‌های پوسته (روشن/تیره) -- در دکمهٔ تغییر پوستهٔ سربرگ استفاده می‌شوند
+    "sun": (
+        '<circle cx="12" cy="12" r="4"/>'
+        '<path d="M12 2v2"/><path d="M12 20v2"/>'
+        '<path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/>'
+        '<path d="M2 12h2"/><path d="M20 12h2"/>'
+        '<path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>'
+    ),
+    "moon": '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
     "info": (
         '<circle cx="12" cy="12" r="10"/>'
         '<line x1="12" y1="16" x2="12" y2="11.5"/>'
@@ -192,6 +202,27 @@ _ICON_PATHS: dict[str, str] = {
         '<polygon points="12 2 21 7.5 3 7.5"/>'
     ),
     "minus": '<line x1="5" y1="12" x2="19" y2="12"/>',
+    # آیکون‌های بخش «تنظیمات هوش مصنوعی» (فاز تنظیمات).
+    "settings": (
+        '<line x1="4" y1="7" x2="20" y2="7"/>'
+        '<line x1="4" y1="12" x2="20" y2="12"/>'
+        '<line x1="4" y1="17" x2="20" y2="17"/>'
+        '<circle cx="9" cy="7" r="2.4"/>'
+        '<circle cx="15" cy="12" r="2.4"/>'
+        '<circle cx="8" cy="17" r="2.4"/>'
+    ),
+    "key": (
+        '<circle cx="8" cy="15" r="4"/>'
+        '<path d="m11 12 8-8"/>'
+        '<path d="m17 6 2 2"/>'
+        '<path d="m19 4 2 2"/>'
+    ),
+    "plug": (
+        '<path d="M9 3v6"/>'
+        '<path d="M15 3v6"/>'
+        '<path d="M6 9h12v3a6 6 0 0 1-12 0V9Z"/>'
+        '<path d="M12 18v3"/>'
+    ),
 }
 
 
