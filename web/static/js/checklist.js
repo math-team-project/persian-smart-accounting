@@ -197,7 +197,7 @@
 
   function renderItemCard(item) {
     const meta = STATUS_META[item.status] || STATUS_META.MANUAL;
-    const isImportant = item.status === "FALSE" || item.status === "ERROR";
+    
 
     let extractedRows = "";
     if (item.extracted_data && item.extracted_data.length > 0) {
@@ -229,7 +229,6 @@
 
     return (
       '<details class="psa-item rounded-xl border p-4 ' + meta.classes + '"' +
-      (isImportant ? " open" : "") +
       '>' +
       '<summary class="flex items-center justify-between gap-3">' +
       '<div class="flex items-center gap-2 min-w-0">' +
