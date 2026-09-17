@@ -10,16 +10,110 @@
 
   const POLL_INTERVAL_MS = 1500;
 
+  /* کلید نگه‌داری شناسه‌ی آخرین job در مرورگر -- با این کار جابه‌جایی بین
+     کارگاه‌ها یا بارگذاری دوبارهٔ صفحه، پردازش در حال اجرا/تمام‌شده را از بین
+     نمی‌برد (job ها در حافظه‌ی سرور باقی می‌مانند؛ نگاه کنید
+     ``api/jobs/job_manager.py``). */
+  const STORAGE_KEY = "psa.summary.jobId";
+
   const state = {
     jobId: null,
     pollTimer: null,
+    step: null,
   };
+
+  /* ------------------------------------------------------------------
+     نگه‌داری/بازیابی شناسه‌ی job (با محافظت در برابر دسترسی مسدود حافظه‌ی محلی)
+     ------------------------------------------------------------------ */
+  function readStoredJobId() {
+    try {
+      return window.localStorage.getItem(STORAGE_KEY);
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function storeJobId(jobId) {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, jobId);
+    } catch (err) {
+      // در حالت ناشناس/مسدود، فقط خاصیت «ماندگاری» از دست می‌رود.
+    }
+  }
+
+  function clearStoredJobId() {
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } catch (err) {
+      // نادیده‌گرفتنی است.
+    }
+  }
 
   function showStep(stepIndex) {
     document.getElementById("psa-step-upload").classList.toggle("hidden", stepIndex !== 0);
     document.getElementById("psa-step-processing").classList.toggle("hidden", stepIndex !== 1);
     document.getElementById("psa-step-results").classList.toggle("hidden", stepIndex !== 2);
     if (typeof window.psaSetStep === "function") window.psaSetStep(stepIndex);
+    if (state.step !== stepIndex) {
+      state.step = stepIndex;
+      // رفتار نرم اسکرول از CSS می‌آید تا تنظیم «کاهش حرکت» کاربر رعایت شود.
+      window.scrollTo({ top: 0 });
+    }
+  }
+
+  /** بازگشت به مرحله‌ی آپلود برای شروع یک خلاصه‌سازی تازه. */
+  function resetWorkspace() {
+    stopPolling();
+    state.jobId = null;
+    state.step = null;
+    clearStoredJobId();
+
+    const preview = document.getElementById("psa-summary-preview");
+    if (preview) preview.innerHTML = "";
+    const source = document.getElementById("psa-result-source");
+    if (source) source.textContent = "";
+    document.getElementById("psa-results-warnings").classList.add("hidden");
+
+    if (typeof window.psaSetProgress === "function") {
+      window.psaSetProgress(0, "در حال آماده‌سازی...", []);
+    }
+    showStep(0);
+    window.psaHideToast();
+  }
+
+  /**
+   * بازیابی پیگیری/نتیجه‌ی پردازشی که قبلاً شروع شده است. اگر job دیگر روی
+   * سرور موجود نباشد (ری‌استارت سرور یا انقضا)، بی‌سروصدا به مرحله‌ی آپلود
+   * برمی‌گردیم.
+   */
+  async function restoreJob() {
+    try {
+      const response = await fetch("/api/summary/jobs/" + encodeURIComponent(state.jobId));
+      if (!response.ok) {
+        throw new Error(await parseErrorDetail(response));
+      }
+      const job = await response.json();
+
+      if (job.status === "done") {
+        await loadResults();
+        return;
+      }
+      if (job.status === "error") {
+        clearStoredJobId();
+        state.jobId = null;
+        showStep(0);
+        window.psaShowToast(job.error || "پردازش قبلی با خطا متوقف شد.", "error");
+        return;
+      }
+
+      showStep(1);
+      window.psaSetProgress(job.progress, job.stage, job.logs);
+      startPolling();
+    } catch (err) {
+      clearStoredJobId();
+      state.jobId = null;
+      showStep(0);
+    }
   }
 
   async function parseErrorDetail(response) {
@@ -49,6 +143,7 @@
       }
       const data = await response.json();
       state.jobId = data.job_id;
+      storeJobId(state.jobId);
       showStep(1);
       startPolling();
     } catch (err) {
@@ -119,15 +214,23 @@
   }
 
   function renderResults(data) {
-    document.getElementById("psa-result-source").textContent = data.source_filename
-      ? "برگرفته از: " + data.source_filename
-      : "";
+    /* متادیتای پردازش: نام فایل مبدأ و زمان صرف‌شده */
+    var metaParts = [];
+    if (data.source_filename) metaParts.push("برگرفته از: " + data.source_filename);
+    if (typeof data.elapsed_seconds === "number" && data.elapsed_seconds > 0) {
+      metaParts.push(
+        "زمان پردازش: " + Math.round(data.elapsed_seconds).toLocaleString("fa-IR") + " ثانیه"
+      );
+    }
+    document.getElementById("psa-result-source").textContent = metaParts.join("  •  ");
 
     const downloadLink = document.getElementById("psa-download-summary");
     downloadLink.href = "/api/summary/jobs/" + encodeURIComponent(state.jobId) + "/download";
 
     const previewBox = document.getElementById("psa-summary-preview");
-    previewBox.innerHTML = data.summary_html || '<p class="text-sm text-slate-400">پیش‌نمایشی در دسترس نیست.</p>';
+    previewBox.innerHTML =
+      data.summary_html ||
+      '<p class="text-sm text-slate-400">پیش‌نمایشی در دسترس نیست.</p>';
 
     const warningsBox = document.getElementById("psa-results-warnings");
     if (data.warnings && data.warnings.length > 0) {
@@ -144,6 +247,20 @@
     const form = document.getElementById("psa-summary-form");
     if (!form) return;
     form.addEventListener("submit", submitForm);
-    showStep(0);
+
+    // «شروع خلاصه‌سازی جدید» -- از مرحله‌ی پردازش یا نتیجه به آپلود برمی‌گردد.
+    var restartBtn = document.getElementById("psa-restart-btn");
+    if (restartBtn) restartBtn.addEventListener("click", resetWorkspace);
+    var restartBtnResults = document.getElementById("psa-restart-btn-results");
+    if (restartBtnResults) restartBtnResults.addEventListener("click", resetWorkspace);
+
+    // بازیابی پردازش قبلی (در حال اجرا یا تمام‌شده) در صورت وجود
+    var storedJobId = readStoredJobId();
+    if (storedJobId) {
+      state.jobId = storedJobId;
+      restoreJob();
+    } else {
+      showStep(0);
+    }
   });
 })();

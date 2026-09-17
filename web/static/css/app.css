@@ -1,11 +1,89 @@
 /*
-  استایل‌های سراسری رابط کاربری جدید (FastAPI + Jinja2 + Tailwind CDN).
+  ============================================================================
+  سامانهٔ طراحی (Design System) رابط کاربری «داشبورد هوشمند حسابرسی»
+  ============================================================================
 
-  Tailwind از طریق CDN بارگذاری می‌شود (بدون مرحله‌ی build/Node)، این فایل
-  فقط شامل چیزهایی است که با کلاس‌های یوتیلیتی Tailwind به‌تنهایی ساده نیستند:
-  فونت فارسی self-hosted، چند انیمیشن ساده و ظرافت‌های بصری کارت‌ها.
+  Tailwind از طریق CDN بارگذاری می‌شود (بدون مرحلهٔ build/Node)، بنابراین این
+  فایل «توکن‌های طراحی» و «کامپوننت‌های مشترک» را تعریف می‌کند؛ چیدمان و
+  فاصله‌گذاری همچنان با کلاس‌های یوتیلیتی Tailwind انجام می‌شود.
+
+  قاعدهٔ طلایی این فایل:
+    - کلاس‌های ``psa-*`` ظاهر (رنگ، سایه، رادیوس، تایپوگرافی، انیمیشن) را
+      تعیین می‌کنند و هرگز با یوتیلیتی‌های Tailwind رقابت نمی‌کنند، چون در
+      قالب‌ها برای یک المان یا کامپوننت ``psa-*`` استفاده می‌شود یا یوتیلیتی
+      چیدمان -- نه هر دو برای یک ویژگی یکسان. این کار مستقل از ترتیب تزریق
+      استایل Tailwind CDN، ظاهر را پایدار نگه می‌دارد.
+    - وضعیت‌های تعاملی همیشه با کلاس‌های معنایی ``is-*`` نشان داده می‌شوند
+      (مثلاً ``is-active``، ``is-done``، ``is-filled``) تا کدهای جاوااسکریپت
+      صفحات به کلاس‌های ظاهری Tailwind وابسته نباشند.
+
+  فهرست بخش‌ها:
+    ۱) توکن‌های طراحی           ۶) کارت و آمار           ۱۱) جدول داده
+    ۲) پایه و تایپوگرافی        ۷) نشان/برچسب           ۱۲) حالت‌های بارگذاری
+    ۳) پس‌زمینهٔ صفحه           ۸) فرم و ورودی‌ها        ۱۳) نتیجهٔ چک‌لیست
+    ۴) سربرگ و ناوبری          ۹) منطقهٔ آپلود           ۱۴) متن خلاصهٔ AI
+    ۵) دکمه‌ها                 ۱۰) نشان‌دهندهٔ مراحل      ۱۵) پابرگ و دسترس‌پذیری
+  ============================================================================
 */
 
+/* ---------------------------------------------------------------------------
+   ۱) توکن‌های طراحی
+   --------------------------------------------------------------------------- */
+:root {
+  /* برند و سطوح تیره (Navy) */
+  --color-primary: #0f172a;
+  --color-primary-dark: #0b1120;
+  --color-surface: #ffffff;
+  --color-surface-dark: #111827;
+  --color-surface-muted: #f8fafc;
+
+  /* رنگ‌های فناوری (Teal / Emerald) */
+  --color-teal: #0f766e;
+  --color-teal-deep: #0d5f59;
+  --color-teal-accent: #14b8a6;
+  --color-teal-soft: #ccfbf1;
+  --color-emerald: #10b981;
+
+  /* لهجهٔ مالی (طلایی) */
+  --color-gold: #f59e0b;
+  --color-gold-deep: #b45309;
+
+  /* رابط روشن */
+  --color-background: #f8fafc;
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+  --color-muted: #64748b;
+  --color-text: #0f172a;
+  --color-error: #ef4444;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-info: #0ea5e9;
+
+  /* شعاع گوشه‌ها */
+  --radius-xs: 8px;
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  /* سایه‌های ملایم و لایه‌ای */
+  --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-2: 0 4px 14px -4px rgba(15, 23, 42, 0.1), 0 2px 6px -2px rgba(15, 23, 42, 0.05);
+  --shadow-3: 0 22px 44px -18px rgba(15, 23, 42, 0.24), 0 8px 20px -12px rgba(15, 23, 42, 0.12);
+  --shadow-teal: 0 10px 24px -12px rgba(15, 118, 110, 0.55);
+  --shadow-gold: 0 10px 24px -12px rgba(180, 83, 9, 0.45);
+  --shadow-glow: 0 0 0 1px rgba(20, 184, 166, 0.28), 0 14px 30px -18px rgba(15, 118, 110, 0.6);
+  --ring: 0 0 0 3px rgba(20, 184, 166, 0.24);
+  --ring-error: 0 0 0 3px rgba(239, 68, 68, 0.2);
+
+  /* حرکت */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration: 0.2s;
+}
+
+/* ---------------------------------------------------------------------------
+   ۲) پایه و تایپوگرافی
+   --------------------------------------------------------------------------- */
 @font-face {
   font-family: "Vazirmatn";
   src: url("/static/fonts/Vazirmatn-Regular.woff2") format("woff2");
@@ -31,64 +109,1792 @@
   font-display: swap;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 html,
 body {
   font-family: "Vazirmatn", "Tahoma", sans-serif;
 }
 
-/* اسکرول‌بار ملایم‌تر برای جدول نتایج چک‌لیست */
+body {
+  color: var(--color-text);
+  background-color: var(--color-background);
+  font-size: 15px;
+  line-height: 1.9; /* ارتفاع خط مناسب متن فارسی */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* سلسله‌مراتب تایپوگرافی مشترک ------------------------------------------------ */
+
+/* برچسب کوچک بالای عنوان صفحه (Eyebrow) */
+.psa-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.28rem 0.7rem;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(20, 184, 166, 0.1), rgba(20, 184, 166, 0.04));
+  color: var(--color-teal-deep);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.psa-page-title {
+  font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.15rem);
+  font-weight: 800;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  color: var(--color-primary);
+}
+
+.psa-page-subtitle {
+  margin-top: 0.6rem;
+  max-width: 46rem;
+  color: var(--color-muted);
+  font-size: 0.94rem;
+  line-height: 2;
+}
+
+.psa-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.psa-section-hint {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
+
+/* جداکنندهٔ مؤی با گرادیان */
+.psa-divider {
+  height: 1px;
+  border: 0;
+  background: linear-gradient(90deg, transparent, var(--color-border), transparent);
+}
+
+/* اعداد و مقادیر داده‌ای: هم‌عرض و خوانا */
+.psa-num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: 0;
+}
+
+.psa-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
 .psa-scroll::-webkit-scrollbar {
   height: 8px;
   width: 8px;
 }
+.psa-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
 .psa-scroll::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1;
+  background-color: var(--color-border-strong);
   border-radius: 999px;
+}
+.psa-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
 }
 
 .psa-icon {
   display: inline-block;
 }
 
-/* انیمیشن نوار پیشرفت نامعین (وقتی درصد دقیق مشخص نیست) */
-@keyframes psa-progress-stripe {
+/* ---------------------------------------------------------------------------
+   ۳) پس‌زمینهٔ صفحه
+   پس‌زمینهٔ اصلی #F8FAFC است، به‌همراه گرادیان‌های شعاعی بسیار ملایم تیل/نیوی
+   و یک شبکهٔ هندسی کم‌کنتراست که در بالای صفحه محو می‌شود.
+   --------------------------------------------------------------------------- */
+.psa-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--color-background);
+}
+
+.psa-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(820px 420px at 86% -12%, rgba(20, 184, 166, 0.12), transparent 62%),
+    radial-gradient(680px 360px at 6% 2%, rgba(15, 23, 42, 0.07), transparent 60%),
+    radial-gradient(560px 320px at 50% 112%, rgba(245, 158, 11, 0.06), transparent 66%);
+}
+
+.psa-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  background-image:
+    linear-gradient(to right, rgba(15, 23, 42, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 23, 42, 0.045) 1px, transparent 1px);
+  background-size: 64px 64px;
+  -webkit-mask-image: radial-gradient(ellipse 92% 58% at 50% 0%, #000 26%, transparent 76%);
+  mask-image: radial-gradient(ellipse 92% 58% at 50% 0%, #000 26%, transparent 76%);
+}
+
+/* دانهٔ بسیار ملایم برای شکستن یکنواختی رنگ */
+.psa-grain {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.028;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* هالهٔ نرم پشت بخش قهرمان (hero) صفحهٔ اصلی */
+.psa-hero-glow {
+  position: absolute;
+  inset-inline: 0;
+  top: -6rem;
+  height: 22rem;
+  pointer-events: none;
+  background: radial-gradient(
+    52% 100% at 50% 0%,
+    rgba(20, 184, 166, 0.16),
+    rgba(15, 23, 42, 0.05) 58%,
+    transparent 78%
+  );
+  filter: blur(6px);
+}
+
+/* ---------------------------------------------------------------------------
+   ۴) سربرگ و ناوبری
+   --------------------------------------------------------------------------- */
+.psa-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(255, 255, 255, 0.82);
+  -webkit-backdrop-filter: blur(14px) saturate(170%);
+  backdrop-filter: blur(14px) saturate(170%);
+}
+
+/* خط مؤی گرادیانی زیر سربرگ */
+.psa-header::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.35), transparent);
+}
+
+.psa-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-decoration: none;
+  color: var(--color-primary);
+}
+
+.psa-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  color: #fff;
+  background: linear-gradient(145deg, var(--color-primary) 0%, #14304a 55%, var(--color-teal) 100%);
+  box-shadow: var(--shadow-teal), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.psa-brand-name {
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.psa-brand-tagline {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--color-muted);
+  line-height: 1.4;
+}
+
+.psa-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.psa-nav-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--radius-sm);
+  color: #475569;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color var(--duration) var(--ease), color var(--duration) var(--ease);
+}
+
+.psa-nav-link:hover {
+  background-color: rgba(15, 23, 42, 0.045);
+  color: var(--color-primary);
+}
+
+.psa-nav-link.is-active {
+  color: var(--color-teal-deep);
+  background-color: rgba(20, 184, 166, 0.12);
+}
+
+/* نشانگر کوچک وضعیت فعال */
+.psa-nav-link.is-active::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0.85rem;
+  bottom: 0.18rem;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-teal), var(--color-teal-accent));
+}
+
+/* تراشهٔ «کارگاه جاری» در سربرگ */
+.psa-workspace-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: rgba(248, 250, 252, 0.9);
+  color: #334155;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.psa-workspace-chip .psa-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--color-emerald);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
+}
+
+.psa-menu-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: background-color var(--duration) var(--ease), border-color var(--duration) var(--ease);
+}
+.psa-menu-btn:hover {
+  background: #f1f5f9;
+  border-color: var(--color-border-strong);
+}
+
+/* ناوبری موبایل (باز/بسته با data-open) */
+.psa-mobile-nav {
+  display: none;
+  border-top: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.96);
+}
+.psa-mobile-nav[data-open="true"] {
+  display: block;
+  animation: psa-slide-down 0.22s var(--ease);
+}
+.psa-mobile-link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-sm);
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.psa-mobile-link:hover {
+  background: rgba(15, 23, 42, 0.04);
+}
+.psa-mobile-link.is-active {
+  color: var(--color-teal-deep);
+  background: rgba(20, 184, 166, 0.12);
+}
+
+/* ---------------------------------------------------------------------------
+   ۵) دکمه‌ها
+   --------------------------------------------------------------------------- */
+.psa-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.15rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.5;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--duration) var(--ease), border-color var(--duration) var(--ease),
+    color var(--duration) var(--ease), box-shadow var(--duration) var(--ease), transform var(--duration) var(--ease);
+}
+
+.psa-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+
+.psa-btn:disabled,
+.psa-btn[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* اصلی: تیل عمیق */
+.psa-btn-primary {
+  background: linear-gradient(180deg, #0d7f76 0%, var(--color-teal) 100%);
+  color: #fff;
+  box-shadow: var(--shadow-teal), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+.psa-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, var(--color-teal) 0%, var(--color-teal-deep) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px -14px rgba(15, 118, 110, 0.7);
+}
+.psa-btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* ثانویه: سطح روشن با حاشیه */
+.psa-btn-secondary {
+  background: #fff;
+  border-color: var(--color-border-strong);
+  color: #334155;
+  box-shadow: var(--shadow-1);
+}
+.psa-btn-secondary:hover:not(:disabled) {
+  border-color: rgba(20, 184, 166, 0.55);
+  color: var(--color-teal-deep);
+  background: #f8fafc;
+  transform: translateY(-1px);
+}
+
+/* لهجهٔ ممتاز: طلایی (کم و هدفمند) */
+.psa-btn-gold {
+  background: linear-gradient(180deg, #fbbf24 0%, var(--color-gold) 100%);
+  color: #412402;
+  box-shadow: var(--shadow-gold), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.psa-btn-gold:hover:not(:disabled) {
+  background: linear-gradient(180deg, var(--color-gold) 0%, #d97706 100%);
+  transform: translateY(-1px);
+}
+
+/* شبح: شفاف با پس‌زمینهٔ ملایم در هاور */
+.psa-btn-ghost {
+  background: transparent;
+  color: #475569;
+}
+.psa-btn-ghost:hover:not(:disabled) {
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--color-primary);
+}
+
+/* خطر */
+.psa-btn-danger {
+  background: var(--color-error);
+  color: #fff;
+}
+.psa-btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+.psa-btn-sm {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.78rem;
+  border-radius: var(--radius-sm);
+}
+
+.psa-btn-lg {
+  padding: 0.85rem 1.6rem;
+  font-size: 0.95rem;
+  border-radius: var(--radius-lg);
+}
+
+.psa-btn-block {
+  width: 100%;
+}
+
+/* ---------------------------------------------------------------------------
+   ۶) کارت‌ها و کارت‌های آماری
+   --------------------------------------------------------------------------- */
+.psa-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-1);
+}
+
+/* کارت‌های اصلی (لایهٔ بالاتر با نمایش سایهٔ نرم) */
+.psa-card-elevated {
+  box-shadow: var(--shadow-2);
+}
+
+/* نوار رنگی مؤی در بالای کارت (مطلق تا چیدمان فلکس/گرید کارت را جابه‌جا نکند) */
+.psa-card-topline {
+  position: relative;
+  overflow: hidden;
+}
+.psa-card-topline::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-teal), var(--color-teal-accent) 45%, rgba(20, 184, 166, 0));
+}
+
+/* کارت تعاملی (کارت‌های کارگاه در صفحهٔ اصلی و کارت‌های نتیجه) */
+.psa-card-interactive {
+  transition: transform 0.24s var(--ease), box-shadow 0.24s var(--ease), border-color 0.24s var(--ease);
+}
+.psa-card-interactive:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-3);
+  border-color: rgba(20, 184, 166, 0.45);
+}
+.psa-card-interactive:focus-visible {
+  outline: none;
+  box-shadow: var(--ring), var(--shadow-3);
+}
+
+.psa-card-hover-soft {
+  transition: transform var(--duration) var(--ease), box-shadow var(--duration) var(--ease),
+    border-color var(--duration) var(--ease);
+}
+.psa-card-hover-soft:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+  border-color: var(--color-border-strong);
+}
+
+/* کاشی آیکون (کارت کارگاه، سرصفحهٔ بخش) */
+.psa-icon-tile {
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-lg);
+  transition: transform 0.24s var(--ease), background-color 0.24s var(--ease), color 0.24s var(--ease);
+}
+.psa-icon-tile-lg {
+  width: 56px;
+  height: 56px;
+}
+.psa-icon-tile-md {
+  width: 44px;
+  height: 44px;
+}
+.psa-icon-tile-sm {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+}
+
+.psa-icon-tile.is-teal {
+  color: var(--color-teal-deep);
+  background: linear-gradient(160deg, rgba(20, 184, 166, 0.18), rgba(20, 184, 166, 0.06));
+  border: 1px solid rgba(20, 184, 166, 0.22);
+}
+.psa-icon-tile.is-navy {
+  color: #e2e8f0;
+  background: linear-gradient(160deg, var(--color-primary) 0%, #16324c 60%, var(--color-teal) 140%);
+  border: 1px solid rgba(15, 23, 42, 0.35);
+  box-shadow: var(--shadow-teal);
+}
+.psa-icon-tile.is-gold {
+  color: var(--color-gold-deep);
+  background: linear-gradient(160deg, rgba(245, 158, 11, 0.22), rgba(245, 158, 11, 0.07));
+  border: 1px solid rgba(245, 158, 11, 0.26);
+}
+.psa-icon-tile.is-emerald {
+  color: #047857;
+  background: linear-gradient(160deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.06));
+  border: 1px solid rgba(16, 185, 129, 0.24);
+}
+.psa-icon-tile.is-red {
+  color: #b91c1c;
+  background: linear-gradient(160deg, rgba(239, 68, 68, 0.18), rgba(239, 68, 68, 0.05));
+  border: 1px solid rgba(239, 68, 68, 0.22);
+}
+.psa-icon-tile.is-slate {
+  color: #475569;
+  background: linear-gradient(160deg, rgba(100, 116, 139, 0.16), rgba(100, 116, 139, 0.05));
+  border: 1px solid rgba(100, 116, 139, 0.2);
+}
+
+/* در کارت تعاملی، کاشی آیکون در هاور کمی بزرگ‌تر و پررنگ‌تر می‌شود */
+.psa-card-interactive:hover .psa-icon-tile {
+  transform: scale(1.06) rotate(-2deg);
+}
+
+/* فلش فراخوان (CTA) در هاور کارت، در جهت خوانش راست‌به‌چپ کمی جلو می‌رود */
+.psa-cta-shift {
+  transition: transform 0.24s var(--ease);
+}
+.psa-card-interactive:hover .psa-cta-shift {
+  transform: translateX(-3px);
+}
+
+/* کارت آماری */
+.psa-stat {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  padding: 1.1rem 1.15rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+  transition: transform var(--duration) var(--ease), box-shadow var(--duration) var(--ease);
+}
+.psa-stat:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+}
+
+.psa-stat-label {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.psa-stat-value {
+  margin-top: 0.2rem;
+  font-size: 1.28rem;
+  font-weight: 800;
+  line-height: 1.5;
+  color: var(--color-primary);
+}
+
+.psa-stat-caption {
+  margin-top: 0.15rem;
+  font-size: 0.72rem;
+  color: var(--color-muted);
+}
+
+/* کارت‌های آماری رنگی */
+.psa-stat.is-emerald {
+  border-color: rgba(16, 185, 129, 0.28);
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.07), rgba(255, 255, 255, 1) 62%);
+}
+.psa-stat.is-emerald .psa-stat-value {
+  color: #047857;
+}
+.psa-stat.is-red {
+  border-color: rgba(239, 68, 68, 0.26);
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.06), rgba(255, 255, 255, 1) 62%);
+}
+.psa-stat.is-red .psa-stat-value {
+  color: #b91c1c;
+}
+.psa-stat.is-gold {
+  border-color: rgba(245, 158, 11, 0.3);
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.08), rgba(255, 255, 255, 1) 62%);
+}
+.psa-stat.is-gold .psa-stat-value {
+  color: var(--color-gold-deep);
+}
+
+/* نوار درصد تطابق */
+.psa-meter {
+  height: 6px;
+  border-radius: 999px;
+  background: #eef2f6;
+  overflow: hidden;
+}
+.psa-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-teal), var(--color-emerald));
+}
+
+/* ---------------------------------------------------------------------------
+   ۷) نشان‌ها و برچسب‌ها
+   وضعیت هرگز تنها با رنگ منتقل نمی‌شود؛ متن/آیکون هم همراه آن است.
+   --------------------------------------------------------------------------- */
+.psa-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.62rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.7;
+  white-space: nowrap;
+}
+
+.psa-badge-success {
+  color: #047857;
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.24);
+}
+.psa-badge-danger {
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.11);
+  border-color: rgba(239, 68, 68, 0.24);
+}
+.psa-badge-warning {
+  color: var(--color-gold-deep);
+  background: rgba(245, 158, 11, 0.13);
+  border-color: rgba(245, 158, 11, 0.28);
+}
+.psa-badge-neutral {
+  color: #475569;
+  background: rgba(100, 116, 139, 0.11);
+  border-color: rgba(100, 116, 139, 0.2);
+}
+.psa-badge-info {
+  color: #0369a1;
+  background: rgba(14, 165, 233, 0.12);
+  border-color: rgba(14, 165, 233, 0.24);
+}
+.psa-badge-gold {
+  color: var(--color-gold-deep);
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.18), rgba(245, 158, 11, 0.08));
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+/* نشان شماره‌ی پرسش در فهرست نتایج چک‌لیست.
+   عمداً با ارقام لاتین و ``direction: ltr`` نمایش داده می‌شود، چون عیناً همان
+   شناسه‌ی چک‌لیست منبع (و گزارش Word) است و کاربر باید بتواند پرسش را با همین
+   شماره در سند اصلی پیدا کند. */
+.psa-qid {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 2.5rem;
+  padding: 0.12rem 0.4rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.9;
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* در کارت‌های نامنطبق/خطا، نشان شماره هم‌رنگ وضعیت همان کارت می‌شود */
+.psa-result-item.is-false .psa-qid {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.08);
+  color: #b91c1c;
+}
+.psa-result-item.is-error .psa-qid {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--color-gold-deep);
+}
+
+/* ---------------------------------------------------------------------------
+   ۸) فرم‌ها و ورودی‌ها
+   --------------------------------------------------------------------------- */
+.psa-label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.psa-required {
+  color: var(--color-error);
+  margin-inline-start: 0.15rem;
+}
+
+.psa-input {
+  width: 100%;
+  padding: 0.62rem 0.85rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: #fff;
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 0.88rem;
+  line-height: 1.9;
+  transition: border-color var(--duration) var(--ease), box-shadow var(--duration) var(--ease),
+    background-color var(--duration) var(--ease);
+}
+
+.psa-input::placeholder {
+  color: #94a3b8;
+}
+
+.psa-input:hover {
+  border-color: #94a3b8;
+}
+
+.psa-input:focus {
+  outline: none;
+  border-color: var(--color-teal-accent);
+  box-shadow: var(--ring);
+}
+
+.psa-input.is-invalid {
+  border-color: var(--color-error);
+}
+.psa-input.is-invalid:focus {
+  box-shadow: var(--ring-error);
+}
+
+.psa-help {
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.psa-field-error {
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #b91c1c;
+}
+
+/* جعبهٔ اطلاعات/راهنما
+   نکته: ``:not(.hidden)`` عمدی است تا کلاس ``hidden`` که جاوااسکریپت برای
+   پنهان/نمایان کردن این جعبه‌ها به‌کار می‌برد، مستقل از ترتیب بارگذاری
+   استایل‌ها همیشه برنده باشد. */
+.psa-note:not(.hidden) {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(14, 165, 233, 0.22);
+  background: rgba(14, 165, 233, 0.06);
+  color: #0c4a6e;
+  font-size: 0.8rem;
+  line-height: 1.9;
+}
+.psa-note.is-warning {
+  border-color: rgba(245, 158, 11, 0.28);
+  background: rgba(245, 158, 11, 0.08);
+  color: #78350f;
+}
+.psa-note.is-error {
+  border-color: rgba(239, 68, 68, 0.28);
+  background: rgba(239, 68, 68, 0.07);
+  color: #7f1d1d;
+}
+.psa-note.is-success {
+  border-color: rgba(16, 185, 129, 0.28);
+  background: rgba(16, 185, 129, 0.07);
+  color: #065f46;
+}
+
+/* ---------------------------------------------------------------------------
+   ۹) منطقهٔ آپلود (Dropzone)
+   --------------------------------------------------------------------------- */
+.psa-dropzone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1rem 1.05rem 1.05rem;
+  border: 1.5px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, #ffffff 0%, #fcfdfe 100%);
+  transition: border-color var(--duration) var(--ease), background-color var(--duration) var(--ease),
+    box-shadow var(--duration) var(--ease), transform var(--duration) var(--ease);
+}
+
+.psa-dropzone:hover {
+  border-color: rgba(20, 184, 166, 0.6);
+  background: rgba(20, 184, 166, 0.035);
+}
+
+/* درگ‌اور فعال */
+.psa-dropzone.is-dragover {
+  border-color: var(--color-teal-accent);
+  border-style: solid;
+  background: rgba(20, 184, 166, 0.07);
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-2px);
+}
+
+/* فایل انتخاب‌شده */
+.psa-dropzone.is-filled {
+  border-style: solid;
+  border-color: rgba(16, 185, 129, 0.5);
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.055), #ffffff 70%);
+}
+
+.psa-dropzone-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.psa-dropzone-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.87rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.psa-dropzone-desc {
+  margin-top: 0.35rem;
+  font-size: 0.76rem;
+  line-height: 1.85;
+  color: var(--color-muted);
+}
+
+.psa-dropzone-types {
+  margin-top: 0.3rem;
+  font-size: 0.7rem;
+  color: var(--color-muted);
+}
+
+/* فاصله‌گذار انعطاف‌پذیر تا دکمهٔ انتخاب فایل در پایین کارت‌های هم‌ردیف تراز شود */
+.psa-dropzone-spacer {
+  flex: 1 1 auto;
+  min-height: 0.5rem;
+}
+
+/* دکمه/برچسب انتخاب فایل */
+.psa-dropzone-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: 0.85rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: #f8fafc;
+  cursor: pointer;
+  transition: background-color var(--duration) var(--ease), border-color var(--duration) var(--ease);
+}
+
+.psa-dropzone-label:hover {
+  background: #f1f5f9;
+  border-color: var(--color-border-strong);
+}
+
+/* کادر فوکوس روی برچسب، وقتی ورودی فایل (که sr-only است) فوکوس بگیرد */
+.psa-dropzone-label:has(.psa-dropzone-input:focus-visible) {
+  border-color: var(--color-teal-accent);
+  box-shadow: var(--ring);
+}
+
+.psa-dropzone-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--color-teal-deep);
+}
+
+.psa-dropzone-filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+.psa-dropzone.is-filled .psa-dropzone-filename {
+  color: #065f46;
+  font-weight: 600;
+}
+
+/* ردیف وضعیت «بارگذاری شد» */
+.psa-dropzone-status {
+  display: none;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.6rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #047857;
+}
+.psa-dropzone.is-filled .psa-dropzone-status {
+  display: flex;
+}
+
+/* کاشی آیکون اسلات در حالت پرشده سبز می‌شود (علاوه بر نوار وضعیت متنی) */
+.psa-dropzone.is-filled .psa-dropzone-tile {
+  color: #047857;
+  background: rgba(16, 185, 129, 0.14);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+/* ---------------------------------------------------------------------------
+   ۱۰) نشان‌دهندهٔ مراحل (Stepper)
+   --------------------------------------------------------------------------- */
+.psa-step-circle {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 2px solid var(--color-border-strong);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+  transition: background-color 0.25s var(--ease), color 0.25s var(--ease), border-color 0.25s var(--ease),
+    box-shadow 0.25s var(--ease), transform 0.25s var(--ease);
+}
+
+.psa-step-circle.is-active {
+  border-color: var(--color-teal);
+  background: linear-gradient(180deg, #0d7f76, var(--color-teal));
+  color: #fff;
+  box-shadow: 0 0 0 5px rgba(15, 118, 110, 0.12);
+  transform: scale(1.04);
+}
+
+.psa-step-circle.is-done {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.13);
+  color: #047857;
+}
+
+.psa-step-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-muted);
+  transition: color var(--duration) var(--ease), font-weight var(--duration) var(--ease);
+}
+
+.psa-step-label.is-active {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.psa-step-label.is-done {
+  color: #047857;
+}
+
+.psa-step-connector {
+  height: 2px;
+  margin-inline: 0.65rem;
+  border-radius: 999px;
+  background: var(--color-border);
+  transition: background-color 0.3s var(--ease);
+}
+
+.psa-step-connector.is-done {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.5), var(--color-emerald));
+}
+
+/* ---------------------------------------------------------------------------
+   ۱۱) جدول داده
+   ناحیهٔ اسکرول افقی روی موبایل عمدی و قابل‌قبول است (فقط برای جدول داده).
+   --------------------------------------------------------------------------- */
+.psa-table-wrap {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.psa-table-scroll {
+  overflow-x: auto;
+}
+
+.psa-table {
+  width: 100%;
+  min-width: 32rem;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.psa-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid var(--color-border);
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-align: start;
+  white-space: nowrap;
+}
+
+.psa-table tbody td {
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.75);
+  color: #334155;
+  vertical-align: top;
+}
+
+.psa-table tbody tr:nth-child(even) {
+  background: rgba(248, 250, 252, 0.7);
+}
+
+.psa-table tbody tr:hover {
+  background: rgba(20, 184, 166, 0.06);
+}
+
+.psa-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.psa-table .psa-table-num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.psa-table td.is-strong {
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+/* جدول سبک (داخل جزئیات هر مورد چک‌لیست: متغیر / مقدار) */
+.psa-table-inline {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.76rem;
+}
+.psa-table-inline td {
+  padding: 0.3rem 0.15rem;
+  border-bottom: 1px dashed rgba(226, 232, 240, 0.9);
+}
+.psa-table-inline tr:last-child td {
+  border-bottom: 0;
+}
+.psa-table-inline td:first-child {
+  color: var(--color-muted);
+  padding-inline-end: 0.85rem;
+}
+.psa-table-inline td:last-child {
+  font-weight: 600;
+  color: #334155;
+}
+
+/* ---------------------------------------------------------------------------
+   ۱۲) حالت‌های بارگذاری/پردازش
+   --------------------------------------------------------------------------- */
+.psa-progress-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.psa-progress-track {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: #eef2f6;
+  overflow: hidden;
+}
+
+.psa-progress-fill {
+  position: relative;
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-teal) 0%, var(--color-teal-accent) 100%);
+  transition: width 0.45s var(--ease);
+}
+
+/* راه‌راه متحرک ملایم روی نوار پیشرفت */
+.psa-progress-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+  background-image: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.55) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0.55) 75%,
+    transparent 75%
+  );
+  background-size: 26px 26px;
+  animation: psa-stripe 1.1s linear infinite;
+}
+
+.psa-progress-percent {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--color-teal-deep);
+}
+
+.psa-progress-log {
+  font-size: 0.74rem;
+  line-height: 2;
+  color: var(--color-muted);
+}
+.psa-progress-log li {
+  display: flex;
+  gap: 0.4rem;
+  align-items: baseline;
+  animation: psa-fade-in 0.25s var(--ease);
+}
+.psa-progress-log li::before {
+  content: "";
+  flex-shrink: 0;
+  width: 5px;
+  height: 5px;
+  margin-top: 0.6em;
+  border-radius: 999px;
+  background: var(--color-teal-accent);
+  opacity: 0.7;
+}
+
+/* اسپینر */
+.psa-spinner {
+  display: inline-block;
+  width: 1.05rem;
+  height: 1.05rem;
+  border: 2px solid rgba(15, 118, 110, 0.22);
+  border-top-color: var(--color-teal);
+  border-radius: 999px;
+  animation: psa-spin 0.75s linear infinite;
+}
+.psa-spinner.is-on-dark {
+  border-color: rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+}
+
+/* نبض ملایم برای نشانگرهای «در حال اجرا» */
+.psa-pulse {
+  animation: psa-pulse 1.8s var(--ease) infinite;
+}
+
+/* اسکلتون */
+.psa-skeleton {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, #eef2f6 25%, #e2e8f0 37%, #eef2f6 63%);
+  background-size: 400% 100%;
+  animation: psa-shimmer 1.5s ease-in-out infinite;
+}
+
+/* حالت خالی (همان قرارداد ``:not(.hidden)`` برای سازگاری با نمایش/پنهان‌سازی JS) */
+.psa-empty:not(.hidden) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2.5rem 1rem;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: rgba(248, 250, 252, 0.7);
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+}
+
+/* ردیف وضعیت dropzone نیز ممکن است با کلاس hidden پنهان شود */
+.psa-dropzone-status.hidden {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------
+   ۱۳) نتیجهٔ چک‌لیست (فهرست موارد)
+   برای جداسازی بصری موارد نامنطبق، از نوار کناری + برچسب متنی استفاده می‌شود
+   (نه فقط رنگ) تا برای کاربران کم‌بینا هم قابل تشخیص باشد.
+   --------------------------------------------------------------------------- */
+.psa-result-item {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  box-shadow: var(--shadow-1);
+  transition: box-shadow var(--duration) var(--ease), border-color var(--duration) var(--ease);
+}
+
+.psa-result-item::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 3px;
+  background: var(--color-border-strong);
+  transition: background-color var(--duration) var(--ease);
+}
+
+.psa-result-item > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 0.85rem 1rem;
+}
+
+.psa-result-item > summary::-webkit-details-marker {
+  display: none;
+}
+
+.psa-result-item:hover {
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-2);
+}
+
+.psa-result-item[open] {
+  border-color: rgba(20, 184, 166, 0.4);
+  box-shadow: var(--shadow-2);
+}
+
+.psa-result-item .psa-result-body {
+  padding: 0 1rem 1rem;
+  border-top: 1px dashed var(--color-border);
+  margin-top: 0.15rem;
+  padding-top: 0.85rem;
+}
+
+.psa-result-item .psa-chevron {
+  transition: transform 0.18s var(--ease);
+}
+
+/* وضعیت نامنطبق */
+.psa-result-item.is-false {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.045), #fff 55%);
+}
+.psa-result-item.is-false::before {
+  background: var(--color-error);
+}
+
+/* خطای پردازش */
+.psa-result-item.is-error {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.06), #fff 55%);
+}
+.psa-result-item.is-error::before {
+  background: var(--color-warning);
+}
+
+/* تطابق دارد */
+.psa-result-item.is-true::before {
+  background: var(--color-emerald);
+}
+
+/* بررسی دستی */
+.psa-result-item.is-manual::before {
+  background: #94a3b8;
+}
+
+details.psa-result-item[open] .psa-chevron {
+  transform: rotate(90deg);
+}
+
+/* شرط‌های ارزیابی */
+.psa-condition {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  line-height: 1.95;
+  color: #475569;
+}
+.psa-condition .psa-condition-mark {
+  flex-shrink: 0;
+  font-weight: 700;
+}
+.psa-condition.is-passed .psa-condition-mark {
+  color: #047857;
+}
+.psa-condition.is-failed .psa-condition-mark {
+  color: #dc2626;
+}
+
+/* ---------------------------------------------------------------------------
+   ۱۴) پیش‌نمایش خلاصهٔ هوش مصنوعی
+   HTML این بخش توسط سرویس بک‌اند (markdown_to_preview_html) تولید می‌شود؛
+   این‌جا فقط ظاهر آن با سلکتورهای فرزند بهبود داده می‌شود (بدون تغییر بک‌اند).
+   --------------------------------------------------------------------------- */
+.psa-prose {
+  font-size: 0.92rem;
+  line-height: 2.15;
+  color: #334155;
+}
+
+.psa-prose h1,
+.psa-prose h2,
+.psa-prose h3,
+.psa-prose h4 {
+  margin: 1.5rem 0 0.6rem;
+  color: var(--color-primary);
+  font-weight: 700;
+  line-height: 1.7;
+}
+
+.psa-prose h1 {
+  font-size: 1.2rem;
+  padding-inline-start: 0.7rem;
+  border-inline-start: 3px solid var(--color-teal-accent);
+}
+
+.psa-prose h2 {
+  font-size: 1.06rem;
+  padding-inline-start: 0.7rem;
+  border-inline-start: 3px solid rgba(20, 184, 166, 0.55);
+}
+
+.psa-prose h3 {
+  font-size: 0.96rem;
+  color: var(--color-teal-deep);
+}
+
+.psa-prose h4 {
+  font-size: 0.88rem;
+}
+
+.psa-prose h1:first-child,
+.psa-prose h2:first-child,
+.psa-prose h3:first-child {
+  margin-top: 0;
+}
+
+.psa-prose p {
+  margin: 0 0 0.7rem;
+  font-size: 0.92rem;
+  line-height: 2.15;
+  color: #334155;
+}
+
+.psa-prose ul,
+.psa-prose ol {
+  margin: 0 0 0.9rem;
+  padding-inline-start: 1.35rem;
+  list-style: disc;
+}
+
+.psa-prose li {
+  margin-bottom: 0.35rem;
+  line-height: 2.05;
+}
+
+.psa-prose li::marker {
+  color: var(--color-teal-accent);
+}
+
+.psa-prose strong,
+.psa-prose b {
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.psa-prose a {
+  color: var(--color-teal-deep);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.psa-prose hr {
+  margin: 1.25rem 0;
+  border: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-border), transparent);
+}
+
+.psa-prose blockquote {
+  margin: 0.9rem 0;
+  padding: 0.7rem 0.9rem;
+  border-inline-start: 3px solid var(--color-gold);
+  border-radius: var(--radius-sm);
+  background: rgba(245, 158, 11, 0.07);
+  color: #78350f;
+}
+
+/* ---------------------------------------------------------------------------
+   ۱۵) toast، پابرگ و دسترس‌پذیری
+   --------------------------------------------------------------------------- */
+.psa-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  box-shadow: var(--shadow-3);
+  font-size: 0.85rem;
+  line-height: 1.9;
+  animation: psa-toast-in 0.24s var(--ease);
+}
+
+.psa-toast.is-error {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: linear-gradient(180deg, #fef2f2, #fff);
+  color: #7f1d1d;
+}
+.psa-toast.is-warning {
+  border-color: rgba(245, 158, 11, 0.32);
+  background: linear-gradient(180deg, #fffbeb, #fff);
+  color: #78350f;
+}
+.psa-toast.is-info {
+  border-color: rgba(14, 165, 233, 0.3);
+  background: linear-gradient(180deg, #f0f9ff, #fff);
+  color: #0c4a6e;
+}
+.psa-toast.is-success {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: linear-gradient(180deg, #ecfdf5, #fff);
+  color: #065f46;
+}
+
+.psa-toast-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.psa-toast-close {
+  flex-shrink: 0;
+  border: 0;
+  background: transparent;
+  color: currentColor;
+  opacity: 0.55;
+  cursor: pointer;
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 0.15rem;
+  border-radius: var(--radius-xs);
+}
+.psa-toast-close:hover {
+  opacity: 1;
+}
+
+/* پابرگ */
+.psa-footer {
+  position: relative;
+  margin-top: 4rem;
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.75), rgba(248, 250, 252, 0.9));
+}
+
+.psa-footer-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.psa-footer-text {
+  font-size: 0.78rem;
+  line-height: 2;
+  color: var(--color-muted);
+}
+
+.psa-footer-link {
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color var(--duration) var(--ease);
+}
+.psa-footer-link:hover {
+  color: var(--color-teal-deep);
+}
+
+/* نشان فناوری/هوش مصنوعی در پابرگ */
+.psa-tech-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.6rem;
+  border: 1px solid rgba(20, 184, 166, 0.22);
+  border-radius: 999px;
+  background: rgba(20, 184, 166, 0.07);
+  color: var(--color-teal-deep);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+/* پرش به محتوا (دسترس‌پذیری) */
+.psa-skip-link {
+  position: absolute;
+  inset-inline-start: -9999px;
+  top: 0.5rem;
+  z-index: 60;
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.psa-skip-link:focus {
+  inset-inline-start: 0.5rem;
+}
+
+/* کادر فوکوس یکنواخت برای عناصر تعاملی */
+:where(a, button, summary, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid rgba(15, 118, 110, 0.6);
+  outline-offset: 2px;
+}
+
+.psa-btn:focus-visible,
+.psa-card-interactive:focus-visible {
+  outline: none;
+}
+
+/* نوار ابزار نتایج (جست‌وجو + فیلترها) */
+.psa-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: var(--shadow-1);
+}
+
+.psa-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.34rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: #fff;
+  color: #475569;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--duration) var(--ease), color var(--duration) var(--ease),
+    border-color var(--duration) var(--ease);
+}
+
+.psa-chip:hover {
+  border-color: var(--color-border-strong);
+  background: #f8fafc;
+}
+
+.psa-chip.is-active {
+  border-color: var(--color-teal);
+  background: linear-gradient(180deg, #0d7f76, var(--color-teal));
+  color: #fff;
+  box-shadow: var(--shadow-teal);
+}
+
+/* جعبهٔ جست‌وجو با آیکون */
+.psa-search {
+  position: relative;
+  width: 100%;
+}
+
+.psa-search .psa-search-icon {
+  position: absolute;
+  inset-inline-start: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.psa-search .psa-input {
+  padding-inline-start: 2.25rem;
+}
+
+/* آمار کوچک درون‌خطی (متادیتا) */
+.psa-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--color-muted);
+  font-size: 0.74rem;
+}
+
+/* فهرست ویژگی‌های کارت (با آیکون تأیید) */
+.psa-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  line-height: 1.95;
+  color: #475569;
+}
+
+.psa-feature .psa-feature-mark {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 0.42rem;
+  border-radius: 999px;
+  background: rgba(20, 184, 166, 0.14);
+  color: var(--color-teal-deep);
+}
+
+/* ---------------------------------------------------------------------------
+   انیمیشن‌ها
+   --------------------------------------------------------------------------- */
+@keyframes psa-stripe {
   from {
     background-position: 0 0;
   }
   to {
-    background-position: 40px 0;
+    background-position: 26px 0;
   }
 }
-.psa-progress-fill {
-  transition: width 0.4s ease;
+
+@keyframes psa-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-/* انیمیشن ورود toast خطا/هشدار */
+@keyframes psa-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+
 @keyframes psa-toast-in {
   from {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: translateY(-10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes psa-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
-.psa-toast {
-  animation: psa-toast-in 0.2s ease-out;
+
+@keyframes psa-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* جزئیات باز/بسته‌ی هر سطر جدول نتایج */
-details.psa-item > summary {
-  cursor: pointer;
-  list-style: none;
+@keyframes psa-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
 }
-details.psa-item > summary::-webkit-details-marker {
-  display: none;
+
+/* ورود نرم بخش‌های صفحه */
+.psa-reveal {
+  animation: psa-fade-in 0.32s var(--ease) both;
 }
-details.psa-item[open] .psa-chevron {
-  transform: rotate(90deg);
+
+/* احترام به تنظیم کاهش حرکت کاربر */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
-.psa-chevron {
-  transition: transform 0.15s ease;
+
+/* ---------------------------------------------------------------------------
+   واکنش‌گرایی
+   --------------------------------------------------------------------------- */
+@media (min-width: 640px) {
+  .psa-toolbar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    font-size: 14px;
+  }
+  .psa-brand-tagline {
+    display: none;
+  }
+  .psa-btn {
+    width: 100%;
+  }
+  .psa-btn-sm,
+  .psa-chip {
+    width: auto;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   چاپ (گزارش‌های مالی گاهی چاپ می‌شوند)
+   --------------------------------------------------------------------------- */
+@media print {
+  .psa-bg,
+  .psa-grain,
+  .psa-header,
+  .psa-footer,
+  .psa-toolbar,
+  .psa-toast {
+    display: none !important;
+  }
+  .psa-card,
+  .psa-result-item {
+    box-shadow: none;
+    border-color: #cbd5e1;
+  }
 }

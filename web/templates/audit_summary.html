@@ -4,93 +4,195 @@
 {% block content %}
 {% include "components/toast.html" with context %}
 
-<div class="mb-6">
-  <h1 class="text-xl font-bold text-slate-900 sm:text-2xl">خلاصه‌سازی گزارش حسابرسی</h1>
-  <p class="mt-1 text-sm text-slate-500">
-    یک گزارش حسابرسی موجود (PDF/DOC/DOCX) را بارگذاری کنید تا با کمک هوش
-    مصنوعی به خلاصه‌ای روان و آماده‌ی جلسه تبدیل شود.
+<!-- ===================== سرصفحهٔ کارگاه ===================== -->
+<header class="mb-6">
+  <span class="psa-eyebrow">
+    {{ icon('sparkles', 14) | safe }}
+    کارگاه خلاصه‌سازی با هوش مصنوعی
+  </span>
+  <h1 class="psa-page-title mt-3">خلاصه‌سازی گزارش حسابرسی</h1>
+  <p class="psa-page-subtitle">
+    یک گزارش حسابرسی موجود (PDF/DOC/DOCX) را بارگذاری کنید تا متن آن استخراج شده و
+    با کمک هوش مصنوعی به خلاصه‌ای روان، ساختارمند و آمادهٔ جلسه تبدیل شود.
   </p>
-</div>
+</header>
 
 {% with steps = ["آپلود", "پردازش", "نتیجه"] %}
 {% include "components/stepper.html" with context %}
 {% endwith %}
 
-<form id="psa-summary-form">
+<form id="psa-summary-form" novalidate>
   <!-- ================= مرحله ۱: آپلود ================= -->
   <section id="psa-step-upload" class="psa-step">
-    <div class="max-w-xl">
-      {% include "components/dropzone.html" with context %}
-    </div>
+    <div class="grid gap-5 lg:grid-cols-[1fr_20rem]">
+      <div class="space-y-5">
+        <div class="psa-card psa-card-elevated p-5 sm:p-6">
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 class="psa-section-title">
+                {{ icon('file-text', 17) | safe }}
+                فایل گزارش حسابرسی
+              </h2>
+              <p class="psa-section-hint mt-1">
+                فایل را انتخاب کنید یا آن را با ماوس روی کادر زیر بکشید و رها کنید.
+              </p>
+            </div>
+            <span class="psa-badge psa-badge-gold">{{ icon('cpu', 13) | safe }} پردازش با AI</span>
+          </div>
 
-    <div class="mt-6 grid gap-4 sm:grid-cols-2">
-      <div>
-        <label for="organization" class="mb-1.5 block text-sm font-medium text-slate-700">
-          نام سازمان/شرکت (اختیاری &mdash; برای سربرگ سند خلاصه)
-        </label>
-        <input
-          type="text"
-          id="organization"
-          name="organization"
-          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          placeholder="مثلاً پارک علم و فناوری خراسان"
-        />
-      </div>
-      <div>
-        <label for="meeting_context" class="mb-1.5 block text-sm font-medium text-slate-700">
-          توضیح جلسه (اختیاری)
-        </label>
-        <input
-          type="text"
-          id="meeting_context"
-          name="meeting_context"
-          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          placeholder="مثلاً جلسه هیئت‌مدیره - شهریور ۱۴۰۴"
-        />
-      </div>
-    </div>
+          {% include "components/dropzone.html" with context %}
+        </div>
 
-    <button
-      type="submit"
-      id="psa-submit-btn"
-      class="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
-    >
-      {{ icon('sparkles', 16) | safe }}
-      خلاصه‌سازی با هوش مصنوعی
-    </button>
+        <div class="psa-card p-5 sm:p-6">
+          <h2 class="psa-section-title">
+            {{ icon('landmark', 17) | safe }}
+            مشخصات سند خلاصه
+          </h2>
+          <p class="psa-section-hint mt-1">
+            این اطلاعات اختیاری‌اند و در سربرگ سند Word استفاده می‌شوند.
+          </p>
+
+          <div class="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <label for="organization" class="psa-label">نام سازمان/شرکت</label>
+              <input
+                type="text"
+                id="organization"
+                name="organization"
+                class="psa-input"
+                placeholder="مثلاً پارک علم و فناوری خراسان"
+                autocomplete="organization"
+              />
+            </div>
+            <div>
+              <label for="meeting_context" class="psa-label">توضیح جلسه</label>
+              <input
+                type="text"
+                id="meeting_context"
+                name="meeting_context"
+                class="psa-input"
+                placeholder="مثلاً جلسه هیئت‌مدیره — شهریور ۱۴۰۴"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ستون راهنما و اقدام -->
+      <aside class="space-y-5">
+        <div class="psa-card p-5">
+          <h2 class="psa-section-title">
+            {{ icon('workflow', 17) | safe }}
+            مسیر پردازش
+          </h2>
+          <ol class="mt-4 space-y-3">
+            {% set flow_steps = [
+              ('بارگذاری گزارش', 'انتخاب فایل گزارش حسابرسی در یکی از سه فرمت پشتیبانی‌شده.'),
+              ('استخراج متن', 'خواندن و پاک‌سازی متن گزارش برای پردازش زبانی.'),
+              ('پردازش هوشمند', 'خلاصه‌سازی محتوا با مدل زبانی و ساختاردهی بخش‌ها.'),
+              ('تولید سند', 'ساخت فایل Word با سربرگ سازمانی و قابلیت ویرایش.'),
+              ('دانلود نتیجه', 'مشاهدهٔ پیش‌نمایش خلاصه و دریافت فایل نهایی.')
+            ] %}
+            {% set flow_digits = ['۱', '۲', '۳', '۴', '۵'] %}
+            {% for step_title, step_desc in flow_steps %}
+            <li class="flex gap-3">
+              <span class="psa-badge psa-badge-neutral psa-num shrink-0">{{ flow_digits[loop.index0] }}</span>
+              <span>
+                <span class="block text-xs font-bold text-slate-800">{{ step_title }}</span>
+                <span class="block text-xs leading-6 text-slate-500">{{ step_desc }}</span>
+              </span>
+            </li>
+            {% endfor %}
+          </ol>
+        </div>
+
+        <div class="psa-card p-5">
+          <div class="psa-note">
+            {{ icon('lock', 16) | safe }}
+            <span>
+              متن گزارش تنها برای تولید خلاصه استفاده می‌شود و نتیجهٔ پردازش صرفاً در
+              همین جلسه در دسترس است.
+            </span>
+          </div>
+
+          <button
+            type="submit"
+            id="psa-submit-btn"
+            class="psa-btn psa-btn-primary psa-btn-lg psa-btn-block mt-4"
+          >
+            {{ icon('sparkles', 17) | safe }}
+            خلاصه‌سازی با هوش مصنوعی
+          </button>
+          <p class="psa-help text-center">
+            بسته به حجم گزارش، پردازش ممکن است چند دقیقه زمان ببرد.
+          </p>
+        </div>
+      </aside>
+    </div>
   </section>
 
   <!-- ================= مرحله ۲: پردازش ================= -->
   <section id="psa-step-processing" class="psa-step hidden">
-    {% include "components/progress_bar.html" with context %}
+    <div class="mx-auto max-w-3xl">
+      {% include "components/progress_bar.html" with context %}
+
+      <div class="mt-4 flex flex-col items-center gap-2">
+        <p class="psa-help text-center">
+          می‌توانید این صفحه را ببندید یا به کارگاه دیگری بروید؛ پردازش در سرور ادامه
+          می‌یابد و با بازگشت به این کارگاه، وضعیت به‌صورت خودکار بازیابی می‌شود.
+        </p>
+        <button type="button" id="psa-restart-btn" class="psa-btn psa-btn-secondary psa-btn-sm">
+          {{ icon('refresh-cw', 15) | safe }}
+          شروع خلاصه‌سازی جدید
+        </button>
+      </div>
+    </div>
   </section>
 </form>
 
 <!-- ================= مرحله ۳: نتیجه ================= -->
 <section id="psa-step-results" class="psa-step hidden">
-  <div class="mb-4 flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-    <div class="flex items-center gap-2 text-emerald-700">
-      {{ icon('check-circle', 20) | safe }}
-      <div>
-        <p class="text-sm font-semibold">خلاصه گزارش با موفقیت آماده شد</p>
-        <p id="psa-result-source" class="text-xs text-emerald-600"></p>
+  <div class="psa-card psa-card-elevated psa-card-topline p-5 sm:p-6">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex items-start gap-3">
+        <span class="psa-icon-tile psa-icon-tile-md is-emerald">{{ icon('check-circle', 20) | safe }}</span>
+        <div>
+          <h2 class="text-sm font-bold text-slate-900">خلاصهٔ گزارش با موفقیت آماده شد</h2>
+          <p id="psa-result-source" class="psa-section-hint mt-1"></p>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <button type="button" id="psa-restart-btn-results" class="psa-btn psa-btn-ghost psa-btn-sm">
+          {{ icon('refresh-cw', 15) | safe }}
+          خلاصه‌سازی گزارش دیگر
+        </button>
+        <a id="psa-download-summary" href="#" class="psa-btn psa-btn-gold shrink-0">
+          {{ icon('download', 16) | safe }}
+          دانلود خلاصه (Word)
+        </a>
       </div>
     </div>
-    <a
-      id="psa-download-summary"
-      href="#"
-      class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
-    >
-      {{ icon('download', 16) | safe }}
-      دانلود خلاصه (Word)
-    </a>
   </div>
 
-  <div id="psa-results-warnings" class="mb-4 hidden space-y-1 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700"></div>
+  <div
+    id="psa-results-warnings"
+    class="psa-note is-warning mt-4 hidden flex-col gap-1"
+    role="status"
+  ></div>
 
-  <div class="rounded-xl border border-slate-200 bg-white p-6">
-    <h2 class="mb-4 text-sm font-semibold text-slate-600">پیش‌نمایش خلاصه</h2>
-    <div id="psa-summary-preview" class="psa-scroll max-h-[32rem] overflow-y-auto"></div>
+  <div class="psa-card mt-4 p-5 sm:p-6">
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+      <h2 class="psa-section-title">
+        {{ icon('scan-text', 17) | safe }}
+        پیش‌نمایش خلاصه
+      </h2>
+      <span class="psa-meta">{{ icon('info', 13) | safe }} متن نهایی در فایل Word قابل ویرایش است</span>
+    </div>
+    <div
+      id="psa-summary-preview"
+      class="psa-prose psa-scroll max-h-[32rem] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/50 p-4 sm:p-5"
+    ></div>
   </div>
 </section>
 {% endblock %}

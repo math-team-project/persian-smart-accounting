@@ -4,112 +4,296 @@
 {% block content %}
 {% include "components/toast.html" with context %}
 
-<div class="mb-6">
-  <h1 class="text-xl font-bold text-slate-900 sm:text-2xl">بررسی چک‌لیست حسابرسی مالی</h1>
-  <p class="mt-1 text-sm text-slate-500">
-    فایل‌های بودجه، صورت‌های مالی و ترازنامه را بارگذاری کنید تا چک‌لیست حسابرسی
-    به‌صورت خودکار اجرا شود.
+<!-- ===================== سرصفحهٔ کارگاه ===================== -->
+<header class="mb-6">
+  <span class="psa-eyebrow">
+    {{ icon('clipboard-check', 14) | safe }}
+    کارگاه حسابرسی مالی
+  </span>
+  <h1 class="psa-page-title mt-3">بررسی چک‌لیست حسابرسی مالی</h1>
+  <p class="psa-page-subtitle">
+    فایل‌های بودجه، صورت‌های مالی و ترازنامه را بارگذاری کنید تا پرسش‌های چک‌لیست
+    به‌صورت خودکار ارزیابی شوند، موارد عدم تطابق مشخص گردند و گزارش کمیسیون (Word) تولید شود.
   </p>
-</div>
+</header>
 
 {% with steps = ["آپلود", "پردازش", "نتایج"] %}
 {% include "components/stepper.html" with context %}
 {% endwith %}
 
-<form id="psa-checklist-form">
+<form id="psa-checklist-form" novalidate>
   <!-- ================= مرحله ۱: آپلود ================= -->
   <section id="psa-step-upload" class="psa-step">
-    <h2 class="mb-3 text-sm font-semibold text-slate-600">فایل‌های الزامی</h2>
-    <div class="grid gap-4 sm:grid-cols-2">
-      {% for slot_key, slot in required_slots.items() %}
-        {% include "components/dropzone.html" with context %}
-      {% endfor %}
-    </div>
+    <div class="grid gap-5 lg:grid-cols-[1fr_20rem]">
+      <!-- ستون فایل‌ها -->
+      <div class="space-y-5">
+        <div class="psa-card p-5 sm:p-6">
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 class="psa-section-title">
+                {{ icon('file-check', 17) | safe }}
+                فایل‌های الزامی
+              </h2>
+              <p class="psa-section-hint mt-1">
+                هر سه فایل زیر برای اجرای چک‌لیست حسابرسی لازم است.
+              </p>
+            </div>
+            <span class="psa-badge psa-badge-danger">۳ فایل الزامی</span>
+          </div>
+          <div class="grid gap-4 sm:grid-cols-2">
+            {% for slot_key, slot in required_slots.items() %}
+              {% include "components/dropzone.html" with context %}
+            {% endfor %}
+          </div>
+        </div>
 
-    <h2 class="mb-3 mt-6 text-sm font-semibold text-slate-600">فایل‌های اختیاری</h2>
-    <div class="grid gap-4 sm:grid-cols-2">
-      {% for slot_key, slot in optional_slots.items() %}
-        {% include "components/dropzone.html" with context %}
-      {% endfor %}
-    </div>
+        <div class="psa-card p-5 sm:p-6">
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 class="psa-section-title">
+                {{ icon('layers', 17) | safe }}
+                فایل‌های اختیاری
+              </h2>
+              <p class="psa-section-hint mt-1">
+                این اسناد اختیاری‌اند، اما بارگذاری آن‌ها دقت ارزیابی و کیفیت گزارش کمیسیون را بالا می‌برد.
+              </p>
+            </div>
+            <span class="psa-badge psa-badge-neutral">تکمیل‌کننده</span>
+          </div>
+          <div class="grid gap-4 sm:grid-cols-2">
+            {% for slot_key, slot in optional_slots.items() %}
+              {% include "components/dropzone.html" with context %}
+            {% endfor %}
+          </div>
+        </div>
 
-    <div class="mt-6">
-      <label for="entity_name" class="mb-1.5 block text-sm font-medium text-slate-700">
-        نام سازمان/شرکت (اختیاری &mdash; برای سربرگ گزارش کمیسیون)
-      </label>
-      <input
-        type="text"
-        id="entity_name"
-        name="entity_name"
-        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-        placeholder="مثلاً پارک علم و فناوری خراسان"
-      />
-    </div>
+        <div class="psa-card p-5 sm:p-6">
+          <h2 class="psa-section-title">
+            {{ icon('landmark', 17) | safe }}
+            مشخصات سازمان
+          </h2>
+          <p class="psa-section-hint mt-1">
+            این نام در سربرگ گزارش کمیسیون درج می‌شود. وارد کردن آن اختیاری است.
+          </p>
+          <div class="mt-4">
+            <label for="entity_name" class="psa-label">نام سازمان/شرکت</label>
+            <input
+              type="text"
+              id="entity_name"
+              name="entity_name"
+              class="psa-input"
+              placeholder="مثلاً پارک علم و فناوری خراسان"
+              autocomplete="organization"
+            />
+            <p class="psa-help">در صورت خالی بودن، سربرگ گزارش بدون نام سازمان تولید می‌شود.</p>
+          </div>
+        </div>
+      </div>
 
-    <button
-      type="submit"
-      id="psa-submit-btn"
-      class="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
-    >
-      {{ icon('bolt', 16) | safe }}
-      پردازش و تحلیل داده‌ها
-    </button>
+      <!-- ستون راهنما و اقدام -->
+      <aside class="space-y-5">
+        <div class="psa-card p-5">
+          <h2 class="psa-section-title">
+            {{ icon('workflow', 17) | safe }}
+            پس از ارسال چه رخ می‌دهد؟
+          </h2>
+          <ol class="mt-4 space-y-3">
+            {% set pipeline_steps = [
+              ('اعتبارسنجی فایل‌ها', 'بررسی فرمت و سلامت فایل‌های بارگذاری‌شده.'),
+              ('استخراج داده‌ها', 'خواندن مقادیر مالی از فایل‌های بودجه، صورت‌های مالی و ترازنامه.'),
+              ('اجرای چک‌لیست', 'ارزیابی خودکار پرسش‌های حسابرسی بر پایهٔ داده‌های استخراج‌شده.'),
+              ('تحلیل یافته‌ها', 'تفکیک موارد منطبق، نامنطبق و نیازمند بررسی دستی.'),
+              ('تولید گزارش', 'ساخت گزارش کمیسیون در قالب Word به‌همراه فهرست مغایرت‌ها.')
+            ] %}
+            {% set pipeline_digits = ['۱', '۲', '۳', '۴', '۵'] %}
+            {% for step_title, step_desc in pipeline_steps %}
+            <li class="flex gap-3">
+              <span class="psa-badge psa-badge-neutral psa-num shrink-0">{{ pipeline_digits[loop.index0] }}</span>
+              <span>
+                <span class="block text-xs font-bold text-slate-800">{{ step_title }}</span>
+                <span class="block text-xs leading-6 text-slate-500">{{ step_desc }}</span>
+              </span>
+            </li>
+            {% endfor %}
+          </ol>
+        </div>
+
+        <div class="psa-card p-5">
+          <div class="psa-note">
+            {{ icon('info', 16) | safe }}
+            <span>
+              فایل‌های Excel و PDF پشتیبانی می‌شوند. هر اسلات فقط یک فایل می‌پذیرد و
+              نتیجهٔ پردازش تنها برای همین جلسه نگهداری می‌شود.
+            </span>
+          </div>
+
+          <button
+            type="submit"
+            id="psa-submit-btn"
+            class="psa-btn psa-btn-primary psa-btn-lg psa-btn-block mt-4"
+          >
+            {{ icon('bolt', 17) | safe }}
+            پردازش و تحلیل داده‌ها
+          </button>
+          <p class="psa-help text-center">
+            پردازش ممکن است چند دقیقه به‌طول بیانجامد؛ در این مدت وضعیت به‌صورت زنده نمایش داده می‌شود.
+          </p>
+        </div>
+      </aside>
+    </div>
   </section>
 
   <!-- ================= مرحله ۲: پردازش ================= -->
   <section id="psa-step-processing" class="psa-step hidden">
-    {% include "components/progress_bar.html" with context %}
+    <div class="mx-auto max-w-3xl">
+      {% include "components/progress_bar.html" with context %}
+
+      <div class="mt-4 flex flex-col items-center gap-2">
+        <p class="psa-help text-center">
+          می‌توانید این صفحه را ببندید یا به کارگاه دیگری بروید؛ پردازش در سرور ادامه
+          می‌یابد و با بازگشت به این کارگاه، وضعیت به‌صورت خودکار بازیابی می‌شود.
+        </p>
+        <button type="button" id="psa-restart-btn" class="psa-btn psa-btn-secondary psa-btn-sm">
+          {{ icon('refresh-cw', 15) | safe }}
+          شروع پردازش جدید
+        </button>
+      </div>
+    </div>
   </section>
 </form>
 
 <!-- ================= مرحله ۳: نتایج ================= -->
 <section id="psa-step-results" class="psa-step hidden">
-  <div class="mb-4 grid gap-4 sm:grid-cols-3">
-    <div class="rounded-xl border border-slate-200 bg-white p-4">
-      <p class="text-xs text-slate-400">نتیجه کلی</p>
-      <p id="psa-summary-headline" class="mt-1 text-lg font-bold text-slate-900">&mdash;</p>
-    </div>
-    <div class="rounded-xl border border-slate-200 bg-white p-4">
-      <p class="text-xs text-slate-400">درصد تطابق</p>
-      <p id="psa-summary-compliance" class="mt-1 text-lg font-bold text-emerald-600">&mdash;</p>
-    </div>
-    <div class="rounded-xl border border-slate-200 bg-white p-4">
-      <p class="text-xs text-slate-400">گزارش کمیسیون</p>
-      <a
-        id="psa-download-report"
-        href="#"
-        class="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:text-brand-700"
-      >
-        {{ icon('download', 16) | safe }}
-        دانلود گزارش کمیسیون (Word)
-      </a>
-      <p id="psa-report-unavailable" class="mt-1 text-sm text-slate-400 hidden">در دسترس نیست</p>
+  <!-- کارت خلاصهٔ نتیجه + اقدام دانلود -->
+  <div class="psa-card psa-card-elevated psa-card-topline p-5 sm:p-6">
+    <div class="grid gap-5 lg:grid-cols-[1fr_18rem]">
+      <div>
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="psa-badge psa-badge-info">{{ icon('gauge', 13) | safe }} نتیجهٔ ارزیابی</span>
+          <span class="psa-meta">{{ icon('clock', 13) | safe }} پردازش کامل شد</span>
+        </div>
+        <p id="psa-summary-headline" class="mt-3 text-xl font-extrabold text-slate-900">&mdash;</p>
+        <p class="psa-section-hint mt-1">
+          نتیجهٔ کلی بر پایهٔ تعداد موارد نامنطبق در برابر کل پرسش‌های ارزیابی‌شده محاسبه می‌شود.
+        </p>
+
+        <div class="mt-5">
+          <div class="flex items-center justify-between">
+            <span class="psa-stat-label">درصد تطابق</span>
+            <span id="psa-summary-compliance" class="psa-stat-value psa-num text-base">&mdash;</span>
+          </div>
+          <div class="psa-meter mt-2" role="img" aria-label="نمودار درصد تطابق با چک‌لیست">
+            <span id="psa-compliance-meter" style="width: 0%"></span>
+          </div>
+        </div>
+
+        <button type="button" id="psa-restart-btn-results" class="psa-btn psa-btn-ghost psa-btn-sm mt-4">
+          {{ icon('refresh-cw', 15) | safe }}
+          شروع پردازش جدید با فایل‌های دیگر
+        </button>
+      </div>
+
+      <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-4">
+        <span class="psa-icon-tile psa-icon-tile-md is-gold">{{ icon('file-check', 20) | safe }}</span>
+        <h2 class="mt-3 text-sm font-bold text-slate-900">گزارش کمیسیون</h2>
+        <p class="mt-1 text-xs leading-7 text-slate-500">
+          گزارش رسمی Word شامل خلاصهٔ وضعیت، فهرست موارد نامنطبق و مستندات استخراج‌شده.
+        </p>
+        <a
+          id="psa-download-report"
+          href="#"
+          class="psa-btn psa-btn-gold psa-btn-block mt-3"
+        >
+          {{ icon('download', 16) | safe }}
+          دانلود گزارش (Word)
+        </a>
+        <p id="psa-report-unavailable" class="psa-help hidden text-center">گزارش در دسترس نیست.</p>
+      </div>
     </div>
   </div>
 
-  <div id="psa-results-warnings" class="mb-4 hidden space-y-1 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700"></div>
+  <!-- کارت‌های شمارش وضعیت‌ها -->
+  <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+    <div class="psa-stat">
+      <span class="psa-icon-tile psa-icon-tile-md is-navy">{{ icon('list-checks', 19) | safe }}</span>
+      <span>
+        <span class="psa-stat-label">کل پرسش‌ها</span>
+        <span id="psa-stat-total" class="psa-stat-value psa-num block">&mdash;</span>
+      </span>
+    </div>
+    <div class="psa-stat is-emerald">
+      <span class="psa-icon-tile psa-icon-tile-md is-emerald">{{ icon('check-circle', 19) | safe }}</span>
+      <span>
+        <span class="psa-stat-label">تطابق دارد</span>
+        <span id="psa-stat-true" class="psa-stat-value psa-num block">&mdash;</span>
+      </span>
+    </div>
+    <div class="psa-stat is-red">
+      <span class="psa-icon-tile psa-icon-tile-md is-red">{{ icon('x-circle', 19) | safe }}</span>
+      <span>
+        <span class="psa-stat-label">عدم تطابق</span>
+        <span id="psa-stat-false" class="psa-stat-value psa-num block">&mdash;</span>
+      </span>
+    </div>
+    <div class="psa-stat is-gold">
+      <span class="psa-icon-tile psa-icon-tile-md is-gold">{{ icon('alert-triangle', 19) | safe }}</span>
+      <span>
+        <span class="psa-stat-label">خطای پردازش</span>
+        <span id="psa-stat-error" class="psa-stat-value psa-num block">&mdash;</span>
+      </span>
+    </div>
+    <div class="psa-stat">
+      <span class="psa-icon-tile psa-icon-tile-md is-slate">{{ icon('eye', 19) | safe }}</span>
+      <span>
+        <span class="psa-stat-label">بررسی دستی</span>
+        <span id="psa-stat-manual" class="psa-stat-value psa-num block">&mdash;</span>
+      </span>
+    </div>
+  </div>
 
-  <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-    <div class="relative w-full sm:max-w-xs">
-      <span class="absolute inset-y-0 right-3 flex items-center text-slate-400">{{ icon('search', 15) | safe }}</span>
+  <!-- هشدارهای پردازش -->
+  <div
+    id="psa-results-warnings"
+    class="psa-note is-warning mt-4 hidden flex-col gap-1"
+    role="status"
+  ></div>
+
+  <!-- نوار ابزار جست‌وجو و فیلتر -->
+  <div class="psa-toolbar mt-4">
+    <div class="psa-search sm:max-w-xs">
+      <span class="psa-search-icon">{{ icon('search', 16) | safe }}</span>
       <input
         type="text"
         id="psa-search-input"
-        placeholder="جست‌وجو در سوالات چک‌لیست..."
-        class="w-full rounded-lg border border-slate-300 py-2 pe-3 ps-9 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+        class="psa-input"
+        placeholder="جست‌وجو در پرسش‌های چک‌لیست…"
+        aria-label="جست‌وجو در پرسش‌های چک‌لیست"
       />
     </div>
-    <div class="flex gap-1.5 text-xs" id="psa-status-filters">
-      <button type="button" data-filter="ALL" class="psa-filter-btn rounded-full bg-brand-600 px-3 py-1 font-medium text-white">همه</button>
-      <button type="button" data-filter="FALSE" class="psa-filter-btn rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">عدم تطابق</button>
-      <button type="button" data-filter="TRUE" class="psa-filter-btn rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">تطابق دارد</button>
-      <button type="button" data-filter="MANUAL" class="psa-filter-btn rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">بررسی دستی</button>
-      <button type="button" data-filter="ERROR" class="psa-filter-btn rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">خطا</button>
+
+    <div class="psa-scroll flex items-center gap-1.5 overflow-x-auto pb-1 -mb-1" id="psa-status-filters" role="group" aria-label="فیلتر وضعیت موارد">
+      <button type="button" data-filter="ALL" class="psa-filter-btn psa-chip is-active" aria-pressed="true">همه</button>
+      <button type="button" data-filter="FALSE" class="psa-filter-btn psa-chip" aria-pressed="false">عدم تطابق</button>
+      <button type="button" data-filter="TRUE" class="psa-filter-btn psa-chip" aria-pressed="false">تطابق دارد</button>
+      <button type="button" data-filter="MANUAL" class="psa-filter-btn psa-chip" aria-pressed="false">بررسی دستی</button>
+      <button type="button" data-filter="ERROR" class="psa-filter-btn psa-chip" aria-pressed="false">خطا</button>
     </div>
   </div>
 
-  <div id="psa-results-list" class="space-y-2"></div>
-  <p id="psa-results-empty" class="hidden py-8 text-center text-sm text-slate-400">موردی یافت نشد.</p>
+  <!-- فهرست موارد -->
+  <div class="mt-5 flex flex-wrap items-center justify-between gap-2">
+    <h2 class="psa-section-title text-sm">
+      {{ icon('list-checks', 16) | safe }}
+      فهرست پرسش‌های چک‌لیست
+    </h2>
+    <span id="psa-results-count" class="psa-meta psa-num"></span>
+  </div>
+
+  <div id="psa-results-list" class="mt-3 space-y-2.5"></div>
+  <p id="psa-results-empty" class="psa-empty mt-3 hidden">
+    {{ icon('file-search', 22) | safe }}
+    <span>موردی با جست‌وجو یا فیلتر فعلی یافت نشد.</span>
+  </p>
 </section>
 {% endblock %}
 

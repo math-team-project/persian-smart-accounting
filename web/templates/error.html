@@ -2,27 +2,31 @@
 {% block title %}خطای غیرمنتظره{% endblock %}
 
 {% block content %}
-<div class="mx-auto flex max-w-lg flex-col items-center rounded-2xl border border-red-200 bg-white p-8 text-center shadow-sm">
-  <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-500">
-    {{ icon('alert-triangle', 30) | safe }}
-  </div>
-  <h1 class="mb-2 text-lg font-bold text-slate-900">خطای غیرمنتظره‌ای رخ داد</h1>
-  <p class="mb-6 text-sm leading-7 text-slate-500">
+<div class="mx-auto flex max-w-xl flex-col items-center psa-card psa-card-elevated p-8 text-center sm:p-10">
+  <span class="psa-icon-tile psa-icon-tile-lg is-red">{{ icon('alert-triangle', 28) | safe }}</span>
+
+  <h1 class="mt-4 text-lg font-bold text-slate-900">خطای غیرمنتظره‌ای رخ داد</h1>
+  <p class="mt-2 text-sm leading-8 text-slate-500">
     متأسفانه در پردازش این درخواست مشکلی پیش آمد. این مشکل ثبت شده است؛ لطفاً
-    دوباره تلاش کنید یا به صفحه‌ی اصلی بازگردید.
+    دوباره تلاش کنید یا به صفحهٔ اصلی بازگردید.
   </p>
-  <div class="flex gap-3">
-    <a
-      href="{{ request.url.path }}"
-      class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
-    >
+
+  <div class="psa-note mt-5 text-start">
+    {{ icon('info', 16) | safe }}
+    <span>
+      اگر خطا تکرار شد، پیش از تلاش دوباره از درستی فرمت و سلامت فایل‌های ورودی
+      مطمئن شوید. داده‌های بارگذاری‌شده در این جلسه حفظ می‌شود.
+    </span>
+  </div>
+
+  <div class="mt-6 flex w-full flex-col gap-3 sm:flex-row sm:justify-center">
+    <a href="{{ request.url.path }}" class="psa-btn psa-btn-primary sm:w-auto">
+      {{ icon('refresh-cw', 16) | safe }}
       تلاش دوباره
     </a>
-    <a
-      href="/"
-      class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-    >
-      بازگشت به صفحه‌ی اصلی
+    <a href="/" class="psa-btn psa-btn-secondary sm:w-auto">
+      {{ icon('arrow-left', 16) | safe }}
+      بازگشت به صفحهٔ اصلی
     </a>
   </div>
 </div>

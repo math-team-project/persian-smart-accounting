@@ -1,38 +1,77 @@
 {#
-  کامپوننت عمومی نوار پیشرفت + متن مرحله‌ی جاری، مستقل از هر گردش‌کاری خاص.
+  کامپوننت عمومی نوار پیشرفت + متن مرحلهٔ جاری، مستقل از هر گردش‌کاری خاص.
 
   کنترل از طریق تابع سراسری:
-    window.psaSetProgress(percent, stageText)
-  که هم عرض نوار و هم متن زیر آن را به‌روزرسانی می‌کند.
+    window.psaSetProgress(percent, stageText, logs)
+  که هم عرض نوار، هم درصد، هم متن مرحله و هم فهرست گزارش‌ها را به‌روزرسانی می‌کند.
+
+  قراردادهای پایدار: شناسه‌های ``psa-progress``، ``psa-progress-stage``،
+  ``psa-progress-percent``، ``psa-progress-fill``، ``psa-progress-log``.
 #}
-<div id="psa-progress" class="rounded-xl border border-slate-200 bg-white p-6">
-  <div class="mb-2 flex items-center justify-between text-sm">
-    <span class="font-medium text-slate-700" id="psa-progress-stage">در حال آماده‌سازی...</span>
-    <span class="font-mono text-slate-500" id="psa-progress-percent">۰٪</span>
+<div id="psa-progress" class="psa-card psa-card-elevated psa-progress-card p-5 sm:p-6">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <span class="psa-icon-tile psa-icon-tile-md is-teal psa-pulse" aria-hidden="true">
+        {{ icon('cpu', 20) | safe }}
+      </span>
+      <div>
+        <p class="psa-section-title">
+          <span id="psa-progress-stage">در حال آماده‌سازی…</span>
+        </p>
+        <p class="psa-section-hint mt-0.5">
+          پردازش در سرور ادامه دارد؛ وضعیت این صفحه به‌صورت خودکار به‌روزرسانی می‌شود.
+        </p>
+      </div>
+    </div>
+    <span class="psa-badge psa-badge-info">
+      <span class="psa-spinner" aria-hidden="true"></span>
+      در حال اجرا
+    </span>
   </div>
-  <div class="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
-    <div
-      id="psa-progress-fill"
-      class="psa-progress-fill h-full rounded-full bg-brand-600"
-      style="width: 0%"
-    ></div>
+
+  <div class="mt-5 flex items-center justify-between gap-3">
+    <span class="psa-section-hint">پیشرفت کلی</span>
+    <span id="psa-progress-percent" class="psa-progress-percent psa-num text-sm">۰٪</span>
   </div>
-  <ul id="psa-progress-log" class="psa-scroll mt-4 max-h-32 space-y-1 overflow-y-auto text-xs text-slate-400"></ul>
+
+  <div
+    class="psa-progress-track mt-2"
+    role="progressbar"
+    aria-labelledby="psa-progress-stage"
+    aria-valuemin="0"
+    aria-valuemax="100"
+    aria-valuenow="0"
+  >
+    <div id="psa-progress-fill" class="psa-progress-fill"></div>
+  </div>
+
+  <div class="mt-5">
+    <p class="psa-section-hint mb-2">گزارش مراحل پردازش</p>
+    <ul id="psa-progress-log" class="psa-scroll psa-progress-log max-h-36 space-y-1 overflow-y-auto">
+      <li><span>در انتظار دریافت اولین گزارش از سرور…</span></li>
+    </ul>
+  </div>
 </div>
 
 <script>
   window.psaSetProgress = function (percent, stageText, logs) {
-    const fill = document.getElementById("psa-progress-fill");
-    const percentLabel = document.getElementById("psa-progress-percent");
-    const stageLabel = document.getElementById("psa-progress-stage");
-    const logList = document.getElementById("psa-progress-log");
-    const clamped = Math.max(0, Math.min(100, percent || 0));
+    var fill = document.getElementById("psa-progress-fill");
+    var percentLabel = document.getElementById("psa-progress-percent");
+    var stageLabel = document.getElementById("psa-progress-stage");
+    var logList = document.getElementById("psa-progress-log");
+    var track = fill ? fill.parentElement : null;
+    var clamped = Math.max(0, Math.min(100, percent || 0));
+
     if (fill) fill.style.width = clamped + "%";
     if (percentLabel) percentLabel.textContent = clamped.toLocaleString("fa-IR") + "٪";
     if (stageLabel && stageText) stageLabel.textContent = stageText;
+    if (track) track.setAttribute("aria-valuenow", String(Math.round(clamped)));
+
     if (logList && Array.isArray(logs)) {
       logList.innerHTML = logs
-        .map((line) => "<li>&#8226; " + String(line).replace(/</g, "&lt;") + "</li>")
+        .map(function (line) {
+          return "<li><span>" + String(line).replace(/</g, "&lt;") + "</span></li>";
+        })
         .join("");
       logList.scrollTop = logList.scrollHeight;
     }

@@ -2,51 +2,209 @@
 {% block title %}داشبورد هوشمند حسابرسی{% endblock %}
 
 {% block content %}
-<div class="mb-10 text-center">
-  <h1 class="text-2xl font-bold text-slate-900 sm:text-3xl">
-    داشبورد هوشمند حسابرسی و حسابداری
-  </h1>
-  <p class="mx-auto mt-3 max-w-2xl text-sm text-slate-500 sm:text-base">
-    یکی از دو کارگاه زیر را برای شروع انتخاب کنید.
+<!-- ===================== بخش قهرمان (Hero) ===================== -->
+<section class="relative overflow-hidden rounded-2xl px-4 pb-10 pt-6 text-center sm:px-8 sm:pt-10">
+  <div class="psa-hero-glow" aria-hidden="true"></div>
+
+  <div class="relative mx-auto max-w-3xl">
+    <span class="psa-eyebrow">
+      {{ icon('sparkles', 14) | safe }}
+      حسابرسی مالی هوشمند — مبتنی بر هوش مصنوعی
+    </span>
+
+    <h1 class="psa-page-title mt-5">
+      داشبورد هوشمند حسابرسی و حسابداری
+    </h1>
+
+    <p class="psa-page-subtitle mx-auto">
+      اجرای خودکار چک‌لیست حسابرسی مالی روی فایل‌های بودجه، صورت‌های مالی و ترازنامه،
+      شناسایی موارد عدم تطابق، و تبدیل گزارش‌های حسابرسی به خلاصه‌ای دقیق و آمادهٔ جلسه —
+      همه در یک محیط امن و یکپارچه.
+    </p>
+
+    <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+      <a href="/checklist" class="psa-btn psa-btn-primary psa-btn-lg">
+        {{ icon('list-checks', 17) | safe }}
+        شروع بررسی چک‌لیست
+      </a>
+      <a href="/audit-summary" class="psa-btn psa-btn-secondary psa-btn-lg">
+        {{ icon('sparkles', 17) | safe }}
+        خلاصه‌سازی گزارش حسابرسی
+      </a>
+    </div>
+
+    <div class="mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+      <span class="psa-meta">{{ icon('shield-check', 14) | safe }} پردازش داخلی و محرمانهٔ اسناد</span>
+      <span class="psa-meta">{{ icon('gauge', 14) | safe }} خروجی کمی و قابل‌ردیابی</span>
+      <span class="psa-meta">{{ icon('file-check', 14) | safe }} گزارش رسمی Word</span>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== کارگاه‌ها (دو ماژول محصول) ===================== -->
+<section class="mt-4" aria-labelledby="psa-workspaces-title">
+  <div class="mb-5 flex flex-wrap items-end justify-between gap-2">
+    <div>
+      <h2 id="psa-workspaces-title" class="psa-section-title text-base">کارگاه‌های کاری</h2>
+      <p class="psa-section-hint mt-1">برای شروع، یکی از دو کارگاه زیر را انتخاب کنید.</p>
+    </div>
+    <span class="psa-meta">{{ icon('layers', 14) | safe }} دو گردش‌کار مستقل، یک محیط یکپارچه</span>
+  </div>
+
+  <div class="grid gap-5 lg:grid-cols-2">
+    <!-- کارت کارگاه ۱: چک‌لیست حسابرسی -->
+    <a
+      href="/checklist"
+      class="psa-card psa-card-interactive psa-card-topline group flex flex-col p-6"
+      aria-label="ورود به کارگاه بررسی چک‌لیست حسابرسی مالی"
+    >
+      <div class="flex items-start justify-between gap-3">
+        <span class="psa-icon-tile psa-icon-tile-lg is-teal">{{ icon('clipboard-check', 26) | safe }}</span>
+        <span class="psa-badge psa-badge-info">تحلیل کمی</span>
+      </div>
+
+      <h3 class="mt-4 text-lg font-bold text-slate-900">بررسی چک‌لیست حسابرسی مالی</h3>
+      <p class="mt-2 text-sm leading-8 text-slate-500">
+        فایل‌های بودجه اصلاحیه، صورت‌های مالی و ترازنامه را بارگذاری کنید تا پرسش‌های
+        چک‌لیست به‌صورت خودکار ارزیابی شوند، موارد نامنطبق مشخص گردند و گزارش کمیسیون
+        در قالب Word تولید شود.
+      </p>
+
+      <ul class="mt-4 space-y-2">
+        <li class="psa-feature">
+          <span class="psa-feature-mark">{{ icon('check', 11, 3) | safe }}</span>
+          <span>پذیرش فایل‌های Excel و PDF (بودجه، صورت‌های مالی، ترازنامه و اسناد اختیاری)</span>
+        </li>
+        <li class="psa-feature">
+          <span class="psa-feature-mark">{{ icon('check', 11, 3) | safe }}</span>
+          <span>اجرای خودکار پرسش‌های چک‌لیست و استخراج مقادیر از اسناد</span>
+        </li>
+        <li class="psa-feature">
+          <span class="psa-feature-mark">{{ icon('check', 11, 3) | safe }}</span>
+          <span>تفکیک موارد منطبق، نامنطبق، خطای پردازش و نیازمند بررسی دستی</span>
+        </li>
+        <li class="psa-feature">
+          <span class="psa-feature-mark">{{ icon('check', 11, 3) | safe }}</span>
+          <span>تولید گزارش کمیسیون (Word) به‌همراه درصد تطابق و فهرست مغایرت‌ها</span>
+        </li>
+      </ul>
+
+      <div class="mt-auto flex flex-wrap items-center justify-between gap-3 pt-6">
+        <span class="flex flex-wrap gap-2">
+          <span class="psa-badge psa-badge-neutral">۳ فایل الزامی</span>
+          <span class="psa-badge psa-badge-neutral">۳ فایل اختیاری</span>
+        </span>
+        <span class="psa-btn psa-btn-primary psa-btn-sm">
+          ورود به کارگاه
+          {{ icon('chevron-left', 15, 1.8, 'psa-cta-shift') | safe }}
+        </span>
+      </div>
+    </a>
+
+    <!-- کارت کارگاه ۲: خلاصه‌سازی گزارش حسابرسی -->
+    <a
+      href="/audit-summary"
+      class="psa-card psa-card-interactive psa-card-topline group flex flex-col p-6"
+      aria-label="ورود به کارگاه خلاصه‌سازی گزارش حسابرسی"
+    >
+      <div class="flex items-start justify-between gap-3">
+        <span class="psa-icon-tile psa-icon-tile-lg is-navy">{{ icon('sparkles', 26) | safe }}</span>
+        <span class="psa-badge psa-badge-gold">هوش مصنوعی</span>
+      </div>
+
+      <h3 class="mt-4 text-lg font-bold text-slate-900">خلاصه‌سازی گزارش حسابرسی</h3>
+      <p class="mt-2 text-sm leading-8 text-slate-500">
+        یک گزارش حسابرسی موجود (PDF/DOC/DOCX) را بارگذاری کنید تا متن آن استخراج شده و
+        با کمک هوش مصنوعی به خلاصه‌ای روان، ساختارمند و آمادهٔ ارائه در جلسه تبدیل شود.
+      </p>
+
+      <ul class="mt-4 space-y-2">
+        <li class="psa-feature">
+          <span class="psa-feature-mark">{{ icon('check', 11, 3) | safe }}</span>
+          <span>پذیرش گزارش‌های PDF، DOC و DOCX</span>
+        </li>
+        <li class="psa-feature">
+          <span class="psa-feature-mark">{{ icon('check', 11, 3) | safe }}</span>
+          <span>استخراج متن و آماده‌سازی محتوا برای پردازش زبانی</span>
+        </li>
+        <li class="psa-feature">
+          <span class="psa-feature-mark">{{ icon('check', 11, 3) | safe }}</span>
+          <span>خلاصه‌سازی هوشمند با ساختار بخش‌بندی‌شده و قابل‌ویرایش</span>
+        </li>
+        <li class="psa-feature">
+          <span class="psa-feature-mark">{{ icon('check', 11, 3) | safe }}</span>
+          <span>خروجی Word با سربرگ سازمانی و امکان افزودن توضیح جلسه</span>
+        </li>
+      </ul>
+
+      <div class="mt-auto flex flex-wrap items-center justify-between gap-3 pt-6">
+        <span class="flex flex-wrap gap-2">
+          <span class="psa-badge psa-badge-neutral">یک فایل ورودی</span>
+          <span class="psa-badge psa-badge-neutral">تا ۳ فرمت</span>
+        </span>
+        <span class="psa-btn psa-btn-primary psa-btn-sm">
+          ورود به کارگاه
+          {{ icon('chevron-left', 15, 1.8, 'psa-cta-shift') | safe }}
+        </span>
+      </div>
+    </a>
+  </div>
+</section>
+
+<!-- ===================== گردش‌کار در چهار گام ===================== -->
+<section class="mt-10" aria-labelledby="psa-flow-title">
+  <h2 id="psa-flow-title" class="psa-section-title text-base">گردش‌کار در یک نگاه</h2>
+  <p class="psa-section-hint mt-1">
+    هر دو کارگاه از یک الگوی یکسان پیروی می‌کنند: بارگذاری اسناد، پردازش خودکار، و دریافت خروجی رسمی.
   </p>
-</div>
 
-<div class="grid gap-6 sm:grid-cols-2">
-  <a
-    href="/checklist"
-    class="group flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"
-  >
-    <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-      {{ icon('list-checks', 26) | safe }}
+  <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    {% set flow = [
+      ('upload-cloud', 'بارگذاری اسناد', 'انتخاب یا کشیدن‌و‌رهاکردن فایل‌ها در اسلات‌های مشخص.'),
+      ('scan-text', 'استخراج و اعتبارسنجی', 'بررسی فرمت و خواندن داده‌های مالی از فایل‌ها.'),
+      ('cpu', 'پردازش هوشمند', 'اجرای چک‌لیست حسابرسی یا خلاصه‌سازی متن با هوش مصنوعی.'),
+      ('file-check', 'خروجی و گزارش', 'مشاهدهٔ نتایج در داشبورد و دانلود گزارش Word.')
+    ] %}
+    {% set flow_digits = ['۱', '۲', '۳', '۴'] %}
+    {% for icon_name, title, desc in flow %}
+    <div class="psa-card psa-card-hover-soft relative p-5">
+      <span class="psa-badge psa-badge-neutral psa-num absolute end-4 top-4">{{ flow_digits[loop.index0] }}</span>
+      <span class="psa-icon-tile psa-icon-tile-md is-teal">{{ icon(icon_name, 20) | safe }}</span>
+      <h3 class="mt-3 text-sm font-bold text-slate-900">{{ title }}</h3>
+      <p class="mt-1.5 text-xs leading-7 text-slate-500">{{ desc }}</p>
     </div>
-    <h2 class="mb-2 text-lg font-semibold text-slate-900">بررسی چک‌لیست حسابرسی</h2>
-    <p class="mb-4 flex-1 text-sm text-slate-500">
-      فایل‌های بودجه، صورت‌های مالی و ترازنامه را بارگذاری کنید تا چک‌لیست
-      حسابرسی به‌صورت خودکار اجرا شود، موارد عدم تطابق مشخص شوند و گزارش
-      کمیسیون Word تولید شود.
-    </p>
-    <span class="inline-flex items-center gap-1 text-sm font-medium text-brand-600 group-hover:gap-2">
-      شروع کارگاه
-      {{ icon('chevron-left', 16) | safe }}
-    </span>
-  </a>
+    {% endfor %}
+  </div>
+</section>
 
-  <a
-    href="/audit-summary"
-    class="group flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"
-  >
-    <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
-      {{ icon('sparkles', 26) | safe }}
+<!-- ===================== چرا این سامانه ===================== -->
+<section class="mt-10 grid gap-4 md:grid-cols-3" aria-label="ویژگی‌های کلیدی سامانه">
+  <div class="psa-card flex items-start gap-3 p-5">
+    <span class="psa-icon-tile psa-icon-tile-md is-emerald">{{ icon('trending-up', 20) | safe }}</span>
+    <div>
+      <h3 class="text-sm font-bold text-slate-900">شفافیت و ردیابی</h3>
+      <p class="mt-1 text-xs leading-7 text-slate-500">
+        هر مورد چک‌لیست با متن پرسش، شرط ارزیابی و مقادیر استخراج‌شده نمایش داده می‌شود.
+      </p>
     </div>
-    <h2 class="mb-2 text-lg font-semibold text-slate-900">خلاصه‌سازی گزارش حسابرسی</h2>
-    <p class="mb-4 flex-1 text-sm text-slate-500">
-      یک گزارش حسابرسی موجود (PDF/DOC/DOCX) را بارگذاری کنید تا با کمک هوش
-      مصنوعی به خلاصه‌ای روان و آماده‌ی جلسه برای اعضای هیئت‌مدیره تبدیل شود.
-    </p>
-    <span class="inline-flex items-center gap-1 text-sm font-medium text-violet-600 group-hover:gap-2">
-      شروع کارگاه
-      {{ icon('chevron-left', 16) | safe }}
-    </span>
-  </a>
-</div>
+  </div>
+  <div class="psa-card flex items-start gap-3 p-5">
+    <span class="psa-icon-tile psa-icon-tile-md is-navy">{{ icon('lock', 20) | safe }}</span>
+    <div>
+      <h3 class="text-sm font-bold text-slate-900">امنیت اسناد مالی</h3>
+      <p class="mt-1 text-xs leading-7 text-slate-500">
+        پردازش روی سرور داخلی سازمان انجام می‌شود و فایل‌ها برای پردازش به سرویس دیگری سپرده نمی‌شوند.
+      </p>
+    </div>
+  </div>
+  <div class="psa-card flex items-start gap-3 p-5">
+    <span class="psa-icon-tile psa-icon-tile-md is-gold">{{ icon('users', 20) | safe }}</span>
+    <div>
+      <h3 class="text-sm font-bold text-slate-900">آمادهٔ کمیسیون و هیئت‌مدیره</h3>
+      <p class="mt-1 text-xs leading-7 text-slate-500">
+        خروجی‌های Word با سربرگ سازمانی و ساختار رسمی، برای ارائه در جلسات تصمیم‌گیری.
+      </p>
+    </div>
+  </div>
+</section>
 {% endblock %}
