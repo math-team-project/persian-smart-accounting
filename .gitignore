@@ -31,3 +31,4 @@ build/
 excel_auto_extract.py
 uv.lock
 extraction_script/data/~$*.xlsx
+extraction_script/scripts/models_cache/
