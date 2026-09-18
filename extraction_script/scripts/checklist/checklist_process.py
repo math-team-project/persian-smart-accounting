@@ -378,6 +378,9 @@ def extract_data_points(data_points, loaded_sheets, fuzzy_threshold = 50):
 
         # If it's a single expected value, store the single float.
         # If it pulled multiple (because of lists in JSON), store the list to be handled by sum() in eval.
+        # If any extracted value is None, treat the whole variable as missing
+        if any(v is None for v in extracted_values):
+            extracted_data[var_name] = None
         if len(extracted_values) == 1:
             extracted_data[var_name] = extracted_values[0]
         else:

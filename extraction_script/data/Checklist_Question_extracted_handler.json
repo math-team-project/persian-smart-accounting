@@ -205,7 +205,7 @@
 		}
 	  ],
 	  "evaluation_logic": {
-		"condition": "traz_cash == fs_cash && traz_ar_non_exchange == fs_ar_non_exchange && traz_fixed_assets == fs_fixed_assets && traz_ap_exchange == fs_ap_exchange && traz_expenses == abs(fs_expenses) && traz_opening_net_value == fs_opening_net_value && traz_intangible_assets == fs_intangible_assets && traz_longterm_invest == fs_longterm_invest && traz_employee_benefits == fs_employee_benefits && traz_treasury_allocated == fs_treasury_allocated && traz_government_revenue == fs_government_revenue && traz_sent_to_treasury == abs(fs_sent_to_treasury) && traz_prepayments == fs_prepayments && traz_other_assets == fs_other_assets && traz_other_noncurrent_liab == fs_other_noncurrent_liab && traz_other_revenues_code440 == fs_other_revenues",
+		"condition": "round(traz_cash/1000000) == round(fs_cash/1000000) && round(traz_ar_non_exchange/1000000) == round(fs_ar_non_exchange/1000000) && round(traz_fixed_assets/1000000) == round(fs_fixed_assets/1000000) && round(traz_ap_exchange/1000000) == round(fs_ap_exchange/1000000) && round(traz_expenses/1000000) == round(abs(fs_expenses)/1000000) && round(traz_opening_net_value/1000000) == round(fs_opening_net_value/1000000) && round(traz_intangible_assets/1000000) == round(fs_intangible_assets/1000000) && round(traz_longterm_invest/1000000) == round(fs_longterm_invest/1000000) && round(traz_employee_benefits/1000000) == round(fs_employee_benefits/1000000) && round(traz_treasury_allocated/1000000) == round(fs_treasury_allocated/1000000) && round(traz_government_revenue/1000000) == round(fs_government_revenue/1000000) && round(traz_sent_to_treasury/1000000) == round(abs(fs_sent_to_treasury)/1000000) && round(traz_prepayments/1000000) == round(fs_prepayments/1000000) && round(traz_other_assets/1000000) == round(fs_other_assets/1000000) && round(traz_other_noncurrent_liab/1000000) == round(fs_other_noncurrent_liab/1000000) && round(traz_other_revenues_code440/1000000) == round(fs_other_revenues/1000000)",
 		"on_false": "مانده سرفصل‌ها با تراز کل مطابقت ندارد (به ویژه در اقلام تجمیعی).",
 		"on_true": "مانده سرفصل‌های اصلی با تراز کل مطابقت دارد."
 	  }
@@ -266,8 +266,8 @@
         }
       ],
       "evaluation_logic": {
-        "condition": "note4_total_cash == mosavab_cash_unspent + sanavat_cash_unspent + eblaghi_cash_unspent + sayer_manabe_cash_unspent + note4_5_deposits + note4_6_blocked",
-        "on_true": "بله، ارقام ضمائم با مانده موجودی نقد پایان سال (سال جاری) کاملاً مطابقت دارد. جمع محاسبه شده از فرم‌های بودجه و حساب‌های ویژه برابر است با مانده یادداشت 4.",
+        "condition": "round(note4_total_cash/1000000) == round((mosavab_cash_unspent + sanavat_cash_unspent + eblaghi_cash_unspent + sayer_manabe_cash_unspent + note4_5_deposits + note4_6_blocked)/1000000)",
+		"on_true": "بله، ارقام ضمائم با مانده موجودی نقد پایان سال (سال جاری) کاملاً مطابقت دارد. جمع محاسبه شده از فرم‌های بودجه و حساب‌های ویژه برابر است با مانده یادداشت 4.",
         "on_false": "خیر، مغایرت وجود دارد. جمع فرم‌های بودجه با یادداشت 4 برابر نیست."
       }
     },
@@ -297,8 +297,8 @@
         }
       ],
       "evaluation_logic": {
-        "formula": "sum(note_4_last_year_total) == transferred_from_last_year + other_manabe_mande",
-        "on_true": "بله. مانده انتقال یافته از سال قبل با کسر حساب‌های سپرده و غیرقابل برداشت، با مانده سال قبل یادداشت ۴ برابر است.",
+        "formula": "round(sum(note_4_last_year_total)/1000000) == round((transferred_from_last_year + other_manabe_mande)/1000000)",
+		"on_true": "بله. مانده انتقال یافته از سال قبل با کسر حساب‌های سپرده و غیرقابل برداشت، با مانده سال قبل یادداشت ۴ برابر است.",
         "on_false": "خیر."
       }
     },
@@ -382,8 +382,8 @@
         }
       ],
       "evaluation_logic": {
-        "condition": "(tafrigh_sources_total == note_27_1_sources_total) && (tafrigh_uses_total == note_27_2_uses_total) && (tafridh_budget_total == note_27_1_budget_total) && (note_27_2_uses_budget_total == tafrigh_budget_total) && (note_27_2_extra_not_uses == tafrigh_extra_not_uses) && (note_27_2_extra_not_uses_total_budget == tafrigh_extra_not_uses_total_budget)",
-        "on_true": "بله. ارقام بخش منابع و مصارف در هر دو فرم (شیت تفریغ و یادداشت 27) کاملاً برابر هستند.",
+        "condition": "(round(tafrigh_sources_total/1000000) == round(note_27_1_sources_total/1000000)) && (round(tafrigh_uses_total/1000000) == round(note_27_2_uses_total/1000000)) && (round(tafridh_budget_total/1000000) == round(note_27_1_budget_total/1000000)) && (round(note_27_2_uses_budget_total/1000000) == round(tafrigh_budget_total/1000000)) && (round(note_27_2_extra_not_uses/1000000) == round(tafrigh_extra_not_uses/1000000)) && (round(note_27_2_extra_not_uses_total_budget/1000000) == round(tafrigh_extra_not_uses_total_budget/1000000))",
+		"on_true": "بله. ارقام بخش منابع و مصارف در هر دو فرم (شیت تفریغ و یادداشت 27) کاملاً برابر هستند.",
         "on_false": "خیر، ارقام مطابقت ندارند."
       }
     },
@@ -443,8 +443,8 @@
         }
       ],
       "evaluation_logic": {
-        "condition": "(mosavab_cash + mosavab_akhza) + (sanavat_cash + sanavat_akhza) + (eblaghi_cash + eblaghi_akhza) + sayer_cash == tafrigh_unspent_total",
-        "on_true": "بله. سرجمع وجوه مصرف نشده نقد و خزانه در تمامی فرم‌ها برابر با مازاد مصرف نشده فرم تفریغ است.",
+        "condition": "round((mosavab_cash + mosavab_akhza + sanavat_cash + sanavat_akhza + eblaghi_cash + eblaghi_akhza + sayer_cash)/1000000) == round(tafrigh_unspent_total/1000000)",
+		"on_true": "بله. سرجمع وجوه مصرف نشده نقد و خزانه در تمامی فرم‌ها برابر با مازاد مصرف نشده فرم تفریغ است.",
         "on_false": "خیر، ارقام مطابقت ندارند."
       }
     },
@@ -474,8 +474,8 @@
 		  }
       ],
       "evaluation_logic": {
-        "condition": "Math.abs(tafrigh_unallocated_diff) == (mosavab_total_approved - mosavab_takhsis)",
-        "on_true": "بله. مابه‌التفاوت اعتبار مصوب و دریافتی از خزانه دقیقا با انحراف جمع منابع در شیت تفریغ مطابقت دارد.",
+        "condition": "Math.abs(round(tafrigh_unallocated_diff/1000000)) == round((mosavab_total_approved - mosavab_takhsis)/1000000)",
+		"on_true": "بله. مابه‌التفاوت اعتبار مصوب و دریافتی از خزانه دقیقا با انحراف جمع منابع در شیت تفریغ مطابقت دارد.",
         "on_false": "خیر. ارقام همخوانی ندارند."
       }
     },
@@ -511,8 +511,8 @@
         }
       ],
       "evaluation_logic": {
-        "condition": "note_4_1_ending_balance_previous == Math.abs(tafrigh_expense_unrealized_diff) - Math.abs(tafrigh_unallocated_sources_diff)",
-        "on_true": "بله. اختلاف مورد نظر برابر با مانده سال قبل است.",
+        "condition": "round(note_4_1_ending_balance_previous/1000000) == round(Math.abs(tafrigh_expense_unrealized_diff)/1000000) - round(Math.abs(tafrigh_unallocated_sources_diff)/1000000)",
+		"on_true": "بله. اختلاف مورد نظر برابر با مانده سال قبل است.",
         "on_false": "خیر. این محاسبه معادل موجودی پایان سال جاری است، نه سال قبل. (رقم بدست آمده با ستون سال جاری یادداشت برابر است)."
       }
     },
@@ -554,8 +554,8 @@
 		}
       ],
       "evaluation_logic": {
-        "condition": "(note_4_3_ending_balance_previous_year + mosavab_mande_khazaneh + eblaghi_expense_akhza) == Math.abs(tafrigh_capital_unrealized_expenses_diff) - Math.abs(tafrigh_capital_unallocated_sources_diff)",
-        "on_true": "بله. تطابق وجود دارد.",
+        "condition": "round((note_4_3_ending_balance_previous_year + mosavab_mande_khazaneh + eblaghi_expense_akhza)/1000000) == round(Math.abs(tafrigh_capital_unrealized_expenses_diff)/1000000) - round(Math.abs(tafrigh_capital_unallocated_sources_diff)/1000000)",
+		"on_true": "بله. تطابق وجود دارد.",
         "on_false": "خیر. مابه التفاوت مربوطه شامل مانده نقدی و اسناد خزانه پایان سال جاری است و با مانده نقدی سال قبل در یادداشت ۴-۳ برابر نیست."
       }
     },
@@ -585,8 +585,8 @@
         }
       ],
       "evaluation_logic": {
-        "condition": "note_4_2_ending_balance_current_year == Math.abs(tafrigh_dedicated_unrealized_expenses_diff) - Math.abs(tafrigh_dedicated_unallocated_sources_diff)",
-        "on_true": "بله. محاسبه عدم تحقق منهای عدم تخصیص، دقیقاً با مانده حساب بانک درآمدهای اختصاصی در پایان سال جاری (یادداشت 4-2) برابر است.",
+        "condition": "round(note_4_2_ending_balance_current_year/1000000) == round(Math.abs(tafrigh_dedicated_unrealized_expenses_diff)/1000000) - round(Math.abs(tafrigh_dedicated_unallocated_sources_diff)/1000000)",
+		"on_true": "بله. محاسبه عدم تحقق منهای عدم تخصیص، دقیقاً با مانده حساب بانک درآمدهای اختصاصی در پایان سال جاری (یادداشت 4-2) برابر است.",
         "on_false": "خیر، مطابقت ندارد."
       }
     },
@@ -626,8 +626,8 @@
         }
       ],
       "evaluation_logic": {
-        "condition": "Math.abs(sources_expense + sources_dedicated + sources_capital - sources_total_provided)  == 0",
-        "on_true": "بله. تست جمع‌زدن عمودی برای شیت بودجه و عملکرد (بخش منابع) کاملاً صحیح است و صحت محاسبات را تایید می‌کند.",
+        "condition": "Math.abs(round(sources_expense/1000000) + round(sources_dedicated/1000000) + round(sources_capital/1000000) - round(sources_total_provided/1000000)) == 0",
+		"on_true": "بله. تست جمع‌زدن عمودی برای شیت بودجه و عملکرد (بخش منابع) کاملاً صحیح است و صحت محاسبات را تایید می‌کند.",
         "on_false": "خیر، در محاسبات خطای سرجمع وجود دارد."
       }
     },
@@ -717,8 +717,8 @@
 		}
     ],
     "evaluation_logic": {
-	"condition": "((mosavab_expense_cash + mosavab_expense_akhza) + (eblaghi_expense_cash + eblaghi_expense_akhza) == note_17_1_expense_revenue) && ((mosavab_capital_cash + mosavab_capital_akhza) == note_18_capital_revenue) && ((mosavab_sarmaye_cash + mosavab_sarmaye_akhza) + (eblaghi_sarmaye_cash + eblaghi_sarmaye_akhza) == note_17_2_capital_revenue)",
-      "on_true": "بله. دریافتی از خزانه (شامل وجه نقد و اسناد خزانه) در بخش اعتبارات هزینه‌ای و تملک در فرم‌های مصوب و ابلاغی، کاملاً با یادداشت درآمدی ۱۷ مطابقت دارد.",
+	"condition": "(round((mosavab_expense_cash + mosavab_expense_akhza + eblaghi_expense_cash + eblaghi_expense_akhza)/1000000) == round(note_17_1_expense_revenue/1000000)) && (round((mosavab_capital_cash + mosavab_capital_akhza)/1000000) == round(note_18_capital_revenue/1000000)) && (round((mosavab_sarmaye_cash + mosavab_sarmaye_akhza + eblaghi_sarmaye_cash + eblaghi_sarmaye_akhza)/1000000) == round(note_17_2_capital_revenue/1000000))",
+	"on_true": "بله. دریافتی از خزانه (شامل وجه نقد و اسناد خزانه) در بخش اعتبارات هزینه‌ای و تملک در فرم‌های مصوب و ابلاغی، کاملاً با یادداشت درآمدی ۱۷ مطابقت دارد.",
       "on_false": "خیر. ارقام ثبت شده در یادداشت درآمدهای خزانه با مجموع مبالغ (نقد و اسناد خزانه) دریافت شده در فرم‌های بودجه‌ای مطابقت ندارد. (مغایرت ممکن است در بخش هزینه‌ای یا تملک باشد)."
     }
     },
@@ -742,7 +742,7 @@
       ],
       "evaluation_logic": {
         "condition": "round(internal_eblaghi_expense_approved/1000000) == external_confirmation_amount",
-        "on_false": "خیر. ارقام تاییدیه با فرم اعتبارات ابلاغی مطابقت ندارد.",
+		"on_false": "خیر. ارقام تاییدیه با فرم اعتبارات ابلاغی مطابقت ندارد.",
         "on_true": "بله. ارقام تاییدیه با فرم اعتبارات ابلاغی مطابقت دارد."
 		}
     },
@@ -767,7 +767,7 @@
       ],
       "evaluation_logic": {
         "condition": "round(internal_eblaghi_expense_approved/1000000) == external_confirmation_amount",
-        "on_false": "خیر. ارقام تاییدیه با فرم اعتبارات ابلاغی تملک دارایی‌های سرمایه‌ای مطابقت ندارد.",
+		"on_false": "خیر. ارقام تاییدیه با فرم اعتبارات ابلاغی تملک دارایی‌های سرمایه‌ای مطابقت ندارد.",
         "on_true": "بله. ارقام تاییدیه با فرم اعتبارات ابلاغی تملک دارایی‌های سرمایه‌ای مطابقت دارد."
 		}
     },
@@ -792,7 +792,7 @@
 		}
 	  ],
 	  "evaluation_logic": {
-		"condition": "sum(budget_letter_expense) == sum(form1_approved_expense)",
+		"condition": "round(sum(budget_letter_expense)/1000000) == round(sum(form1_approved_expense)/1000000)",
 		"on_false": "ارقام ابلاغی با ارقام مصوب در بودجه تفصیلی مطابقت ندارد.",
 		"on_true": "ارقام ابلاغی با ارقام مصوب در بودجه تفصیلی مطابقت دارد."
 	  }
@@ -818,7 +818,7 @@
 		}
 	  ],
 	  "evaluation_logic": {
-		"condition": "budget_letter_capital == form1_approved_capital",
+		"condition": "round(budget_letter_capital/1000000) == round(form1_approved_capital/1000000)",
 		"on_false": "اعتبار تملک ابلاغی با رقم مصوب در بودجه تفصیلی مطابقت ندارد.",
 		"on_true": "اعتبار تملک ابلاغی با رقم مصوب در بودجه تفصیلی مطابقت دارد."
 	  }
@@ -844,7 +844,7 @@
 		}
 	  ],
 	  "evaluation_logic": {
-		"condition": "budget_letter_special == form1_approved_special",
+		"condition": "round(budget_letter_special/1000000) == round(form1_approved_special/1000000)",
 		"on_false": "اعتبار اختصاصی ابلاغی با رقم مصوب در بودجه تفصیلی مطابقت ندارد.",
 		"on_true": "اعتبار اختصاصی ابلاغی با رقم مصوب در بودجه تفصیلی مطابقت دارد."
 	  }
@@ -869,7 +869,7 @@
 		}
 	  ],
 	  "evaluation_logic": {
-		"condition": "treasury_current_cash == form_approved_current_cash",
+		"condition": "round(treasury_current_cash/1000000) == round(form_approved_current_cash/1000000)",
 		"on_false": "مبلغ تأییدیه خزانه با وجه نقد دریافتی در فرم اعتبارات مصوب مطابقت ندارد.",
 		"on_true": "مبلغ تأییدیه خزانه با وجه نقد دریافتی در فرم اعتبارات مصوب مطابقت دارد."
 	  }
@@ -894,7 +894,7 @@
 		  }
 	  ],
 	  "evaluation_logic": {
-		"condition": "treasury_capital_cash == form_approved_capital_cash",
+		"condition": "round(treasury_capital_cash/1000000) == round(form_approved_capital_cash/1000000)",
 		"on_false": "مبلغ نقد دریافتی بابت تملک با تاییدیه خزانه مطابقت ندارد.",
 		"on_true": "مبلغ نقد دریافتی بابت تملک با تاییدیه خزانه مطابقت دارد."
 	  }
@@ -919,7 +919,7 @@
 		  }
 	  ],
 	  "evaluation_logic": {
-		"condition": "treasury_special_total_payment == form_approved_special_cash_received",
+		"condition": "round(treasury_special_total_payment/1000000) == round(form_approved_special_cash_received/1000000)",
 		"on_false": "مبلغ کل تأییدیه خزانه با وجه نقد دریافتی در فرم اعتبارات مصوب (به دلیل کسر ۳ درصد قانونی) مطابقت ندارد.",
 		"on_true": "مبلغ کل تأییدیه خزانه با وجه نقد دریافتی در فرم اعتبارات مصوب مطابقت دارد."
 	  }
@@ -949,7 +949,7 @@
 		}
 	  ],
 	  "evaluation_logic": {
-		"condition": "(performance_approved_bills + performance_eblaghi_bills) == treasury_confirmed_bills",
+		"condition": "round((performance_approved_bills + performance_eblaghi_bills)/1000000) == round(treasury_confirmed_bills/1000000)",
 		"on_false": "مجموع اسناد خزانه مندرج در فرم‌های عملکرد با تأییدیه خزانه مطابقت ندارد",
 		"on_true": "مجموع اسناد خزانه مندرج در فرم‌های عملکرد با تأییدیه خزانه مطابقت دارد."
 	  }
@@ -980,7 +980,7 @@
 		}
 	  ],
 	  "evaluation_logic": {
-		"condition": "round(abs(reported_transfer_special/1000000)) == abs(approved_transfer_amount) && round(abs(reported_transfer_capital/1000000)) == abs(approved_transfer_amount)",
+		"condition": "round(abs(reported_transfer_special)/1000000) == abs(approved_transfer_amount) && round(abs(reported_transfer_capital)/1000000) == abs(approved_transfer_amount)",
 		"on_false": "نقل و انتقالات انجام شده در صورت های مالی با مبالغ مصوب هیأت امنا مطابقت ندارد.",
 		"on_true": "نقل و انتقالات انجام شده در صورت های مالی با مبالغ مصوب هیأت امنا مطابقت دارد."
 	  }
@@ -1005,7 +1005,7 @@
 		}
 	  ],
 	  "evaluation_logic": {
-		"condition": "round(trial_balance_915_debit_balance) == round(sum(unused_funds_prev_years_end_balance))",
+		"condition": "round(trial_balance_915_debit_balance/1000000) == round(sum(unused_funds_prev_years_end_balance)/1000000)",
 		"on_false": "مطابقت ندارد.",
 		"on_true": "مطابقت دارد."
 	  }
@@ -1036,7 +1036,7 @@
 		}
 	  ],
 	  "evaluation_logic": {
-		"condition": "round(allocated_credit_930) == round(sum(unused_funds_sarmayeh_current_year) + sum(unused_funds_hazine_current_year))",
+		"condition": "round(allocated_credit_930/1000000) == round((sum(unused_funds_sarmayeh_current_year) + sum(unused_funds_hazine_current_year))/1000000)",
 		"on_false": "مطابقت ندارد.",
 		"on_true": "مطابقت دارد."
 	  }
@@ -1067,7 +1067,7 @@
 		}
 	  ],
 	  "evaluation_logic": {
-		"condition": "round(eblaghi_control_950_balance) == round(sum(unused_funds_sarmayeh_current_year) + sum(unused_funds_hazine_current_year))",
+		"condition": "round(eblaghi_control_950_balance/1000000) == round((sum(unused_funds_sarmayeh_current_year) + sum(unused_funds_hazine_current_year))/1000000)",
 		"on_false": "مطابقت ندارد.",
 		"on_true": "مطابقت دارد."
 	  }
@@ -1098,7 +1098,7 @@
 		  }
 	  ],
 	  "evaluation_logic": {
-		"condition": "round(approved_credit_920_balance) == round(abs(non_allocation_comparison) + sum(unused_special_funds))",
+		"condition": "round(approved_credit_920_balance/1000000) == round((abs(non_allocation_comparison) + sum(unused_special_funds))/1000000)",
 		"on_false": "مطابقت ندارد.",
 		"on_true": "مطابقت دارد."
 	  }
@@ -1147,7 +1147,7 @@
 		}
 	  ],
 	  "evaluation_logic": {
-		"condition": "round(uncleared_payments_980) == round(prepayments_balance + advances_ali_al_hesab + prepayments_total + vadayeh_deposits + capital_in_progress)",
+		"condition": "round(uncleared_payments_980/1000000) == round((prepayments_balance + advances_ali_al_hesab + prepayments_total + vadayeh_deposits + capital_in_progress)/1000000)",
 		"on_false": "مطابقت ندارد.",
 		"on_true": "مطابقت دارد."
 	  }
@@ -1190,7 +1190,7 @@
 		}
 	  ],
 	  "evaluation_logic": {
-		"condition": "consumed_credit_traz_990 == (sum(approved_exp_current) + sum(unused_exp_prev) + sum(eblaghi_exp_current) + sum(finalized_prepayments_exp))",
+		"condition": "round(consumed_credit_traz_990/1000000) == round((sum(approved_exp_current) + sum(unused_exp_prev) + sum(eblaghi_exp_current) + sum(finalized_prepayments_exp))/1000000)",
 		"on_false": "مطابقت ندارد. مجموع هزینه‌های فرم‌های بودجه‌ای با مانده دفتر کل مغایر است.",
 		"on_true": "مطابقت دارد."
 	  }
@@ -1215,7 +1215,7 @@
         }
       ],
       "evaluation_logic": {
-        "condition": "round(sum(not_used_budget_current) / 1000000) == form1_not_used_general",
+        "condition": "round(sum(not_used_budget_current)/1000000) == form1_not_used_general",
 		"on_false": "عدم مطابقت: رقم مانده واقعی در صورت‌های مالی با منبع پیش‌بینی شده در اصلاحیه بودجه همخوانی ندارد.",
 		"on_true": "مطابقت کامل: مانده انتقالی اعتبارات هزینه‌ای عمومی در بودجه و صورت‌های مالی یکسان است."
 		}
@@ -1240,7 +1240,7 @@
         }
       ],
       "evaluation_logic": {
-        "condition": "round(sum(not_used_budget_special) / 1000000) == form1_not_used_special",
+        "condition": "round(sum(not_used_budget_special)/1000000) == form1_not_used_special",
 		"on_false": "عدم مطابقت: رقم مانده اختصاصی در صورت مالی با منبع بودجه‌ای همخوانی ندارد.",
 		"on_true": "مطابقت کامل: مانده انتقالی اعتبارات اختصاصی در بودجه و صورت‌های مالی یکسان است."
 		}
@@ -1271,7 +1271,7 @@
         }
       ],
       "evaluation_logic": {
-        "condition": "round((sum(not_used_budget_capital) + sum(not_used_budget_eblaghi_capital)) / 1000000) == sum(form1_not_used_capital)",
+        "condition": "round((sum(not_used_budget_capital) + sum(not_used_budget_eblaghi_capital))/1000000) == sum(form1_not_used_capital)",
 		"on_false": "عدم مطابقت: اختلاف بین مانده واقعی سرمایه‌ای در صورت مالی و منابع پیش‌بینی شده در بودجه.",
 		"on_true": "مطابقت کامل: مانده انتقالی اعتبارات تملک دارایی‌های سرمایه‌ای در بودجه و صورت‌های مالی (با احتساب گرد کردن) یکسان است."
 		}
@@ -1302,7 +1302,7 @@
         }
       ],
       "evaluation_logic": {
-        "condition": "round((sum(not_used_budget_notified) + not_used_other_resources) / 1000000) == form1_not_used_miscellaneous",
+        "condition": "round((sum(not_used_budget_notified) + not_used_other_resources)/1000000) == form1_not_used_miscellaneous",
 		"on_false": "عدم مطابقت: مجموع مانده اعتبارات ابلاغی و سایر منابع در صورت مالی با رقم انتقالی در بودجه همخوانی ندارد.",
 		"on_true": "مطابقت کامل: مانده انتقالی اعتبارات ابلاغی و متفرقه هزینه‌ای در بودجه و صورت‌های مالی (با احتساب گرد کردن) یکسان است."
 		}
@@ -1327,7 +1327,7 @@
 			}
 		],
 		"evaluation_logic": {
-			"condition": "round(sum(unused_eblaghi_capital) / 1000000) == form1_eblaghi_capital_prev_balance",
+			"condition": "round(sum(unused_eblaghi_capital)/1000000) == form1_eblaghi_capital_prev_balance",
 			"on_false": "مطابقت ندارد.",
 			"on_true": "مطابقت دارد."
 		}
@@ -1364,7 +1364,7 @@
 			}
 		],
 		"evaluation_logic": {
-			"condition":"round(financial_cost_prev_balances[0]/1000000) == budget_cost_data[0] && financial_cost_current_appr/1000000 == budget_cost_data[1] && round(financial_cost_prev_balances[1]/1000000) == budget_cost_data[2] && round(financial_cost_current_notif/1000000) == budget_cost_data[3]",
+			"condition": "round(financial_cost_prev_balances[0]/1000000) == budget_cost_data[0] && round(financial_cost_current_appr/1000000) == budget_cost_data[1] && round(financial_cost_prev_balances[1]/1000000) == budget_cost_data[2] && round(financial_cost_current_notif/1000000) == budget_cost_data[3]",
 			"on_false": "مطابقت ندارد.",
 			"on_true": "مطابقت دارد."
 		}
@@ -1401,7 +1401,7 @@
 			}
 		],
 		"evaluation_logic": {
-			"condition": "round(financial_spec_prev_balance / 1000000) == budget_spec_prev_balance && (financial_spec_current_total / 1000000) == sum(budget_spec_current_credits)",
+			"condition": "round(financial_spec_prev_balance/1000000) == budget_spec_prev_balance && round(financial_spec_current_total/1000000) == sum(budget_spec_current_credits)",
 			"on_false": "مطابقت ندارد.",
 			"on_true": "مطابقت دارد."
 		}
@@ -1426,7 +1426,7 @@
 		}
 	  ],
 	  "evaluation_logic": {
-		"condition": "(financial_budget_notification / 1000000) == budget_amendment_approved_credit",
+		"condition": "round(financial_budget_notification/1000000) == budget_amendment_approved_credit",
 		"on_false": "مطابقت ندارد.",
 		"on_true": "مطابقت دارد."
 	  }
@@ -1457,7 +1457,7 @@
 		}
 	  ],
 	  "evaluation_logic": {
-		"condition": "(financial_cap_notif / 1000000) == (budget_cap_appr + budget_cap_incr)",
+		"condition": "round(financial_cap_notif/1000000) == (budget_cap_appr + budget_cap_incr)",
 		"on_false": "مطابقت ندارد.",
 		"on_true": "مطابقت دارد."
 	  }
@@ -1482,7 +1482,7 @@
 		}
 	  ],
 	  "evaluation_logic": {
-		"condition": "(financial_spec_notification / 1000000) == budget_spec_approved_credit",
+		"condition": "round(financial_spec_notification/1000000) == budget_spec_approved_credit",
 		"on_false": "مطابقت ندارد.",
 		"on_true": "مطابقت دارد."
 	  }
@@ -1507,7 +1507,7 @@
 		  }
 	  ],
 	  "evaluation_logic": {
-		"condition": "round(financial_notified_cost_allocation / 1000000) == budget_notified_cost_credit",
+		"condition": "round(financial_notified_cost_allocation/1000000) == budget_notified_cost_credit",
 		"on_false": "مطابقت ندارد.",
 		"on_true": "مطابقت دارد."
 	  }
@@ -1532,7 +1532,7 @@
 		  }
 	  ],
 	  "evaluation_logic": {
-		"condition": "(financial_notified_capital_allocation / 1000000) == budget_notified_capital_credit",
+		"condition": "round(financial_notified_capital_allocation/1000000) == budget_notified_capital_credit",
 		"on_false": "مطابقت ندارد.",
 		"on_true": "مطابقت دارد."
 	  }
@@ -1587,7 +1587,7 @@
 		}
 	  ],
 	  "evaluation_logic": {
-		"condition": "round(fin_cost_eblagh/1000000) == (bud_cost_appr ) && round(fin_cap_eblagh/1000000) == (bud_cap_appr + bud_cap_incr) && round(fin_spec_eblagh/1000000) == bud_spec_appr",
+		"condition": "round(fin_cost_eblagh/1000000) == bud_cost_appr && round(fin_cap_eblagh/1000000) == (bud_cap_appr + bud_cap_incr) && round(fin_spec_eblagh/1000000) == bud_spec_appr",
 		"on_false": "مطابقت ندارد. ارقام ابلاغی دولت با بودجه تفصیلی در یک یا چند سرفصل همخوانی ندارد.",
 		"on_true": "مطابقت دارد."
 	  }
@@ -1642,7 +1642,7 @@
 		}
 	  ],
 	  "evaluation_logic": {
-		"condition": "round(sum(fs_unused_expense_prev) / 1000000) == budget_form1_expense_prev && round(sum(fs_unused_specific_prev) / 1000000) == budget_form1_specific_prev && round((fs_unused_capital_prev_cash + sum(fs_unused_capital_prev_bonds)) / 1000000) == budget_form1_capital_prev",
+		"condition": "round(sum(fs_unused_expense_prev)/1000000) == budget_form1_expense_prev && round(sum(fs_unused_specific_prev)/1000000) == budget_form1_specific_prev && round((fs_unused_capital_prev_cash + sum(fs_unused_capital_prev_bonds))/1000000) == budget_form1_capital_prev",
 		"on_false": "مطابقت ندارد. مغایرت در انتقال مانده‌های تملک دارایی‌های سرمایه‌ای مشاهده شد.",
 		"on_true": "مطابقت دارد."
 	  }

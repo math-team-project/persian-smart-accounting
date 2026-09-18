@@ -260,7 +260,7 @@ def determine_anchor_year(
 # Turning (year, anchor) into a label -- pure arithmetic, no fixed list
 # ---------------------------------------------------------------------------
 
-def relative_year_label(year: int, anchor: int) -> str:
+def relative_year_label(year: int, anchor: int, use_canonical_tokens: bool = False) -> str:
     """
     Purely arithmetic relative label. Handles ANY offset in either
     direction, so a year 5 years before or 3 years after the anchor is
@@ -271,6 +271,15 @@ def relative_year_label(year: int, anchor: int) -> str:
       offset == -1  -> "سال بعد"
       offset  < -1  -> "{abs(offset)} سال بعد"
     """
+    
+    offset = anchor - year
+    if use_canonical_tokens:
+        if offset == 0:
+            return "__CURR_YEAR__"
+        if offset == 1:
+            return "__PRIOR_YEAR__"
+        return f"__PRIOR_YEAR_{offset}__"
+        
     offset = anchor - year
     if offset == 0:
         return "سال جاری"

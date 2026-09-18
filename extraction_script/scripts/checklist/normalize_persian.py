@@ -83,5 +83,11 @@ def normalize_dataframe(df):
     
     return df
 
+def normalize_text_list(text_list):
+    """Normalizes a list of plain strings."""
+    if not isinstance(text_list, list):
+        return text_list
+    return [normalize_persian_text(t) for t in text_list if isinstance(t, str)]
+    
 if __name__ == "__main__":
     pass

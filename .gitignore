@@ -33,8 +33,4 @@ data/
 #فایل های غیرضروری
 uv.lock
 extraction_script/data/~$*.xlsx
-output/
-
-
-# models cache
 extraction_script/scripts/models_cache/
