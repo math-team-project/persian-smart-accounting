@@ -557,6 +557,7 @@ def generate_committee_report_output(
     workdir: Path,
     audit_report_path: Optional[Path] = None,
     entity_name: Optional[str] = None,
+    llm_config: Optional[Any] = None,
     job: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     # تولید گزارش کمیسیون بر اساس موارد FALSE چک‌لیست، به‌صورت اختیاری همراه با
@@ -594,18 +595,20 @@ def generate_committee_report_output(
             "در حال تولید گزارش کمیسیون با هوش مصنوعی (بر مبنای موارد عدم تطابق چک‌لیست، بدون گزارش حسابرسی)... این مرحله ممکن است چند دقیقه طول بکشد.",
         )
 
-    load_dotenv()
-    api_key = os.getenv("API_KEY_OPENROUTER")
-    if not api_key:
-        raise ValueError("API_KEY_OPENROUTER در فایل env پیدا نشد!")
-    print(f"کلید با موفقیت بارگذاری شد (فقط ۵ کاراکتر اول نشان داده می‌شود): {api_key[:5]}...")
-
-    config = LLMConfig(
-        api_key=os.environ.get("AUDIT_REPORT_LLM_API_KEY", api_key ),
-        base_url=os.environ.get("AUDIT_REPORT_LLM_BASE_URL", "https://openrouter.ai/api/v1"),
-        model=os.environ.get("AUDIT_REPORT_LLM_MODEL", "nvidia/nemotron-3-ultra-550b-a55b:free"),
-        temperature=0.2,
-    )
+    if llm_config is not None:
+        config = llm_config
+    else:
+        load_dotenv()
+        api_key = os.getenv("API_KEY_OPENROUTER")
+        if not api_key:
+            raise ValueError("API_KEY_OPENROUTER در فایل env پیدا نشد!")
+        print(f"کلید با موفقیت بارگذاری شد (فقط ۵ کاراکتر اول نشان داده می‌شود): {api_key[:5]}...")
+        config = LLMConfig(
+            api_key=os.environ.get("AUDIT_REPORT_LLM_API_KEY", api_key),
+            base_url=os.environ.get("AUDIT_REPORT_LLM_BASE_URL", "https://openrouter.ai/api/v1"),
+            model=os.environ.get("AUDIT_REPORT_LLM_MODEL", "nvidia/nemotron-3-ultra-550b-a55b:free"),
+            temperature=0.2,
+        )
 
     output_path = workdir / "گزارش_کمیسیون.docx"
     try:
@@ -675,6 +678,7 @@ def run_full_pipeline(
     resolve_false_questions: Optional[
         "Callable[[list[dict[str, Any]], list[dict[str, Any]]], list[dict[str, Any]]]"
     ] = None,
+    llm_config: Optional[Any] = None,
 ) -> dict[str, Any]:
     """
     اجرای کامل خط پردازش: استخراج/ادفام فایل‌های اکسل، اجرای چک‌لیست حسابرسی و
@@ -717,6 +721,7 @@ def run_full_pipeline(
         workdir=workdir,
         audit_report_path=audit_report_path,
         entity_name=entity_name,
+        llm_config=llm_config,
         job=job,
     )
 
@@ -761,6 +766,7 @@ def start_checklist_job(
     resolve_false_questions: Optional[
         "Callable[[list[dict[str, Any]], list[dict[str, Any]]], list[dict[str, Any]]]"
     ] = None,
+    llm_config: Optional[Any] = None,
 ) -> None:
     """
     اجرای run_full_pipeline در یک ترد پس‌زمینه‌ی جدا، دقیقاً مطابق الگوی
@@ -782,6 +788,7 @@ def start_checklist_job(
                 audit_report_path=audit_report_path,
                 entity_name=entity_name,
                 resolve_false_questions=resolve_false_questions,
+                llm_config=llm_config,
             )
             job["result"] = result
             job["status"] = "done"

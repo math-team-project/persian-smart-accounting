@@ -45,6 +45,7 @@ class LLMConfig:
     stream: bool = True
     api_key: str | None = None        # falls back to B_AI_API_KEY env var
     timeout_s: int = 450
+    base_url: str | None = None
     extra_params: dict | None = None  # provider-specific extras merged into the payload as-is,
                                        # e.g. {"thinking": {"type": "disabled"}} if api.b.ai supports
                                        # turning off extended reasoning for a given model - check their docs
@@ -157,17 +158,19 @@ def call_llm(
     if config.extra_params:
         payload.update(config.extra_params)
 
+    url = (config.base_url.rstrip("/") + "/chat/completions") if config.base_url else B_AI_API_URL
+
     if config.stream:
-        return _call_streaming(headers, payload, config.timeout_s, logger)
-    return _call_non_streaming(headers, payload, config.timeout_s, logger)
+        return _call_streaming(url, headers, payload, config.timeout_s, logger)
+    return _call_non_streaming(url, headers, payload, config.timeout_s, logger)
 
 
 def _call_non_streaming(
-    headers: dict, payload: dict, timeout_s: int, logger: Callable[[str], None] | None = None
+    url: str, headers: dict, payload: dict, timeout_s: int, logger: Callable[[str], None] | None = None
 ) -> str:
     try:
         response = requests.post(
-            B_AI_API_URL, headers=headers, json=payload, timeout=timeout_s
+            url, headers=headers, json=payload, timeout=timeout_s
         )
     except requests.RequestException as e:
         raise LLMClientError(f"خطای شبکه هنگام تماس با API: {e}") from e
@@ -187,12 +190,12 @@ def _call_non_streaming(
 
 
 def _call_streaming(
-    headers: dict, payload: dict, timeout_s: int, logger: Callable[[str], None] | None = None
+    url: str, headers: dict, payload: dict, timeout_s: int, logger: Callable[[str], None] | None = None
 ) -> str:
     """Consume an OpenAI-style text/event-stream response and reassemble the full text."""
     try:
         response = requests.post(
-            B_AI_API_URL, headers=headers, json=payload, timeout=timeout_s, stream=True
+            url, headers=headers, json=payload, timeout=timeout_s, stream=True
         )
     except requests.RequestException as e:
         raise LLMClientError(f"خطای شبکه هنگام تماس با API (stream): {e}") from e

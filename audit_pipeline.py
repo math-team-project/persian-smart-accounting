@@ -119,6 +119,7 @@ def run_audit_summary(
     organization: str | None = None,
     meeting_context: str | None = None,
     language: str = "fa",
+    llm_config: Optional[LLMConfig] = None,
 ) -> dict[str, Any]:
     """
     اجرای مستقیم خط پردازش audit_summarizer (معادل تابع run در audit_summarizer/main.py):
@@ -155,7 +156,7 @@ def run_audit_summary(
     )
     # stream=False: دقیقاً مانند رفتار پیش‌فرض CLI، برای جلوگیری از باگ
     # mojibake شناخته‌شده‌ی requests در حالت streaming (نگاه کنید به docstring بالا).
-    config = LLMConfig(stream=False)
+    config = llm_config if llm_config is not None else LLMConfig(stream=False)
     try:
         summary_markdown = call_llm(prompt, config, logger=log)
     except LLMClientError as exc:
@@ -208,6 +209,8 @@ def start_audit_summary_job(
     job: dict[str, Any],
     input_path: Path,
     workdir: Path,
+    *,
+    llm_config: Optional["LLMConfig"] = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -223,7 +226,7 @@ def start_audit_summary_job(
     def _worker() -> None:
         job["status"] = "running"
         try:
-            result = run_audit_summary(input_path, workdir, job=job, **kwargs)
+            result = run_audit_summary(input_path, workdir, job=job, llm_config=llm_config, **kwargs)
             job["result"] = result
             job["status"] = "done"
         except AuditSummaryError as exc:

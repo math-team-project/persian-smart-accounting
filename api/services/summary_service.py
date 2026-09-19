@@ -31,6 +31,7 @@ from api.jobs.job_manager import JobManager, job_manager
 from api.schemas.summary import JobResultsResponse, JobStatusResponse
 from api.utils.uploads import InMemoryUploadAdapter
 from api.workshops.registry import ResultArtifact
+from api.services import ai_settings as ai_settings_service
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,53 @@ class AuditSummaryValidationError(Exception):
 
     پیام این خطا از قبل به فارسی و قابل‌نمایش مستقیم به کاربر است.
     """
+
+
+SLUG = "audit-summary"
+
+
+# ---------------------------------------------------------------------------
+# تنظیمات هوش مصنوعی این کارگاه
+# ---------------------------------------------------------------------------
+def resolve_llm_settings(session: Any, project_id: int) -> Any:
+    """تنظیمات مؤثر این کارگاه در این پروژه (ذخیره‌شده ← پیش‌فرض سامانه)."""
+    resolved = ai_settings_service.resolve_ai_settings(session, project_id, SLUG)
+    return ai_settings_service.to_audit_summary_llm_config(resolved)
+
+
+_TEST_PROMPT = 'تنها همین متن را برگردان و بس: {"ok": true}'
+
+
+def test_connection(settings: Any) -> str:
+    """یک درخواست کمینه به مدل می‌فرستد و در صورت موفقیت پیام فارسی برمی‌گرداند."""
+    import sys
+    from pathlib import Path as _Path
+
+    _summarizer_dir = str(_Path(__file__).resolve().parent.parent.parent / "audit_summarizer")
+    if _summarizer_dir not in sys.path:
+        sys.path.insert(0, _summarizer_dir)
+
+    from llm_client import LLMConfig, call_llm, LLMClientError  # type: ignore[import]
+
+    llm_config = ai_settings_service.to_audit_summary_llm_config(settings)
+    probe = LLMConfig(
+        api_key=llm_config.api_key,
+        base_url=llm_config.base_url,
+        model=llm_config.model,
+        temperature=0.0,
+        max_tokens=64,
+        timeout_s=45,
+        stream=False,
+    )
+    try:
+        result = call_llm(_TEST_PROMPT, probe)
+    except LLMClientError as exc:
+        raise LLMClientError(str(exc)) from exc
+
+    if not result or not result.strip():
+        raise LLMClientError("مدل پاسخ خالی برگرداند.")
+
+    return f"اتصال موفق بود؛ مدل «{probe.model}» پاسخ معتبر داد."
 
 
 def _validate_upload(upload: UploadFile, max_bytes: int, content: bytes) -> None:
@@ -67,6 +115,7 @@ async def start_job(
     project_id: int,
     run_id: int,
     on_finish: Optional[Callable[[dict[str, Any]], None]] = None,
+    llm_settings: Optional[Any] = None,
     manager: JobManager = job_manager,
 ) -> str:
     """اعتبارسنجی و ذخیره‌ی فایل آپلودی، سپس شروع پردازش پس‌زمینه‌ی خلاصه‌سازی.
@@ -116,6 +165,7 @@ async def start_job(
         workdir,
         organization=(organization or "").strip() or None,
         meeting_context=(meeting_context or "").strip() or None,
+        llm_config=llm_settings,
     )
     manager.watch_lifecycle(job_id, job)
     logger.info(

@@ -104,6 +104,8 @@ async def create_summary_job(
     meeting_context = form.get("meeting_context")
 
     run = runs.start_run(session, project.id, SLUG)
+    # تنظیمات هوش مصنوعی این پروژه برای این کارگاه
+    llm_settings = summary_service.resolve_llm_settings(session, project.id)
 
     try:
         job_id = await summary_service.start_job(
@@ -114,6 +116,7 @@ async def create_summary_job(
             project_id=project.id,
             run_id=run.id,
             on_finish=runs.make_finalizer(run.id),
+            llm_settings=llm_settings,
         )
     except AuditSummaryValidationError as exc:
         _discard_failed_run(session, run.id)
@@ -202,13 +205,8 @@ WORKSHOP = register(
             "خلاصه‌سازی هوشمند با ساختار بخش‌بندی‌شده و قابل‌ویرایش",
             "خروجی Word با سربرگ سازمانی و امکان افزودن توضیح جلسه",
         ),
-        settings_keys=("api_key", "api_url", "model"),
-        # تنظیمات اختصاصی فعال نیست (settings_applied پیش‌فرض False است):
-        # ``audit_pipeline.run_audit_summary`` پیکربندی مدل را خودش و درون
-        # ``audit_pipeline.py`` با ``LLMConfig(stream=False)`` می‌سازد و هیچ
-        # پارامتری برای تزریق کلید/آدرس/مدل نمی‌پذیرد. اتصال این کارگاه به
-        # resolver تنظیمات یعنی بازنویسی آن ماژول -- که خارج از محدوده‌ی این
-        # فاز است. بنابراین فرم تنظیمات برای این کارگاه نمایش داده نمی‌شود تا
-        # وعده‌ی بی‌اثر به کاربر داده نشود.
+        settings_keys=("api_key", "api_url", "model", "temperature", "max_output_tokens"),
+        settings_applied=True,
+        test_connection=summary_service.test_connection,
     )
 )

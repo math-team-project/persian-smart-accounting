@@ -34,10 +34,13 @@ from api.schemas.checklist import (
     JobSummary,
 )
 from api.services import checklist_kb_service
+from api.services import ai_settings as ai_settings_service
 from api.utils.uploads import InMemoryUploadAdapter
 from api.workshops.registry import ResultArtifact
 
 logger = logging.getLogger(__name__)
+
+SLUG = "checklist"
 
 
 class ChecklistValidationError(Exception):
@@ -50,6 +53,50 @@ class ChecklistValidationError(Exception):
 def get_file_slots() -> dict[str, dict[str, Any]]:
     """برای رندر داینامیک اسلات‌های آپلود در قالب Jinja2 (به‌جای هاردکد کردن)."""
     return pipeline.FILE_SLOTS
+
+
+# ---------------------------------------------------------------------------
+# تنظیمات هوش مصنوعی این کارگاه
+# ---------------------------------------------------------------------------
+def resolve_llm_settings(session: Any, project_id: int) -> Any:
+    """تنظیمات مؤثر این کارگاه در این پروژه (ذخیره‌شده ← پیش‌فرض سامانه)."""
+    from sqlalchemy.orm import Session as _Session
+    resolved = ai_settings_service.resolve_ai_settings(session, project_id, SLUG)
+    return ai_settings_service.to_checklist_llm_config(resolved)
+
+
+TEST_SYSTEM_PROMPT = (
+    "تو یک سرویس فنی هستی. تنها وظیفه‌ات پاسخ به قالب JSON خواسته‌شده است. "
+    "هیچ توضیح اضافه‌ای نده."
+)
+TEST_USER_PROMPT = 'دقیقاً همین JSON را برگردان: {"ok": true}'
+
+
+def test_connection(settings: Any) -> str:
+    """یک درخواست کمینه به مدل می‌فرستد و در صورت موفقیت پیام فارسی برمی‌گرداند."""
+    from dataclasses import replace
+    from audit_report_generator.llm_client import LLMClient
+    from audit_report_generator.exceptions import LLMGenerationError
+
+    llm_config = ai_settings_service.to_checklist_llm_config(settings)
+    probe = replace(
+        llm_config,
+        temperature=0.0,
+        max_output_tokens=64,
+        request_timeout=45.0,
+        max_retries=1,
+    )
+    client = LLMClient(probe)
+    payload = client.chat_json([
+        {"role": "system", "content": TEST_SYSTEM_PROMPT},
+        {"role": "user", "content": TEST_USER_PROMPT},
+    ])
+    if not isinstance(payload, dict) or not payload.get("ok"):
+        raise LLMGenerationError(
+            "اتصال برقرار شد اما پاسخ مدل با قالب موردانتظار سازگار نبود: "
+            f"{str(payload)[:200]}"
+        )
+    return f"اتصال موفق بود؛ مدل «{probe.model}» پاسخ معتبر داد."
 
 
 def _validate_upload(slot_key: str, upload: UploadFile, max_bytes: int, content: bytes) -> None:
@@ -79,6 +126,7 @@ async def start_job(
     run_id: int,
     user_id: Optional[int] = None,
     on_finish: Optional[Callable[[dict[str, Any]], None]] = None,
+    llm_settings: Optional[Any] = None,
     manager: JobManager = job_manager,
 ) -> str:
     """اعتبارسنجی و ذخیره‌ی فایل‌های آپلودی، سپس شروع پردازش پس‌زمینه‌ی چک‌لیست.
@@ -175,6 +223,7 @@ async def start_job(
         audit_report_path=audit_report_path,
         entity_name=(entity_name or "").strip() or None,
         resolve_false_questions=resolve_false_questions,
+        llm_config=llm_settings,
     )
     manager.watch_lifecycle(job_id, job)
     logger.info(

@@ -713,19 +713,23 @@ telling the user to re-run the checklist workshop, rather than a confusing
 Each project can configure the LLM service **separately for each workshop** from
 the "تنظیمات" panel on the project page. Only workshops that actually apply their
 settings at run time expose the form (`WorkshopDefinition.settings_applied` in
-the registry) — currently:
+the registry) — currently all four workshops:
 
 - the **budget-analysis** workshop, which takes a fully resolved settings object
-  at run start, and
+  at run start (`BudgetLLMSettings` from `budget_analysis.llm`)
 - the **financial chatbot** workshop, which builds its LLM client from the same
-  chain on **every question** (`rag_ai_adapter.build_llm_client(..., 
+  chain on **every question** (`rag_ai_adapter.build_llm_client(...,
   workshop_slug="financial_chatbot")`), and whose "تست اتصال" button uses that
-  same client.
+  same client
+- the **checklist** workshop (financial audit checklist), which resolves its
+  settings at run start and passes them to the pipeline via `llm_settings`
+  (uses `audit_report_generator.config.LLMConfig`)
+- the **audit-summary** workshop (audit report summarization), which resolves its
+  settings at run start and passes them to the pipeline via `llm_settings`
+  (uses `audit_summarizer.llm_client.LLMConfig`)
 
-The checklist and audit-summary workshops build their LLM configuration inside
-their own (out-of-scope) pipeline modules, so they are deliberately *not* shown a
-form that would have no effect. The chatbot's slug needs no special-casing in
-`ai_settings.py` — that module never enumerates workshop slugs.
+All four workshops use the same settings resolver chain in
+`api/services/ai_settings.py` and share the same configurable fields.
 
 **What is configurable** (all optional):
 

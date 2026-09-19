@@ -103,6 +103,8 @@ async def create_checklist_job(
     # ردیف تاریخچه پیش از شروع پردازش ساخته می‌شود تا اجرا بلافاصله در پنل
     # «کارهای در جریان» دیده شود.
     run = runs.start_run(session, project.id, SLUG)
+    # تنظیمات هوش مصنوعی این پروژه برای این کارگاه
+    llm_settings = checklist_service.resolve_llm_settings(session, project.id)
 
     try:
         job_id = await checklist_service.start_job(
@@ -113,6 +115,7 @@ async def create_checklist_job(
             run_id=run.id,
             user_id=project.user_id,
             on_finish=runs.make_finalizer(run.id),
+            llm_settings=llm_settings,
         )
     except ChecklistValidationError as exc:
         _discard_failed_run(session, run.id)
@@ -204,19 +207,8 @@ WORKSHOP = register(
             "تفکیک موارد منطبق، نامنطبق، خطای پردازش و نیازمند بررسی دستی",
             "تولید گزارش کمیسیون (Word) به‌همراه درصد تطابق و فهرست مغایرت‌ها",
         ),
-        settings_keys=("api_key", "api_url", "model"),
-        # تنظیمات اختصاصی فعال نیست (settings_applied پیش‌فرض False است):
-        # ``pipeline.run_full_pipeline`` کلید و آدرس و مدل را مستقیم از محیط
-        # می‌خواند و داخل ``pipeline.py`` یک ``LLMConfig`` می‌سازد؛ تزریق
-        # تنظیمات پروژه یعنی بازنویسی آن ماژول -- که خارج از محدوده‌ی این فاز
-        # است. بنابراین فرم تنظیمات برای این کارگاه نمایش داده نمی‌شود.
-        #
-        # همین ``settings_keys`` با این حال برای یک مصرف‌کنندهی دیگر هم لازم است:
-        # مرحله‌ی «تطبیق هوشمند» پس از ایندکس‌سازی پایگاه‌دانش
-        # (``api/services/checklist_kb_service.py``) کدی داشبورد‌محور جدیدی است
-        # (نه بخشی از ``pipeline.py`` موجود) و طبق الگوی همه‌ی کارگاه‌های دیگر
-        # تنظیمات LLM خودش را از ``ai_settings.py``/``rag_ai_adapter.py`` می‌خواند (نه
-        # از متغیرهای محیطی داخلی ``pipeline.py``) -- بنابراین فرم تنظیمات همچنان
-        # روی این دو کلید/آدرس/مدل اثر می‌گذارد.
+        settings_keys=("api_key", "api_url", "model", "temperature", "max_output_tokens"),
+        settings_applied=True,
+        test_connection=checklist_service.test_connection,
     )
 )

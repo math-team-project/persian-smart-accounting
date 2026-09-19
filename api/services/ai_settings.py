@@ -55,6 +55,8 @@ __all__ = [
     "resolve_ai_settings",
     "save_ai_settings",
     "to_budget_llm_settings",
+    "to_checklist_llm_config",
+    "to_audit_summary_llm_config",
     "validate_overrides",
 ]
 
@@ -419,6 +421,45 @@ def to_budget_llm_settings(settings: AISettings):
         request_timeout=settings.request_timeout,
         max_retries=settings.max_retries,
         retry_backoff_seconds=settings.retry_backoff_seconds,
+    )
+
+
+def to_checklist_llm_config(settings: AISettings):
+    """``AISettings`` خنثا را به ``LLMConfig`` کارگاه چک‌لیست (audit_report_generator) تبدیل می‌کند."""
+    from audit_report_generator.config import LLMConfig
+
+    return LLMConfig(
+        api_key=settings.api_key,
+        base_url=settings.api_url,
+        model=settings.model,
+        temperature=settings.temperature,
+        max_output_tokens=settings.max_output_tokens,
+        request_timeout=settings.request_timeout,
+        max_retries=settings.max_retries,
+        retry_backoff_seconds=settings.retry_backoff_seconds,
+    )
+
+
+def to_audit_summary_llm_config(settings: AISettings):
+    """``AISettings`` خنثا را به ``LLMConfig`` کارگاه خلاصه‌سازی گزارش (audit_summarizer) تبدیل می‌کند."""
+    import sys
+    from pathlib import Path
+
+    # audit_summarizer is not an installable package; it lives under the project root.
+    _summarizer_dir = str(Path(__file__).resolve().parent.parent.parent / "audit_summarizer")
+    if _summarizer_dir not in sys.path:
+        sys.path.insert(0, _summarizer_dir)
+
+    from llm_client import LLMConfig  # type: ignore[import]
+
+    return LLMConfig(
+        api_key=settings.api_key,
+        base_url=settings.api_url,
+        model=settings.model,
+        temperature=settings.temperature,
+        max_tokens=settings.max_output_tokens,
+        timeout_s=int(settings.request_timeout),
+        stream=False,
     )
 
 
