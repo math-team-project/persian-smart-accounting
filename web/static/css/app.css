@@ -23,6 +23,7 @@
     ۳) پس‌زمینهٔ صفحه           ۸) فرم و ورودی‌ها        ۱۳) نتیجهٔ چک‌لیست
     ۴) سربرگ و ناوبری          ۹) منطقهٔ آپلود           ۱۴) متن خلاصهٔ AI
     ۵) دکمه‌ها                 ۱۰) نشان‌دهندهٔ مراحل      ۱۵) پابرگ و دسترس‌پذیری
+    ۱۶) کارگاه «چت‌بات مالی» (چیدمان چت، حباب پیام، منابع)
   ============================================================================
 */
 
@@ -2315,4 +2316,355 @@ details.psa-result-item[open] .psa-chevron {
 [data-theme="dark"] ::selection {
   background: rgba(45, 212, 191, 0.28);
   color: var(--color-heading);
+}
+
+/* ---------------------------------------------------------------------------
+   ۱۶) کارگاه «چت‌بات مالی» (چیدمان چت + حباب پیام + منابع)
+
+   همه‌ی مقادیر رنگی از توکن‌های بالا می‌آیند، بنابراین این بخش خودکار با هر
+   دو پوستهٔ روشن/تیره کار می‌کند (هیچ رنگ ثابتی این‌جا هاردکد نشده است).
+   ناحیه‌ی متن پاسخ از ``.psa-prose`` استفاده می‌کند (همان تایپوگرافی متن
+   خلاصه‌های AI)، بنابراین Markdown تولیدشده به‌دست ``financial_chatbot.js``
+   بدون هیچ استایل جداگانه‌ای خوانا می‌ماند؛ فقط جدول‌های داخل پاسخ که
+   ``.psa-prose`` پوشش نمی‌دهد این‌جا تکمیل می‌شوند.
+   --------------------------------------------------------------------------- */
+.psa-chat-layout {
+  display: grid;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .psa-chat-layout {
+    grid-template-columns: 19rem minmax(0, 1fr);
+  }
+}
+
+/* --- فهرست گفتگوها --- */
+.psa-chat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 22rem;
+  overflow-y: auto;
+}
+
+.psa-chat-item {
+  display: flex;
+  align-items: stretch;
+  gap: 0.15rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.psa-chat-item:hover {
+  border-color: var(--color-border-strong);
+}
+
+.psa-chat-item.is-active {
+  border-color: var(--color-gold);
+  background: var(--color-surface-muted);
+}
+
+.psa-chat-item-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.6rem;
+  text-align: start;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: var(--color-heading);
+}
+
+.psa-chat-item-icon {
+  color: var(--color-teal-ink);
+  flex: 0 0 auto;
+}
+
+.psa-chat-item-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.psa-chat-item-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.psa-chat-item-date {
+  font-size: 0.7rem;
+  color: var(--color-text-strong);
+}
+
+.psa-chat-item-delete {
+  flex: 0 0 auto;
+  width: 2rem;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--color-text-strong);
+  font-size: 0.8rem;
+}
+
+.psa-chat-item-delete:hover {
+  color: var(--color-danger-ink);
+  background: var(--color-surface-subtle);
+}
+
+/* --- پنل گفتگو --- */
+.psa-chat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.9rem 1.1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.psa-chat-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--color-heading);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.psa-chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1.1rem;
+  min-height: 22rem;
+  max-height: 34rem;
+  overflow-y: auto;
+}
+
+.psa-chat-placeholder {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: var(--color-teal-ink);
+  padding: 2rem 1rem;
+}
+
+.psa-chat-row {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  max-width: 100%;
+}
+
+/* پیام‌های خودِ کاربر به سمت مقابل جریان خواندن (چپ در RTL) می‌روند. */
+.psa-chat-row.is-user {
+  flex-direction: row-reverse;
+  margin-inline-start: auto;
+}
+
+.psa-chat-row.is-bot .psa-chat-bubble {
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+}
+
+.psa-chat-row.is-user .psa-chat-bubble {
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border-strong);
+}
+
+.psa-chat-avatar {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 999px;
+  color: #ffffff;
+  background: var(--color-primary);
+}
+
+.psa-chat-avatar.is-bot {
+  background: var(--color-gold-deep);
+}
+
+.psa-chat-bubble {
+  min-width: 0;
+  max-width: 46rem;
+  border-radius: 0.9rem;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.86rem;
+  line-height: 1.9;
+  color: var(--color-text);
+}
+
+.psa-chat-answer > :first-child {
+  margin-top: 0;
+}
+
+.psa-chat-answer > :last-child {
+  margin-bottom: 0;
+}
+
+.psa-chat-answer code {
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 0.35rem;
+  padding: 0.05rem 0.3rem;
+  font-size: 0.82em;
+  direction: ltr;
+  display: inline-block;
+}
+
+.psa-chat-code {
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 0.6rem;
+  padding: 0.65rem 0.8rem;
+  overflow-x: auto;
+  direction: ltr;
+  text-align: left;
+}
+
+.psa-chat-code code {
+  border: 0;
+  background: none;
+  padding: 0;
+}
+
+.psa-chat-link {
+  color: var(--color-teal-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* جدول‌های داخل پاسخ مدل: ``.psa-prose`` جدول را پوشش نمی‌دهد. */
+.psa-chat-table {
+  width: 100%;
+  margin: 0.6rem 0;
+}
+
+.psa-chat-table th,
+.psa-chat-table td {
+  font-size: 0.8rem;
+}
+
+.psa-chat-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+}
+
+.psa-chat-hint {
+  font-size: 0.7rem;
+  color: var(--color-text-strong);
+}
+
+.psa-chat-sources {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--color-border);
+}
+
+.psa-chat-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 100%;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  font-size: 0.72rem;
+  color: var(--color-text-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.psa-chat-notice {
+  font-size: 0.82rem;
+  color: var(--color-text-strong);
+}
+
+.psa-chat-notice.is-error {
+  color: var(--color-danger-ink);
+}
+
+/* نشانگر «در حال تهیه پاسخ» -- سه نقطه با انیمیشن ملایم. */
+.psa-chat-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0;
+}
+
+.psa-chat-typing span {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: var(--color-teal-accent);
+  animation: psa-chat-blink 1.15s infinite ease-in-out;
+}
+
+.psa-chat-typing span:nth-child(2) {
+  animation-delay: 0.18s;
+}
+
+.psa-chat-typing span:nth-child(3) {
+  animation-delay: 0.36s;
+}
+
+@keyframes psa-chat-blink {
+  0%, 80%, 100% { opacity: 0.25; }
+  40% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .psa-chat-typing span {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+/* --- نوار نوشتن پرسش --- */
+.psa-chat-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.9rem 1.1rem 1.1rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.psa-chat-input {
+  resize: vertical;
+  min-height: 3.2rem;
+  font-size: 0.88rem;
+  line-height: 1.9;
+}
+
+/* متن خطای راهنما (فهرست گفتگوها) */
+.psa-help.is-error {
+  color: var(--color-danger-ink);
 }

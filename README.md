@@ -36,7 +36,7 @@ summary of an existing audit report.
 
 ## Overview
 
-**Persian Smart Accounting** automates three related but independent workflows,
+**Persian Smart Accounting** automates four related but independent workflows,
 all exposed through a **FastAPI + server-rendered HTML/Tailwind** web dashboard
 (`api/` + `web/`). The UI was originally built with Streamlit; that version is
 preserved for reference under [`legacy_streamlit/`](#project-structure) but is no
@@ -79,6 +79,17 @@ still deleted after each run). Deleting a project removes all of its data
    items that need a management decision or clarification. See
    [Pipeline → Budget analysis](#budget-analysis-workshop) for the three-stage
    design.
+4. **Financial chatbot** — Ask questions in Persian about a project's own
+   documents ("موجودی نقد چقدر است؟", "کدام موارد چک‌لیست رد شدند؟") and get an
+   answer with citations to the source file/sheet. It answers **only** from the
+   **knowledge base built by the checklist workshop** for that project (see
+   [Knowledge-base infrastructure](#knowledge-base-infrastructure-rag_chat_module)),
+   so this workshop stays gated until at least one checklist run has succeeded.
+   Chats are lightweight **named threads**: you can create, list and delete them,
+   and follow-up questions in the currently-open conversation are answered with
+   awareness of the last few exchanges — but **no message is ever persisted**,
+   so reopening an old chat shows an empty conversation. See
+   [Pipeline → Financial chatbot](#financial-chatbot-workshop).
 
 **Intended users:** internal auditors, financial committees, and board
 members of public-sector organizations who need to quickly verify budget
@@ -90,8 +101,10 @@ of spreadsheets.
 The dashboard is a **FastAPI** application (`api/`) with a server-rendered
 **Jinja2 + Tailwind** frontend (`web/`) — no separate JS build step, no SPA
 framework. Every workshop shares the same UI shell/components but has its own
-processing pipeline, each running in a background thread so a page can poll job
-status (`GET /api/projects/{id}/<slug>/jobs/{job_id}`) without blocking:
+processing pipeline. The three job-based workshops each run in a background
+thread so a page can poll job status
+(`GET /api/projects/{id}/<slug>/jobs/{job_id}`) without blocking, while the
+financial chatbot answers live, one request at a time:
 
 ```mermaid
 flowchart TD
@@ -102,11 +115,12 @@ flowchart TD
     REG --> WS1[Workshop: Checklist]
     REG --> WS2[Workshop: Audit report summary]
     REG --> WS3[Workshop: Budget analysis]
+    REG --> WS4[Workshop: Financial chatbot]
 
     WS1 --> RUNS[api/workshops/runs.py:<br/>start run, live panel, history, download]
     WS2 --> RUNS
     WS3 --> RUNS
-    RUNS --> DB[(SQLite: users, projects,<br/>workshop_runs, workshop_settings)]
+    RUNS --> DB[(SQLite: users, projects, workshop_runs,<br/>workshop_settings, knowledge_bases, chat_sessions)]
     RUNS --> FILES[Result files: data/results/project-N/run-M-*.docx]
 
     WS1 --> API1[api/workshops/checklist.py + services/checklist_service.py]
@@ -114,6 +128,7 @@ flowchart TD
     P1 --> EX[extraction_script: budget + financial statement extraction]
     EX --> CL[extraction_script/scripts/checklist: run_audit_pipeline]
     CL --> RPT[audit_report_generator: committee .docx report]
+    API1 --> KB[services/checklist_kb_service.py:<br/>index files -> RAG resolver -> results]
 
     WS2 --> API2[api/workshops/audit_summary.py + services/summary_service.py]
     API2 --> P2[audit_pipeline.py: run_audit_summary]
@@ -127,6 +142,12 @@ flowchart TD
     E3 --> A3[budget_analysis/llm.py + criteria.py: constrained-JSON analysis]
     A3 --> R3[budget_analysis/report.py: deterministic RTL .docx render]
 
+    WS4 --> API4[api/workshops/financial_chatbot.py +<br/>services/financial_chatbot_service.py]
+    API4 --> CH[(chat_sessions: title + timestamps only,<br/>NO message content)]
+    API4 --> RAG[llm_variable_resolver.chat_ask:<br/>router -> vector search -> answer]
+    RAG --> KB
+    API4 -.-> SETT
+
     SETT[api/services/ai_settings.py:<br/>resolve defaults / encrypt key] -.-> API3
     SETT -.-> DB
 ```
@@ -134,7 +155,9 @@ flowchart TD
 Each workshop is deliberately kept **thin at the API layer**: its project-scoped
 router only parses the HTTP request and calls a service function; the service
 validates/saves uploads and hands off to the unchanged
-`pipeline.py`/`audit_pipeline.py`/`budget_analysis` background-job functions; a
+`pipeline.py`/`audit_pipeline.py`/`budget_analysis` background-job functions (the
+job-less financial chatbot's service instead builds a read-only knowledge base and
+calls `rag_chat_module` synchronously); a
 single in-memory `JobManager` (`api/jobs/job_manager.py`) tracks job dicts for
 every workshop — each job tagged with `(project_id, workshop_type, run_id)` — so
 concurrent runs never share state. When a job reaches its final status, a
@@ -156,7 +179,7 @@ threads.
 **Workshop registry** (`api/workshops/registry.py`): "which workshops exist" is
 data, not something hardcoded in routers/templates. The dashboard's workshop
 cards, the navigation links, the FastAPI route registration and the workshop page
-route are all generated from `WORKSHOPS`. Adding a fourth workshop therefore means
+route are all generated from `WORKSHOPS`. Adding a workshop therefore means
 a new module plus one registry entry — no template edits (see the
 [concrete checklist](#adding-a-new-workshop)).
 
@@ -172,7 +195,7 @@ persian-smart-accounting/
 │   ├── storage.py                # Result-file storage on disk (safe path resolution + per-project cleanup)
 │   ├── auth/                     # Session-cookie auth: password hashing + FastAPI dependencies
 │   ├── db/                       # SQLite/SQLAlchemy: engine+session (base.py) and ORM models (models.py)
-│   ├── repositories/             # All dashboard queries (users, projects, workshop_runs/settings, knowledge_bases)
+│   ├── repositories/             # All dashboard queries (users, projects, workshop_runs/settings, knowledge_bases, chat_sessions)
 │   ├── jobs/job_manager.py       # In-memory job registry, keyed by (project, workshop, run) + completion hook
 │   ├── workshops/                # THE EXTENSION POINT: registry.py + one module per workshop
 │   │   ├── registry.py           # WorkshopDefinition + WORKSHOPS (single source of truth)
@@ -180,16 +203,18 @@ persian-smart-accounting/
 │   │   ├── pages.py              # Shared page context (user/project/workshops) for workshop templates
 │   │   ├── checklist.py          # Workshop: financial audit checklist (router + registry entry)
 │   │   ├── audit_summary.py      # Workshop: audit report summarization (router + registry entry)
-│   │   └── budget_analysis.py    # Workshop: budget analysis (router + registry entry)
+│   │   ├── budget_analysis.py    # Workshop: budget analysis (router + registry entry)
+│   │   └── financial_chatbot.py  # Workshop: financial chatbot (router + registry entry; NOT job-based)
 │   ├── routers/                  # Thin HTML/JSON endpoints: auth.py, dashboard.py (projects+pages), settings.py
 │   ├── services/                 # Upload validation/saving + job orchestration + project deletion
 │   │   ├── checklist_service.py  # Checklist workshop adapter over pipeline.py
 │   │   ├── summary_service.py    # Audit-summary workshop adapter over audit_pipeline.py
 │   │   ├── budget_service.py     # Budget-analysis workshop adapter over budget_analysis/
+│   │   ├── financial_chatbot_service.py # Chatbot workshop: gating, multi-turn question composition, chat_ask call
 │   │   ├── ai_settings.py        # Resolve defaults, validate, encrypt/decrypt per-workshop API keys
 │   │   ├── project_service.py    # Full project deletion (jobs + rows + files)
-│   │   ├── kb_storage.py         # Knowledge-base on-disk layout (Chroma files)
-│   │   ├── rag_ai_adapter.py     # Only place allowed to build rag_chat_module objects
+│   │   ├── kb_storage.py         # Knowledge-base on-disk layout (Chroma files + the chunks.jsonl text sidecar)
+│   │   ├── rag_ai_adapter.py     # Only place allowed to build rag_chat_module objects (write + read-only paths)
 │   │   └── checklist_kb_service.py # Checklist-triggered KB indexing + resolver + retention (see Pipeline)
 │   ├── schemas/                  # Pydantic response models (common.py holds the shared JobStatus type)
 │   └── utils/                    # icons.py, uploads.py, jobs.py, downloads.py, formatting.py (Jalali/digits)
@@ -202,6 +227,7 @@ persian-smart-accounting/
 │   └── static/                   # css/app.css (fonts + small custom styles), js/*.js (page logic), fonts/
 │
 ├── data/                         # Local dashboard data (gitignored): psa.db (SQLite) + results/project-N/*.docx
+│                                 #   + vector_stores/{user}/{project}/{kb}/ (Chroma index, manifest.json, chunks.jsonl)
 ├── tests/                        # API-layer tests (FastAPI TestClient), see "Testing"
 ├── conftest.py                   # pytest bootstrap: puts the project root on sys.path (no pytest.ini/pyproject)
 │
@@ -258,7 +284,7 @@ want to compare behaviour with the original prototype.
   too (no separate mapping to update) — just add a short, accurate
   `overall_description` for it next to the other entries in
   `checklist_kb_service._FILE_SLOT_DESCRIPTIONS` so the new file is findable by
-  topic once the (future) chatbot workshop searches the knowledge base.
+  topic once the financial chatbot workshop searches the knowledge base.
 - `JobStatus` (`pending`/`running`/`done`/`error`) has a single definition in
   `api/schemas/common.py`, used by every workshop schema.
 - The **workshop registry** (`api/workshops/registry.py`) is the extension point.
@@ -280,6 +306,16 @@ want to compare behaviour with the original prototype.
   `window.PSA_WORKSHOP = {apiBase, projectId, storageKey}` so its JS builds URLs
   from the registry-provided base instead of hardcoding them (see
   `web/static/js/checklist.js`).
+- A workshop does **not** have to be job/polling-based. The financial chatbot is
+  a live request/response workshop: it creates no `workshop_runs` row, registers
+  no job with `JobManager`, and therefore never appears in the live panel or the
+  run history — but it still goes through the registry, so it gets its card,
+  navigation entry, page route, and AI-settings form for free. The four
+  registry callables (`estimate_progress`, `collect_result`, `has_download`,
+  `summary_chips_fa`) are still required by `WorkshopDefinition`, so a non-job
+  workshop supplies minimal no-op implementations (see
+  `api/workshops/financial_chatbot.py`). A workshop's own durable state can live
+  in its own table instead (`chat_sessions` for the chatbot).
 - The reusable UI building blocks (`web/templates/components/*.html` +
   their companion `window.psaSetStep` / `psaSetProgress` / `psaShowToast`
   globals) are already workspace-agnostic and require no changes for a new
@@ -586,15 +622,91 @@ processing package `budget_analysis/` has no knowledge of HTTP, the database, or
 the encryption layer. Note that a **PDF printed from Excel** is the only
 supported PDF path (the gate is semantic form detection, not an OCR step).
 
+### Financial chatbot workshop
+
+This workshop is deliberately **not** a background-job workshop — it is a live
+request/response chat, so there is nothing to poll and no result file to store.
+It is stateless per request and reads exactly one thing from the database to
+find its data: `projects.latest_ready_kb_id`.
+
+```
+HTTP: POST /api/projects/{id}/financial-chatbot/sessions/{sid}/ask
+      {question, recent_history:[{role, content}, …]}      ← history lives only in this request
+  ↓
+Gate (api/services/financial_chatbot_service.py::is_available)
+      projects.latest_ready_kb_id is NULL  → 409 + Persian "run the checklist workshop first"
+  ↓
+Read-only knowledge base over the LATEST READY kb of this project
+      rag_ai_adapter.build_readonly_knowledge_base(user_id, project_id, latest_ready_kb_id)
+        embedder   ← sentence-transformers (same PSA_EMBEDDING_MODEL used at index time)
+        store      ← ChromaVectorStore for that kb's own collection/persist directory
+        chunk text ← data/vector_stores/{user}/{project}/{kb}/chunks.jsonl
+        (the in-memory chunk cache ChromaVectorStore.search() reads is rebuilt from
+         that file, because Chroma itself only stores vectors + tiny metadata)
+  ↓
+LLM client for THIS project + THIS workshop
+      rag_ai_adapter.build_llm_client(session, project_id, workshop_slug="financial_chatbot")
+        → ai_settings.py resolution chain (project+workshop setting → system default)
+  ↓
+Multi-turn context (option "a": fold history into the single question)
+      compose_question(question, recent_history)
+        "گفتگوی قبلی:\nکاربر: …\nدستیار: …\n\nپرسش جدید کاربر: …\n\n<formatting hint>"
+  ↓
+llm_variable_resolver.chat_ask(composed_question, kb, llm_client, sheet_catalog=…)
+      router LLM call (catalog = the real indexed file/sheet names) → vector search
+      over that kb → answer LLM call
+  ↓
+HTTP 200: {answer (Markdown), confidence, sources[], route_reasoning, history_turns_used}
+  ↓
+Browser renders `answer` as Markdown into the RTL message list
+      web/static/js/financial_chatbot.js: escape HTML first, then convert Markdown
+```
+
+**Why the history is folded into the question instead of sent as messages.**
+`rag_chat_module` is intentionally left unmodified, and its `chat_ask` accepts a
+single `question` string while its `LLMClient.complete(system, user)` is
+single-turn — so there is no multi-message conversation parameter to use. Two
+options were considered: (a) prefix the question with a short serialization of
+the recent turns, or (b) bypass `chat_ask` and drive retrieval + the LLM
+directly with a message list. Option (b) is not actually reachable without
+changing `rag_chat_module` (its LLM client cannot carry a message list), so
+option (a) was implemented; it keeps the router → retrieve → answer path shared
+with every other consumer of that package. The reasoning is repeated in a
+comment at the top of `api/services/financial_chatbot_service.py`.
+
+**Why a `chunks.jsonl` sidecar exists.** `ChromaVectorStore` (in
+`rag_chat_module`) keeps the retrieved `Chunk` objects in an *in-process*
+dictionary and passes only ids/vectors/`{file_key, sheets}` metadata to Chroma —
+the table text itself is never persisted. A fresh process (the chatbot's request,
+after a server restart) therefore had nothing to search: `search()` returned an
+empty list every time. Since the package stays unmodified, the dashboard writes
+the chunk text next to the same knowledge base at index time — through a thin
+recording wrapper around the adapter's vector-store factory
+(`rag_ai_adapter.build_recording_vector_store_factory`, used only by
+`api/services/checklist_kb_service.py`) — and the read-only accessor rebuilds the
+cache from it. A knowledge base indexed **before** this change has no
+`chunks.jsonl`; asking a question against it returns a clear Persian message
+telling the user to re-run the checklist workshop, rather than a confusing
+"no results".
+
 ## AI settings
 
 Each project can configure the LLM service **separately for each workshop** from
 the "تنظیمات" panel on the project page. Only workshops that actually apply their
 settings at run time expose the form (`WorkshopDefinition.settings_applied` in
-the registry) — currently the budget-analysis workshop, which takes a fully
-resolved settings object at run start. The checklist and audit-summary workshops
-build their LLM configuration inside their own (out-of-scope) pipeline modules,
-so they are deliberately *not* shown a form that would have no effect.
+the registry) — currently:
+
+- the **budget-analysis** workshop, which takes a fully resolved settings object
+  at run start, and
+- the **financial chatbot** workshop, which builds its LLM client from the same
+  chain on **every question** (`rag_ai_adapter.build_llm_client(..., 
+  workshop_slug="financial_chatbot")`), and whose "تست اتصال" button uses that
+  same client.
+
+The checklist and audit-summary workshops build their LLM configuration inside
+their own (out-of-scope) pipeline modules, so they are deliberately *not* shown a
+form that would have no effect. The chatbot's slug needs no special-casing in
+`ai_settings.py` — that module never enumerates workshop slugs.
 
 **What is configurable** (all optional):
 
@@ -644,23 +756,24 @@ then -- once the checklist's raw result is available -- runs an LLM/RAG
 "resolver" step (`llm_variable_resolver.full_run.run_full_audit`) over that same
 freshly-indexed knowledge base to re-check the non-conforming items against the
 actual uploaded documents, and finally indexes the resolved checklist results
-back into the same knowledge base (so a future chatbot workshop can answer
+back into the same knowledge base (so the financial chatbot workshop can answer
 questions like "which checklist items failed and why"). **A knowledge base is
 not considered `ready` -- and `projects.latest_ready_kb_id` is not updated --
 until this whole sequence (index files → resolve → index results) has finished.**
 If indexing itself fails, the checklist workshop falls back to its raw,
-un-resolved result exactly as it worked before this phase -- a knowledge-base
+un-resolved result exactly as it worked before that phase -- a knowledge-base
 problem never breaks the checklist workshop. `projects.latest_ready_kb_id` is
-what the (not-yet-built) chatbot workshop will read to know which knowledge
-base to search; **only the `PSA_KB_RETENTION_COUNT` most recent knowledge bases
-per project are kept on disk** -- right after a knowledge base is marked ready,
-`knowledge_bases.list_stale_beyond_retention` is queried for that project and
-every stale row (older knowledge bases, never the current
+what the **financial chatbot workshop reads** (and the only thing it reads) to
+know which knowledge base to search; **only the `PSA_KB_RETENTION_COUNT` most
+recent knowledge bases per project are kept on disk** -- right after a knowledge
+base is marked ready, `knowledge_bases.list_stale_beyond_retention` is queried
+for that project and every stale row (older knowledge bases, never the current
 `latest_ready_kb_id`, never another project's rows) is deleted both on disk
 (`kb_storage.delete_kb_directory`) and in the database (row + its `kb_files`).
 
-The chatbot workshop itself (letting a user chat with a ready knowledge base)
-is not built yet -- that is a following piece of work. What exists so far:
+The chatbot workshop that lets a user chat with a ready knowledge base is now
+built: see [Pipeline → Financial chatbot](#financial-chatbot-workshop). What
+exists in this infrastructure layer:
 
 - **`knowledge_bases` table** -- one row per indexed version of a project's files:
   a UUID primary key (also the name of its on-disk directory), the owning
@@ -672,9 +785,28 @@ is not built yet -- that is a following piece of work. What exists so far:
   input file of a knowledge base (logical `file_key`, original filename,
   status, sheet/chunk counts), kept only for diagnostics/traceability. On
   `projects`, a nullable `latest_ready_kb_id` column always points at the
-  newest `ready` knowledge base of that project -- any future consumer (the
-  planned chatbot workshop) reads this pointer instead of querying
-  `knowledge_bases` directly.
+  newest `ready` knowledge base of that project -- consumers read this pointer
+  instead of querying `knowledge_bases` directly.
+- **`chat_sessions` table** (financial chatbot) -- **metadata only, no message
+  content**. Columns: `id`, `project_id`, `user_id`, `title`, `created_at`,
+  `updated_at`. There is **no** `chat_messages` table and no transcript file
+  anywhere. This is an intentional deviation from a "normal" chat app:
+
+  | Stored | Not stored |
+  |---|---|
+  | chat title + id, creation time, last-used time | the user's questions |
+  | which project/user the chat belongs to | the assistant's answers, and their sources |
+  | | the multi-turn context of a conversation |
+
+  Consequences you should expect (they are the design, not a bug): reopening an
+  old chat shows an **empty** conversation (only its title/date survive);
+  deleting a chat is a hard delete of just that one row (there is nothing else to
+  clean up); multi-turn awareness exists **only** for the currently-open
+  conversation, and it lives entirely in the browser's JS memory — the browser
+  re-sends the last few turns with each question and the server is stateless per
+  request. `chat_sessions` rows are removed with their project (FK
+  `ON DELETE CASCADE`), and every read/delete is checked against both the
+  project *and* the current user.
 - **Uniqueness/versioning guarantee** -- every time a project's files are
   re-uploaded and the checklist workshop is re-run, a brand-new
   `knowledge_bases` row, a brand-new UUID, and a brand-new on-disk Chroma
@@ -682,7 +814,7 @@ is not built yet -- that is a following piece of work. What exists so far:
   for the same `(user_id, project_id)` pair -- see
   `api/repositories/knowledge_bases.py::create`. A retention policy
   (`PSA_KB_RETENTION_COUNT`, `list_stale_beyond_retention`) identifies stale
-  knowledge bases beyond the N most recent per project, and is now enforced
+  knowledge bases beyond the N most recent per project, and is enforced
   right after each checklist run marks its own knowledge base `ready`
   (`api/services/checklist_kb_service.py::_apply_retention`): every stale row's
   on-disk directory and database rows (`knowledge_bases` + its `kb_files`) are
@@ -690,32 +822,47 @@ is not built yet -- that is a following piece of work. What exists so far:
   at by `projects.latest_ready_kb_id` is defensively re-checked (re-read at
   deletion time, not reused from earlier in the run) and never deleted.
 - **On-disk layout** -- `api/services/kb_storage.py` is the single source of
-  truth for where a knowledge base's Chroma files live:
+  truth for where a knowledge base's files live:
   `{PSA_VECTOR_STORE_ROOT}/{user_id}/{project_id}/{kb_id}/`. Every read/write
   resolves the path against `PSA_VECTOR_STORE_ROOT` and refuses anything that
   would land outside it (mirroring the safety pattern in `api/storage.py`).
-  Each knowledge base's directory also holds a `manifest.json`
-  (`embedding_model`, `embedding_device`, `created_at`,
-  `chroma_collection_name`) -- redundant with the database row on purpose, so
-  the embedding model behind any on-disk index is recoverable by inspecting
-  the folder alone, without a database.
+  Each knowledge base's directory holds:
+  - `manifest.json` (`embedding_model`, `embedding_device`, `created_at`,
+    `chroma_collection_name`) -- redundant with the database row on purpose, so
+    the embedding model behind any on-disk index is recoverable by inspecting
+    the folder alone, without a database;
+  - `chunks.jsonl` -- one JSON record per indexed chunk (`chunk_id`, `file_key`,
+    `source_sheet_names`, `metadata_text`, and the full table). This is the
+    **searchable text** of the knowledge base: Chroma only receives vectors and
+    tiny metadata, so without this file a *later* process has nothing to retrieve
+    (see [Pipeline → Financial chatbot](#financial-chatbot-workshop) for the full
+    explanation). It is written by the dashboard, never by `rag_chat_module`, and
+    is deleted together with the rest of the knowledge base directory.
 - **`api/services/rag_ai_adapter.py`** -- the only place in the dashboard
   allowed to construct `rag_chat_module` objects
   (`OpenAIClient`/`SentenceTransformerEmbedder`/`ChromaVectorStore`).
   `build_llm_client` builds an OpenAI-compatible client from this project's own
   `ai_settings.py` resolution chain (project+workshop setting -> system
-  default) for a new workshop slug, `financial_chatbot` -- `ai_settings.py`
+  default) for the `financial_chatbot` workshop slug -- `ai_settings.py`
   itself needs no change to support it, since it never special-cases workshop
-  slugs. `build_embedder` builds a `SentenceTransformerEmbedder` for
+  slugs. `build_llm_client_from_settings` is the same thing for the settings
+  form's "تست اتصال" (it has an already-resolved settings object, not a session).
+  `build_embedder` builds a `SentenceTransformerEmbedder` for
   `PSA_EMBEDDING_MODEL`, detecting CUDA itself (via `torch.cuda.is_available()`)
   instead of relying on the package's own `device="auto"`, so the resolved
   device is logged and can be persisted in the database/manifest.
   `build_vector_store_factory` returns a factory that builds a `ChromaVectorStore`
-  for one knowledge base's collection/persist directory.
-- **`rag_chat_module` itself is not modified.** It stays fully usable on its
-  own (its own CLI/scripts, `providers.yaml`, `pipeline.yaml`) -- the dashboard
-  only ever talks to it through the two modules above, in Python, at call
-  time; it never writes to or reads `rag_chat_module/config/*.yaml`.
+  for one knowledge base's collection/persist directory, while
+  `build_recording_vector_store_factory` returns the writing variant that also
+  maintains `chunks.jsonl`, and `build_readonly_knowledge_base` opens an
+  **existing** knowledge base for search (rebuilding the store's in-memory chunk
+  cache from `chunks.jsonl`, and returning `None` when there is no stored text --
+  the caller then shows a Persian message instead of pretending to search).
+- **`rag_chat_module` itself is not modified, and the dashboard only ever reads
+  from it.** It stays fully usable on its own (its own CLI/scripts,
+  `providers.yaml`, `pipeline.yaml`) -- the dashboard talks to it through the
+  adapter module above, in Python, at call time; it never writes to or reads
+  `rag_chat_module/config/*.yaml`.
 
 ## Project Components
 
@@ -734,6 +881,7 @@ is not built yet -- that is a following piece of work. What exists so far:
 | `extraction_script/scripts/document_conversion/` | PDF → xlsx conversion for tabular Persian PDFs, and generic PDF/DOC → text extraction (with OCR fallback) |
 | `audit_report_generator/` | LLM-powered generator of the "committee non-conformity report" (`.docx`), built on the `openai` client library |
 | `rag_chat_module/` (`llm_variable_resolver`) | Independent, unmodified package providing versioned knowledge bases + RAG chat; the dashboard talks to it only through `api/services/rag_ai_adapter.py` and `api/services/kb_storage.py` -- see [Knowledge-base infrastructure](#knowledge-base-infrastructure-rag_chat_module) (triggered by the checklist workshop's `api/services/checklist_kb_service.py`) |
+| `api/services/financial_chatbot_service.py` | The financial chatbot workshop's processing module: gates on `projects.latest_ready_kb_id`, rebuilds a **read-only** `KnowledgeBase` through `rag_ai_adapter`, folds the browser-held recent turns into the question, and calls `rag_chat_module`'s `chat_ask`. It persists nothing; chat sessions (metadata only — `id`, title, timestamps) live in `api/repositories/chat_sessions.py` |
 | `audit_summarizer/` | Standalone LLM-powered audit-report summarizer package, with its own CLI, tests, and samples |
 | `db_management/budget_management/` | Batch scripts to create the PostgreSQL schema and bulk-insert extracted budget data |
 
@@ -783,26 +931,43 @@ under the hood). They cover:
 - **projects**: creation/validation, per-user isolation, and deletion — including
   the guarantee that deleting a project leaves **no** orphaned rows *or* files
   behind, and that its stored (encrypted) workshop API keys are gone too;
-- **all three workshops** end-to-end through a project: job creation, status
-  polling, results, result download, history rows and their error cases, plus the
-  check that a history row never contains input file names/paths;
+- **all three job-based workshops** end-to-end through a project: job creation,
+  status polling, results, result download, history rows and their error cases,
+  plus the check that a history row never contains input file names/paths;
+- **the financial chatbot workshop**: session *metadata* CRUD (creation with a
+  default Persian title, newest-first listing, hard delete of exactly one row,
+  and `updated_at` moving when a question is asked) under per-user *and*
+  per-project isolation — a foreign session answers 404, never 403 — plus the
+  gated page before `projects.latest_ready_kb_id` exists (Persian instruction
+  card, `/ask` refusing with 409 and the gate message) and the working page once
+  it does. The last few turns the browser sends are checked to be folded into the
+  question, two concurrent asks against two different sessions are checked to
+  each see only their own `recent_history`, an `/ask` response is checked for its
+  documented shape, and the database is checked to hold no message content at all
+  (`chat_sessions` is metadata-only). The real `ask_with_history` is exercised
+  with `rag_ai_adapter` and the model client stubbed out, so no embedder, Chroma
+  store, or network call is involved. The XSS guard is verified in two places: a
+  `<script>`-bearing model answer is asserted to leave the API as plain JSON (the
+  Markdown rendering happens in the browser, which `TestClient` cannot execute),
+  and the JS controller's renderer is asserted at the source level to escape first
+  and to scheme-allowlist link targets;
 - **AI settings**: the default-fallback chain, per-project and per-workshop
   scoping, the Persian validation messages, "test connection" against a stubbed
   model client, and that a saved API key is encrypted at rest and is **never**
   returned in plain text (or in encrypted form) by any endpoint;
-- **concurrency and isolation**: three workshops progressing independently in one
-  project, two runs of the same workshop staying apart, jobs of different
-  projects isolated, and a job/run of one workshop *not* being readable through
-  another workshop's endpoints;
+- **concurrency and isolation**: three job-based workshops progressing
+  independently in one project, two runs of the same workshop staying apart, jobs
+  of different projects isolated, and a job/run of one workshop *not* being
+  readable through another workshop's endpoints;
 - **formatting**: Jalali date conversion and Persian digit/number rendering;
 - **knowledge-base infrastructure**: `knowledge_bases` repository (creation always
   gets a fresh UUID row, per-user/per-project isolation, atomic
   `mark_ready_and_update_project_pointer`, retention-policy listing), `kb_storage`
-  path safety/idempotent deletion, and `rag_ai_adapter` building its objects from
-  resolved AI settings -- all with `OpenAIClient`/`SentenceTransformerEmbedder`/
-  `ChromaVectorStore` stubbed out, so these tests need no GPU, network access, or
-  the real `rag_chat_module` package either (this infrastructure is not yet
-  reachable from any workshop, so there is no end-to-end test for it).
+  path safety/idempotent deletion and its `chunks.jsonl` sidecar round-trip, and
+  `rag_ai_adapter` building its objects from resolved AI settings -- all with
+  `OpenAIClient`/`SentenceTransformerEmbedder`/`ChromaVectorStore` stubbed out, so
+  these tests need no GPU, network access, or the real `rag_chat_module` package
+  either.
 
 They never run the real extraction/checklist/LLM pipelines:
 `pipeline.start_checklist_job`, `audit_pipeline.start_audit_summary_job` and
@@ -954,6 +1119,17 @@ no edits.
    `tests/test_concurrent_jobs.py` so no real background thread/LLM is needed.
 8. **Update this README**: add the workshop to the Overview list, the
    [Pipeline](#pipeline) section and the [Testing](#testing) coverage list.
+
+Steps 2, 3 and 5 describe the **job-based** shape, which is what three of the four
+workshops use. `api/workshops/financial_chatbot.py` +
+`api/services/financial_chatbot_service.py` + `web/static/js/financial_chatbot.js`
+show the other shape a workshop may take: synchronous request/response, with **no
+`job_manager.create`**, no `workshop_runs` row, no polling, and therefore minimal
+no-op implementations of the four job-related registry callables — but still a
+normal registry entry, page template and project-scoped router, so it gets its
+card, navigation entry and AI-settings form exactly like the others. If your
+workshop needs durable state of its own, give it its own table
+(`chat_sessions` is the example) rather than overloading `workshop_runs`.
 
 ## License
 

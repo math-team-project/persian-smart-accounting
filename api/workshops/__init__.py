@@ -25,7 +25,12 @@ from api.workshops.registry import (
 # ایمپورت‌ها *بعد* از ایمپورت registry هستند و عمداً ترتیب دارند: هر ماژول در زمان
 # ایمپورت، تعریف خودش را ثبت می‌کند. ترتیب ایمپورت = ترتیب نمایش (کارت‌های صفحهٔ
 # پروژه و پیوندهای ناوبری)، به همین دلیل چک‌لیست -- کارگاه اصلی -- اول می‌آید.
-from api.workshops import checklist, audit_summary, budget_analysis  # noqa: E402,F401  (ثبت در رجیستری)
+from api.workshops import (  # noqa: E402,F401  (ثبت در رجیستری)
+    checklist,
+    audit_summary,
+    budget_analysis,
+    financial_chatbot,
+)
 
 __all__ = [
     "WORKSHOPS",
@@ -35,6 +40,7 @@ __all__ = [
     "audit_summary",
     "budget_analysis",
     "checklist",
+    "financial_chatbot",
     "get",
     "register",
     "workshops_with_settings",

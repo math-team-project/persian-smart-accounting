@@ -63,6 +63,13 @@ torch>=2.0                # CUDA detection for embedding_device (api/services/ra
 sentence-transformers>=3.0 # SentenceTransformerEmbedder (multilingual embeddings)
 chromadb>=0.5              # ChromaVectorStore (per-knowledge-base persistent vector index)
 
+# NOTE (financial chatbot workshop): no new Python dependency was added for it.
+# The chunk-text sidecar (api/services/kb_storage.py) is plain `json`, and the
+# assistant answers are rendered as Markdown **client-side** by a small
+# dependency-free renderer in web/static/js/financial_chatbot.js (no CDN, no build
+# step, no Python Markdown/XSS-sanitizer library) -- see the README's
+# "Financial chatbot workshop" section for why that approach was chosen.
+
 # --- Testing --------------------------------------------------------------------
 pytest>=8.0
 httpx>=0.27              # required by fastapi.testclient.TestClient (api/ tests)

@@ -68,6 +68,19 @@ def _build_sheet_descriptions() -> dict[str, dict[str, str]]:
     return descriptions
 
 
+def sheet_descriptions() -> dict[str, dict[str, str]]:
+    """توصیف هر فایل (به تفکیک کلید logical) -- همان متنی که هنگام ایندکس‌سازی
+    به ``metadata_text`` هر chunk اضافه می‌شود.
+
+    عمومی و بدون پایگاه‌داده، چون مصرف‌کننده‌ی دیگری هم دارد: کارگاه چت‌بات مالی
+    همین توصیف‌ها را به‌عنوان «کاتالوگ فایل‌ها» به روتر مدل می‌دهد (نگاه کنید به
+    ``api/services/financial_chatbot_service.py::build_sheet_catalog``). این تابع
+    قطعی است (فقط از ``pipeline.FILE_SLOTS`` ساخته می‌شود) و هیچ حالت/پایه‌داده‌ای
+    ندارد، بنابراین نیازی به ذخیره‌کردن جداگانه‌اش در پایگاه‌دانش نیست.
+    """
+    return _build_sheet_descriptions()
+
+
 def _build_file_registry(file_paths: dict[str, Optional[Path]]) -> dict[str, str]:
     """فقط اسلات‌هایی که واقعاً آپلود شده‌اند + خودِ فایل تعریف چک‌لیست."""
     registry: dict[str, str] = {}
@@ -184,7 +197,12 @@ def start_indexing(
             return
 
         try:
-            vector_store_factory = rag_ai_adapter.build_vector_store_factory(
+            # factory «ضبط‌کننده» به‌جای factory ساده: علاوه بر Chroma، متن کامل هر
+            # chunk را هم در ``chunks.jsonl`` همین پایگاه‌دانش می‌نویسد. بدون آن،
+            # چت‌بات در یک فرایند تازه هیچ چیزی برای جست‌وجو ندارد (نگاه کنید به
+            # ``api/services/kb_storage.py``). این کار ایندکس‌سازی را کند نمی‌کند --
+            # فقط یک نوشتن خطی در کنار همان افزودن به Chroma است.
+            vector_store_factory = rag_ai_adapter.build_recording_vector_store_factory(
                 user_id, project_id, kb_id
             )
             kb = kb_repo.create(
@@ -322,7 +340,13 @@ def _run_resolver_and_feed_back(
             user_id=user_id,
             project_id=project_id,
             embedder=embedder,
-            vector_store_factory=vector_store_factory,
+            # مرحله‌ی «بازخورد نتایج» chunk های *تازه* (نتیجه‌ی تطبیق‌شده) را به همین
+            # پایگاه‌دانش اضافه می‌کند، پس همان factory ضبط‌کننده لازم است تا متن
+            # این فایل هم برای چت‌بات قابل جست‌وجو بماند. ``vector_store_factory``
+            # بالای این تابع (مسیر جست‌وجوی resolver) عمداً ساده می‌ماند.
+            vector_store_factory=rag_ai_adapter.build_recording_vector_store_factory(
+                user_id, project_id, kb_id
+            ),
             report_dict=report.to_dict(),
         )
     except Exception:  # noqa: BLE001

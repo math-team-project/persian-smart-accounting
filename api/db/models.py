@@ -9,6 +9,10 @@
 * ``workshop_settings`` -- تنظیمات اختیاری هر کارگاه در هر پروژه (کلید/آدرس/مدل
   LLM و ...). همه‌ی ستون‌ها nullable هستند: مقدار NULL یعنی «از پیش‌فرض استفاده کن».
   مصرف واقعی این جدول در فاز بعد (تنظیمات) است؛ در این فاز فقط ساخته می‌شود.
+* ``chat_sessions``    -- فقط *متادیتای* گفتگوهای کارگاه «چت‌بات مالی»: یک عنوان و
+  دو زمان. **هیچ جدول پیام‌ها و هیچ متنی از گفتگو ذخیره نمی‌شود** -- باز کردن
+  دوباره‌ی یک گفتگوی قدیمی، فهرست پیام‌ها را برنمی‌گرداند (عمداً؛ نگاه کنید به
+  ``ChatSession``).
 """
 from __future__ import annotations
 
@@ -76,6 +80,9 @@ class Project(Base):
         back_populates="project",
         cascade="all, delete-orphan",
         foreign_keys="KnowledgeBase.project_id",
+    )
+    chat_sessions: Mapped[list["ChatSession"]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
     )
 
 
@@ -184,3 +191,43 @@ class KBFile(Base):
     error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     knowledge_base: Mapped[KnowledgeBase] = relationship(back_populates="files")
+
+
+class ChatSession(Base):
+    """یک «گفتگوی نام‌دار» کارگاه چت‌بات مالی -- فقط متادیتا، بدون هیچ پیامی.
+
+    این جدول عمداً از یک اپ چت معمولی فاصله می‌گیرد: هیچ جدول ``chat_messages``ی
+    وجود ندارد و هیچ متن گفتگویی (نه پرسش کاربر، نه پاسخ مدل) روی دیسک یا در
+    پایگاه‌داده نوشته نمی‌شود. فقط عنوان و دو زمان نگه داشته می‌شوند تا کاربر
+    بتواند فهرست گفتگوهایش را ببیند، بین‌شان جابه‌جا شود و هرکدام را پاک کند.
+
+    نتیجه‌ی عملی و **عمدی**: باز کردن دوباره‌ی یک گفتگوی قدیمی، یک گفتگوی خالی
+    نشان می‌دهد (فقط عنوانش برمی‌گردد) -- محتوای پیام‌ها هرگز بازیابی نمی‌شود.
+    زمینه‌ی چندنوبتی (multi-turn) فقط در حافظه‌ی مرورگر و در طول همان گفتگوی
+    بازِ در حال استفاده زنده است (نگاه کنید به
+    ``api/services/financial_chatbot_service.py`` و ``web/static/js/financial_chatbot.js``).
+
+    جایگاه امنیتی: مثل ``KnowledgeBase``، یک گفتگو متعلق به یک ``user_id`` **و**
+    یک ``project_id`` مشخص است؛ هیچ گفتگویی با شناسه‌اش از پروژه/کاربر دیگر
+    خوانده نمی‌شود (همان الگوی «۴۰۴ نه ۴۰۳» در ``api/repositories/chat_sessions.py``).
+
+    ``updated_at`` هنگام هر پرسش در همان گفتگو تازه می‌شود، بنابراین فهرست
+    گفتگوها (جدیدترین اول) با «آخرین استفاده» مرتب می‌شود، نه فقط با زمان ساخت.
+    """
+
+    __tablename__ = "chat_sessions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_id: Mapped[int] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    title: Mapped[str] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+
+    project: Mapped[Project] = relationship(back_populates="chat_sessions")

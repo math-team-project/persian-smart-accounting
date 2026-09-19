@@ -18,6 +18,17 @@
 
 هشدار محدوده: این ماژول هنوز به هیچ کارگاهی وصل نشده است (نه چک‌لیست، نه
 دستیار مالی) -- فقط زیرساخت آماده‌ی مصرف در فاز بعد است.
+
+سه بخش مجزا:
+
+۱) ساخت اشیای ``rag_chat_module`` از صفر (``build_llm_client``،
+   ``build_embedder``، ``build_vector_store_factory``) -- برای *نوشتن* یک
+   پایگاه‌دانش تازه.
+۲) ``build_recording_vector_store_factory`` -- همان factory با یک پوشش نازک که
+   متن هر chunk را کنار Chroma ذخیره می‌کند (نگاه کنید به
+   ``api/services/kb_storage.py`` برای توضیح «چرا»).
+۳) ``build_readonly_knowledge_base`` -- بازکردن یک پایگاه‌دانش **موجود** برای
+   خواندن/جست‌وجو، بدون ایندکس‌کردن دوباره‌ی چیزی.
 """
 from __future__ import annotations
 
@@ -113,6 +124,26 @@ def build_llm_client(
     )
 
 
+def build_llm_client_from_settings(settings, *, client_cls: type | None = None):
+    """مثل ``build_llm_client`` اما از یک ``AISettings`` حل‌شده (بدون نشست پایگاه‌داده).
+
+    برای «تست اتصال» فرم تنظیمات لازم است: آن مسیر یک ``AISettings`` سوارشده با
+    مقادیر ذخیره‌نشده‌ی فرم را در دست دارد و نباید به‌خاطر یک تست، resolver را
+    دوباره صدا بزند (که مقادیر ذخیره‌شده را برمی‌گرداند). این تابع همچنان تنها
+    جای مجاز ساخت ``OpenAIClient`` در داشبورد است.
+    """
+    if client_cls is None:
+        from llm_variable_resolver.llm import OpenAIClient as client_cls
+
+    return client_cls(
+        model=settings.model,
+        api_key=settings.api_key,
+        base_url=settings.api_url,
+        temperature=settings.temperature,
+        max_tokens=settings.max_output_tokens,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Embedder
 # ---------------------------------------------------------------------------
@@ -193,3 +224,139 @@ def build_vector_store_factory(
         )
 
     return _factory
+
+
+# ---------------------------------------------------------------------------
+# factory «ضبط‌کننده» -- برای زمانی که یک پایگاه‌دانش نازه ساخته می‌شود
+# ---------------------------------------------------------------------------
+class _ChunkRecordingVectorStore:
+    """پوشش نازک دور یک ``VectorStore`` که متن هر chunk را هم روی دیسک می‌نویسد.
+
+    خودش هیچ جست‌وجویی انجام نمی‌دهد؛ هر دو متد را دقیقاً به استور درونی
+    واگذار می‌کند و فقط کنار ``add`` یک نسخه‌ی متنی هم در ``chunks.jsonl`` همان
+    پایگاه‌دانش می‌گذارد (نگاه کنید به ``api/services/kb_storage.py`` برای توضیح
+    اینکه چرا بدون این فایل، یک فرایند تازه هیچ چیزی برای جست‌وجو ندارد).
+
+    ترتیب مهم است: ابتدا ``add`` درونی (تا فقط chunk هایی که واقعاً وارد ایندکس
+    شده‌اند ثبت شوند)، بعد نوشتن متن.
+    """
+
+    def __init__(
+        self,
+        inner: object,
+        *,
+        user_id: int,
+        project_id: int,
+        kb_id: str,
+        state: dict[str, set[str]],
+    ) -> None:
+        self._inner = inner
+        self._user_id = user_id
+        self._project_id = project_id
+        self._kb_id = kb_id
+        self._state = state
+
+    def add(self, chunk, vector) -> None:  # noqa: ANN001 -- امضای VectorStore
+        self._inner.add(chunk, vector)  # type: ignore[attr-defined]
+        kb_storage.append_chunks(
+            self._user_id, self._project_id, self._kb_id, [chunk], state=self._state
+        )
+
+    def search(self, query_vector, top_k: int):  # noqa: ANN001 -- امضای VectorStore
+        return self._inner.search(query_vector, top_k)  # type: ignore[attr-defined]
+
+
+def build_recording_vector_store_factory(
+    user_id: int, project_id: int, kb_id: str, *, store_cls: type | None = None
+):
+    """factory‌ای مثل ``build_vector_store_factory`` که متن chunk ها را هم ذخیره می‌کند.
+
+    فقط برای مسیر **ساخت** پایگاه‌دانش (ایندکس‌سازی) استفاده می‌شود؛ مسیر خواندن
+    از ``build_vector_store_factory`` ساده استفاده می‌کند. هر فراخوانی factory یک
+    استور تازه می‌سازد، اما همه‌ی آن‌ها متن را به همان ``chunks.jsonl`` اضافه
+    می‌کنند و شناسه‌های نوشته‌شده بین‌شان مشترک است (تا یک فایل دوبار ایندکس‌شده
+    رکورد تکراری تولید نکند).
+    """
+    state: dict[str, set[str]] = {}
+    base_factory = build_vector_store_factory(user_id, project_id, kb_id, store_cls=store_cls)
+
+    def _factory():
+        return _ChunkRecordingVectorStore(
+            base_factory(),
+            user_id=user_id,
+            project_id=project_id,
+            kb_id=kb_id,
+            state=state,
+        )
+
+    return _factory
+
+
+# ---------------------------------------------------------------------------
+# پایگاه‌دانش فقط-خواندنی -- برای جست‌وجو/چت روی یک ایندکس موجود
+# ---------------------------------------------------------------------------
+_FITTED_FLAG = "_fitted"
+_STORE_ATTR = "_store"
+_CHUNKS_BY_ID_ATTR = "_chunks_by_id"
+_STORE_CACHE_ATTR = "_chunk_cache"
+
+
+def build_readonly_knowledge_base(
+    user_id: int,
+    project_id: int,
+    kb_id: str,
+    *,
+    embedder=None,
+    embedder_cls: type | None = None,
+    store_cls: type | None = None,
+):
+    """یک ``KnowledgeBase`` آماده‌ی جست‌وجو روی یک پایگاه‌دانش **موجود** می‌سازد.
+
+    چرا این تابع لازم است: سازنده‌ی ``KnowledgeBase`` برای *ساختن* ایندکس طراحی
+    شده -- تا زمانی که ``index_files`` صدا زده نشود، ``is_ready()`` مقدار
+    ``False`` برمی‌گرداند و ``chat_ask`` بلافاصله «پایگاه دانش آماده نیست»
+    می‌دهد. برای یک فرایند تازه (درخواست چت‌بات) هیچ چیزی برای ایندکس‌کردن مجدد
+    وجود ندارد: فایل‌های ورودی کاربر پس از هر اجرا حذف می‌شوند. بنابراین حالت
+    «آماده» و کش درون‌حافظه‌ای استور را از روی ``chunks.jsonl`` (که در زمان
+    ایندکس‌سازی نوشته شده) بازسازی می‌کنیم و بقیه‌ی مسیر دقیقاً همان کد
+    ``rag_chat_module`` می‌ماند (``search`` → ``_answer_with_llm`` با روتر).
+
+    خروجی ``None`` یعنی این پایگاه‌دانش هیچ متن قابل‌جست‌وجویی ندارد (مثلاً
+    قبل از این تغییر ساخته شده) -- تصمیم با فراخواننده است که پیام فارسی
+    مناسب را نشان دهد، نه اینکه یک خطای مبهم پرتاب شود.
+
+    تنظیمات و اشیای مستقل (embedder/vector store) از همان دو تابع بالای همین
+    فایل می‌آیند؛ هیچ‌جای دیگری در داشبورد مجاز به ساخت آن‌ها نیست.
+    """
+    records = kb_storage.read_chunks(user_id, project_id, kb_id)
+    if not records:
+        logger.warning(
+            "read-only knowledge base requested but no chunk text is stored (kb=%s)", kb_id
+        )
+        return None
+
+    if embedder is None:
+        embedder, _device = build_embedder(embedder_cls=embedder_cls)
+    store_factory = build_vector_store_factory(user_id, project_id, kb_id, store_cls=store_cls)
+
+    from llm_variable_resolver.knowledge_base import KnowledgeBase
+
+    knowledge_base = KnowledgeBase(embedder=embedder, vector_store_factory=store_factory)
+    store = store_factory()
+
+    # بازسازی کش درون‌حافظه‌ای استور: ``ChromaVectorStore.search`` هر رکورد را از
+    # ``_chunk_cache`` می‌خواند (چون متن را در Chroma ذخیره نمی‌کند) -- بدون این
+    # کار، جست‌وجو همیشه خالی برمی‌گردد. اگر استور واقعاً چنین صفتی نداشته باشد
+    # (مثلاً یک کلاس تست) بی‌سروصدا رد می‌شود.
+    cache = getattr(store, _STORE_CACHE_ATTR, None)
+    if isinstance(cache, dict):
+        cache.update({chunk.chunk_id: chunk for chunk in records})
+
+    setattr(knowledge_base, _FITTED_FLAG, True)
+    setattr(knowledge_base, _STORE_ATTR, store)
+    setattr(knowledge_base, _CHUNKS_BY_ID_ATTR, {chunk.chunk_id: chunk for chunk in records})
+
+    logger.info(
+        "read-only knowledge base ready (kb=%s, chunks=%d)", kb_id, len(records)
+    )
+    return knowledge_base
