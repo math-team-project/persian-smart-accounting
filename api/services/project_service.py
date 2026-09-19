@@ -13,11 +13,12 @@
        مستقل است و کار خودش را تمام می‌کند، اما چون ردیف تاریخچه دیگر وجود ندارد،
        ثبت نتیجه‌اش بی‌اثر و بی‌خطر است -- ``finalize_run`` ردیف غایب را نادیده
        می‌گیرد)،
-    ۲) گفتگوهای چت‌بات همین پروژه حذف می‌شوند (فقط متادیتا؛ چیزی روی دیسک نیست)،
+    ۲) پیام‌های گفتگوهای چت‌بات همین پروژه حذف می‌شوند و سپس خودِ گفتگوها
+       (پیام‌ها فرزند گفتگو هستند، پس ترتیب مهم است)،
     ۳) پوشه‌های روی-دیسک پایگاه‌دانش‌های همین پروژه -- و سپس خودِ پوشه‌ی والدِ
        پروژه اگر خالی ماند -- پاک می‌شوند **پیش از** حذف ردیف‌های پایگاه‌داده،
        چون فهرست دقیق شناسه‌ها از همان ردیف‌ها می‌آید و نمی‌خواهیم پس از حذف
-       ردیف‌ها مجبور شویم مسیرها را حدس بزنیم،
+       ردیف‌ها مجبور شویم مسیرها را حدس بزنیم,
     ۴) ردیف‌های ``knowledge_bases`` و ``kb_files`` همین پروژه حذف می‌شوند (اشاره‌گر
        ``projects.latest_ready_kb_id`` پیش از آن پاک می‌شود تا هیچ‌گاه به ردیفی
        که در حال حذف است اشاره نکند)،
@@ -44,6 +45,7 @@ from sqlalchemy.orm import Session
 from api import storage
 from api.db.models import Project
 from api.jobs.job_manager import job_manager
+from api.repositories import chat_messages as chat_messages_repo
 from api.repositories import chat_sessions as chat_sessions_repo
 from api.repositories import knowledge_bases as kb_repo
 from api.repositories import projects as projects_repo
@@ -92,7 +94,12 @@ def delete_project(session: Session, project: Project, *, manager=job_manager) -
     # مرحله‌ی ۱
     removed_jobs = manager.delete_for_project(project_id)
 
-    # مرحله‌ی ۲ -- فقط متادیتا، بدون هیچ بخش روی-دیسک.
+    # مرحله‌ی ۲ -- پیام‌های گفتگوها **پیش از** خودِ گفتگوها (پیام فرزند گفتگوست).
+    # هر دو حذف صریح‌اند، با همان کلید سه‌گانه‌ی (session/project/user) و بدون هیچ
+    # تکیه‌ای بر cascade سطح پایگاه‌داده.
+    removed_chat_messages = chat_messages_repo.delete_all_chat_messages_for_project(
+        session, project_id, user_id
+    )
     removed_chat_sessions = chat_sessions_repo.delete_all_chat_sessions_for_project(
         session, project_id, user_id
     )
@@ -114,10 +121,11 @@ def delete_project(session: Session, project: Project, *, manager=job_manager) -
     storage.delete_project_files(project_id)
 
     logger.info(
-        "project %s deleted (jobs=%d, chat_sessions=%d, kb_directories=%d, "
+        "project %s deleted (jobs=%d, chat_messages=%d, chat_sessions=%d, kb_directories=%d, "
         "knowledge_bases=%d, kb_files=%d, runs=%d, settings=%d, result_files=%d)",
         project_id,
         removed_jobs,
+        removed_chat_messages,
         removed_chat_sessions,
         targeted_kb_directories,
         removed_kbs["knowledge_bases"],
@@ -128,6 +136,7 @@ def delete_project(session: Session, project: Project, *, manager=job_manager) -
     )
     return {
         "jobs": removed_jobs,
+        "chat_messages": removed_chat_messages,
         "chat_sessions": removed_chat_sessions,
         "kb_directories": targeted_kb_directories,
         "knowledge_bases": removed_kbs["knowledge_bases"],

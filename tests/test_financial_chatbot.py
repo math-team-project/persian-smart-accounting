@@ -1,4 +1,4 @@
-"""تست‌های کارگاه «چت‌بات مالی» (گفتگوهای متادیتا-محور + پرسش/پاسخ).
+"""تست‌های کارگاه «چت‌بات مالی» (گفتگوها، پیام‌های ماندگار، دروازه‌بندی، امنیت).
 
 راهبرد تست، مثل بقیه‌ی کارگاه‌های این پروژه: هیچ LLM، embedder، Chroma store یا
 شبکه‌ای درگیر نمی‌شود. در بیشتر تست‌ها ``financial_chatbot_service.ask_with_history``
@@ -6,15 +6,21 @@
 کارگاه‌های دیگر pipeline را جایگزین می‌کنند) و در یک تست جدا، خودِ سرویس واقعی با
 ``rag_ai_adapter`` جعلی اجرا می‌شود تا سیم‌کشی و شکل خروجی‌اش هم آزموده شود.
 
+رفتار غیرهم‌زمان (۲۰۲ + polling) و تاریخچه‌ی ماندگار در فایل جداگانه‌ای آزموده
+می‌شود: ``tests/test_financial_chatbot_history.py``. این فایل روی چیزهایی تمرکز
+دارد که با آن تغییر عوض نشده‌اند -- جداسازی، دروازه‌بندی، شکل سرویس، و قرارداد
+امنیتی رندر Markdown -- به‌علاوه‌ی چند قرارداد *جدید* در همان سطح (شکل ردیف پیام،
+تاریخچه‌ای که فقط از سرور می‌آید، و حذف پیام‌ها همراه گفتگو).
+
 سه چیز که این فایل به‌طور خاص تضمین می‌کند:
 
-۱) **جداسازی**: یک گفتگو فقط با ``(project_id, user_id)`` خودش خوانده/حذف می‌شود؛
-   پروژه/کاربر دیگر آن را نمی‌بیند (۴۰۴، نه ۴۰۳).
+۱) **جداسازی**: یک گفتگو/پیام فقط با ``(project_id, user_id)`` خودش خوانده/حذف
+   می‌شود؛ پروژه/کاربر دیگر آن را نمی‌بیند (۴۰۴، نه ۴۰۳).
 ۲) **دروازه‌بندی**: تا وقتی ``projects.latest_ready_kb_id`` خالی است، صفحه پیام
    فارسی راهنما نشان می‌دهد (نه رابط چت) و پرسش با پیام فارسی رد می‌شود.
-۳) **بی‌حالتی سرور**: هیچ متن گفتگویی ذخیره نمی‌شود؛ هر پاسخ فقط از
-   ``recent_history`` همان درخواست ساخته می‌شود و دو پرسش هم‌زمان روی دو گفتگوی
-   مختلف پروژه با هم قاطی نمی‌شوند.
+۳) **تاریخچه‌ی کلاینت‌ساخت پذیرفته نمی‌شود**: زمینه‌ی چندنوبتی فقط از ردیف‌های
+   ذخیره‌شده‌ی همان گفتگو ساخته می‌شود، پس هیچ کلاینتی نمی‌تواند یک «تاریخچه»ی
+   جعلی به مدل تزریق کند.
 
 درباره‌ی بررسی XSS (تست آخر): این پروژه Markdown پاسخ مدل را **سمت مرورگر** و با
 یک تابع ``escape-first`` رندر می‌کند (``web/static/js/financial_chatbot.js``)، پس
@@ -27,14 +33,14 @@
 """
 from __future__ import annotations
 
-import threading
-from concurrent.futures import ThreadPoolExecutor
+import time
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
-from api.main import WEB_DIR, app
+from api.main import WEB_DIR
+from api.repositories import chat_messages as messages_repo
 from api.repositories import chat_sessions as chat_repo
 from api.repositories import knowledge_bases as kb_repo
 from api.repositories import projects as projects_repo
@@ -44,9 +50,6 @@ from api.services import rag_ai_adapter
 SLUG = "financial_chatbot"
 JS_PATH = Path(WEB_DIR, "static", "js", "financial_chatbot.js")
 TEMPLATE_PATH = Path(WEB_DIR, "templates", "financial_chatbot.html")
-
-USERNAME = "tester"
-PASSWORD = "secret123"
 
 
 # ---------------------------------------------------------------------------
@@ -95,18 +98,84 @@ def other_user_project(db_session, second_user):
     return projects_repo.create(db_session, second_user.id, "پروژه‌ی کاربر دیگر")
 
 
+def _new_session(client: TestClient, project_id: int, title: str = "گفتگوی آزمون") -> dict:
+    response = client.post(_api(project_id) + "/sessions", json={"title": title})
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+def _wait_for_message(
+    client: TestClient, project_id: int, session_id: str, message_id: str, timeout: float = 10.0
+) -> dict:
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        response = client.get(_api(project_id) + f"/sessions/{session_id}/messages/{message_id}")
+        assert response.status_code == 200, response.text
+        row = response.json()
+        if row["status"] in ("complete", "failed"):
+            return row
+        time.sleep(0.02)
+    raise AssertionError(f"پیام {message_id} در مهلت مقرر نهایی نشد")
+
+
+def _fake_ask(*, answer="پاسخ جعلی", confidence="high", sources=None, route_reasoning=""):
+    """یک ``ask_with_history`` جعلی که استدلال‌هایش را هم ثبت می‌کند.
+
+    امضای آن همان امضای واقعی سرویس است (``session, project, question,
+    recent_history``) و تاریخچه را همان‌طور که سرویس می‌بیند ثبت می‌کند.
+    """
+    calls: list[dict] = []
+
+    def _inner(session, project, question, recent_history=None):
+        history = _as_dicts(recent_history)
+        calls.append({"project_id": project.id, "question": question, "history": history})
+        return {
+            "answer": answer,
+            "confidence": confidence,
+            "sources": sources or [],
+            "route_reasoning": route_reasoning,
+            "history_turns_used": len(history),
+        }
+
+    _inner.calls = calls  # type: ignore[attr-defined]
+    return _inner
+
+
+def _as_dicts(rows) -> list[dict]:
+    """نوبت‌های دریافتی سرویس را به دیکشنری ساده تبدیل می‌کند."""
+    return [
+        {"role": row.role, "content": row.content}
+        if hasattr(row, "role")
+        else {"role": row.get("role"), "content": row.get("content")}
+        for row in (rows or [])
+    ]
+
+
+def _ask_and_wait(client: TestClient, project_id: int, session_id: str, question: str) -> dict:
+    """پرسش می‌فرستد و تا نهایی‌شدن پاسخ صبر می‌کند (خروجی: ردیف پاسخ دستیار)."""
+    response = client.post(
+        _api(project_id) + f"/sessions/{session_id}/ask", json={"question": question}
+    )
+    assert response.status_code == 202, response.text
+    started = response.json()
+    return _wait_for_message(client, project_id, session_id, started["assistant_message_id"])
+
+
 # ---------------------------------------------------------------------------
 # گفتگوها: ساخت / فهرست / حذف
 # ---------------------------------------------------------------------------
-def test_create_session_returns_metadata_only(auth_client, project):
+def test_create_session_returns_metadata_with_a_uuid_identifier(auth_client, project):
     response = auth_client.post(_api(project.id) + "/sessions", json={"title": "بررسی موجودی"})
 
     assert response.status_code == 201
     data = response.json()
     assert data["title"] == "بررسی موجودی"
-    assert isinstance(data["id"], int)
+    # شناسه یک UUID رشته‌ای است (نه عدد خودکارافزاینده) -- همان الگوی پایگاه‌دانش،
+    # تا کلید ترکیبی job پس‌زمینه واقعاً جهانی‌یکتا باشد.
+    assert isinstance(data["id"], str)
+    assert len(data["id"]) == 36 and data["id"].count("-") == 4
     assert data["created_at"] and data["updated_at"]
-    # قرارداد «فقط متادیتا»: هیچ کلید دیگری (مثل پیام‌ها) در پاسخ نیست.
+    # قرارداد «متادیتا»: هیچ کلید دیگری (مثل پیام‌ها) در پاسخ گفتگو نیست.
     assert set(data) == {"id", "title", "created_at", "updated_at"}
 
 
@@ -126,56 +195,62 @@ def test_list_sessions_is_empty_for_a_fresh_project(auth_client, project):
 
 def test_list_sessions_returns_newest_used_first(auth_client, project):
     """ترتیب فهرست قطعی است: جدیدترین «آخرین استفاده» اول، و در زمان برابری id نزولی."""
-    first = auth_client.post(_api(project.id) + "/sessions", json={"title": "اول"}).json()
-    second = auth_client.post(_api(project.id) + "/sessions", json={"title": "دوم"}).json()
+    first = _new_session(auth_client, project.id, title="اول")
+    second = _new_session(auth_client, project.id, title="دوم")
     assert first["id"] != second["id"]
 
     listed = auth_client.get(_api(project.id) + "/sessions").json()["sessions"]
-    assert [item["id"] for item in listed] == [second["id"], first["id"]]
     assert [item["title"] for item in listed] == ["دوم", "اول"]
 
 
-def test_ask_touches_the_session_so_it_moves_to_the_top(
-    auth_client, ready_project, monkeypatch
-):
-    first = auth_client.post(
-        _api(ready_project.id) + "/sessions", json={"title": "اول"}
-    ).json()
-    second = auth_client.post(
-        _api(ready_project.id) + "/sessions", json={"title": "دوم"}
-    ).json()
-    assert second["id"] > first["id"]
+def test_ask_touches_the_session_so_it_moves_to_the_top(auth_client, ready_project, monkeypatch):
+    first = _new_session(auth_client, ready_project.id, title="اول")
+    second = _new_session(auth_client, ready_project.id, title="دوم")
 
     monkeypatch.setattr(
         "api.workshops.financial_chatbot.chatbot.ask_with_history",
         _fake_ask(answer="پاسخ آزمایشی"),
     )
     # گفتگوی قدیمی‌تر (اول) دوباره استفاده می‌شود.
-    response = auth_client.post(
-        _api(ready_project.id) + f"/sessions/{first['id']}/ask", json={"question": "سؤال"}
-    )
-    assert response.status_code == 200
+    _ask_and_wait(auth_client, ready_project.id, first["id"], "سؤال")
 
     listed = auth_client.get(_api(ready_project.id) + "/sessions").json()["sessions"]
     assert listed[0]["id"] == first["id"]
+    assert listed[1]["id"] == second["id"]
 
 
-def test_delete_session_removes_only_that_row(auth_client, project, db_session):
-    keep = auth_client.post(_api(project.id) + "/sessions", json={"title": "بماند"}).json()
-    remove = auth_client.post(_api(project.id) + "/sessions", json={"title": "حذف"}).json()
+def test_delete_session_removes_only_that_row_and_its_messages(
+    auth_client, ready_project, db_session, monkeypatch, user
+):
+    monkeypatch.setattr(
+        "api.workshops.financial_chatbot.chatbot.ask_with_history", _fake_ask()
+    )
+    keep = _new_session(auth_client, ready_project.id, title="بماند")
+    remove = _new_session(auth_client, ready_project.id, title="حذف")
+    _ask_and_wait(auth_client, ready_project.id, remove["id"], "پرسش در گفتگوی حذف‌شونده")
 
-    response = auth_client.delete(_api(project.id) + f"/sessions/{remove['id']}")
+    response = auth_client.delete(_api(ready_project.id) + f"/sessions/{remove['id']}")
 
     assert response.status_code == 204
-    remaining = [item["id"] for item in auth_client.get(_api(project.id) + "/sessions").json()["sessions"]]
+    remaining = [
+        item["id"]
+        for item in auth_client.get(_api(ready_project.id) + "/sessions").json()["sessions"]
+    ]
     assert remaining == [keep["id"]]
-    # ردیف واقعاً از پایگاه‌داده رفته است (حذف سخت، نه علامت‌گذاری).
+    # ردیف واقعاً از پایگاه‌داده رفته است (حذف سخت، نه علامت‌گذاری)...
     assert (
         chat_repo.get_by_id(
-            db_session, remove["id"], user_id=project.user_id, project_id=project.id
+            db_session, remove["id"], user_id=ready_project.user_id, project_id=ready_project.id
         )
         is None
     )
+    # ... و پیام‌هایش هم با آن رفته‌اند (هیچ ردیف یتیمی نمی‌ماند).
+    assert messages_repo.list_by_session(
+        db_session, remove["id"], project_id=ready_project.id, user_id=user.id
+    ) == []
+    assert messages_repo.list_by_session(
+        db_session, keep["id"], project_id=ready_project.id, user_id=user.id
+    ) == []
 
 
 def test_delete_session_of_another_project_returns_404_and_keeps_the_row(
@@ -188,9 +263,12 @@ def test_delete_session_of_another_project_returns_404_and_keeps_the_row(
     response = auth_client.delete(_api(project.id) + f"/sessions/{chat.id}")
 
     assert response.status_code == 404
-    assert chat_repo.get_by_id(
-        db_session, chat.id, user_id=second_user.id, project_id=other_user_project.id
-    ) is not None
+    assert (
+        chat_repo.get_by_id(
+            db_session, chat.id, user_id=second_user.id, project_id=other_user_project.id
+        )
+        is not None
+    )
 
 
 def test_sessions_are_never_visible_through_another_project(
@@ -215,7 +293,9 @@ def test_chat_session_repo_isolates_users_and_projects(db_session, project, user
         db_session, project_id=other_project.id, user_id=second_user.id, title="مال دیگری"
     )
 
-    assert [c.id for c in chat_repo.list_by_project(db_session, project.id, user_id=user.id)] == [mine.id]
+    assert [c.id for c in chat_repo.list_by_project(db_session, project.id, user_id=user.id)] == [
+        mine.id
+    ]
     # همان پروژه اما کاربر دیگر: هیچ ردیفی برنمی‌گردد.
     assert chat_repo.list_by_project(db_session, project.id, user_id=second_user.id) == []
     assert (
@@ -223,24 +303,38 @@ def test_chat_session_repo_isolates_users_and_projects(db_session, project, user
     )
     # حذف با شناسه‌ی درست اما مالکیت نادرست، هیچ چیزی را پاک نمی‌کند.
     assert (
-        chat_repo.delete_by_id(db_session, theirs.id, user_id=user.id, project_id=project.id) is False
+        chat_repo.delete_by_id(db_session, theirs.id, user_id=user.id, project_id=project.id)
+        is False
     )
-    assert chat_repo.get_by_id(
-        db_session, theirs.id, user_id=second_user.id, project_id=other_project.id
-    ) is not None
+    assert (
+        chat_repo.get_by_id(
+            db_session, theirs.id, user_id=second_user.id, project_id=other_project.id
+        )
+        is not None
+    )
 
 
-def test_deleting_a_project_also_removes_its_chat_sessions(db_session, project, user):
-    """حذف پروژه نباید ردیف یتیم گفتگو باقی بگذارد (کلید خارجی CASCADE).
+def test_deleting_a_project_also_removes_its_chat_sessions_and_messages(
+    db_session, project, user
+):
+    """حذف پروژه نباید ردیف یتیم گفتگو یا پیام باقی بگذارد.
 
-    این تست فقط رفتار *فعلی* را قفل می‌کند؛ فاز بعدی (حذف پروژه) همین حذف را
-    صریح و همراه با گزارش تعداد انجام می‌دهد.
+    این تست مسیر cascade را در سطح ORM/SQLite قفل می‌کند؛ مسیر واقعی حذف پروژه
+    (که همین دو جدول را صریح و با گزارش تعداد پاک می‌کند) در
+    ``tests/test_projects.py`` آزموده می‌شود.
     """
-    chat_repo.create(db_session, project_id=project.id, user_id=user.id, title="یتیم‌نشو")
+    chat = chat_repo.create(db_session, project_id=project.id, user_id=user.id, title="یتیم‌نشو")
+    messages_repo.create_user_message(
+        db_session,
+        session_id=chat.id,
+        project_id=project.id,
+        user_id=user.id,
+        content="یک پرسش",
+    )
     projects_repo.delete(db_session, project)
 
-    remaining = db_session.query(chat_repo.ChatSession).all()
-    assert remaining == []
+    assert db_session.query(chat_repo.ChatSession).all() == []
+    assert db_session.query(messages_repo.ChatMessage).all() == []
 
 
 # ---------------------------------------------------------------------------
@@ -275,7 +369,7 @@ def test_page_shows_the_chat_interface_once_a_knowledge_base_is_ready(auth_clien
 
 def test_ask_is_refused_with_a_persian_message_when_not_available(auth_client, project):
     """حتی با یک گفتگوی معتبر، پرسش بدون پایگاه‌دانش آماده رد می‌شود."""
-    chat = auth_client.post(_api(project.id) + "/sessions", json={"title": "خاموش"}).json()
+    chat = _new_session(auth_client, project.id, title="خاموش")
 
     response = auth_client.post(
         _api(project.id) + f"/sessions/{chat['id']}/ask", json={"question": "چقدر بود؟"}
@@ -305,7 +399,8 @@ def test_ask_refuses_a_session_of_another_users_project(
 
 def test_ask_requires_an_existing_session(auth_client, ready_project):
     response = auth_client.post(
-        _api(ready_project.id) + "/sessions/999999/ask", json={"question": "سؤال"}
+        _api(ready_project.id) + "/sessions/00000000-0000-0000-0000-000000000000/ask",
+        json={"question": "سؤال"},
     )
     assert response.status_code == 404
 
@@ -313,41 +408,9 @@ def test_ask_requires_an_existing_session(auth_client, ready_project):
 # ---------------------------------------------------------------------------
 # پرسش: مسیر API با سرویس جعلی (بدون LLM/embedder/Chroma)
 # ---------------------------------------------------------------------------
-def _as_dicts(recent_history) -> list[dict]:
-    """نوبت‌های دریافتی سرویس را به دیکشنری ساده تبدیل می‌کند.
-
-    مسیر واقعی: روتر بدنه‌ی JSON را با Pydantic اعتبارسنجی می‌کند و همان
-    ``ChatTurn``ها را به سرویس می‌دهد (نه دیکشنری خام). ``compose_question``
-    هر دو شکل را می‌پذیرد؛ این کمک‌تابع فقط مقایسه در تست را ساده می‌کند.
-    """
-    return [
-        {"role": turn.role, "content": turn.content}
-        if hasattr(turn, "role")
-        else {"role": turn.get("role"), "content": turn.get("content")}
-        for turn in (recent_history or [])
-    ]
-
-
-def _fake_ask(*, answer="پاسخ جعلی", confidence="high", sources=None, route_reasoning="", history_turns_used=None):
-    """یک ``ask_with_history`` جعلی که استدلال‌هایش را هم ثبت می‌کند."""
-    calls: list[dict] = []
-
-    def _inner(session, project, question, recent_history=None):
-        history = _as_dicts(recent_history)
-        calls.append({"project_id": project.id, "question": question, "history": history})
-        return {
-            "answer": answer,
-            "confidence": confidence,
-            "sources": sources or [],
-            "route_reasoning": route_reasoning,
-            "history_turns_used": len(history) if history_turns_used is None else history_turns_used,
-        }
-
-    _inner.calls = calls  # type: ignore[attr-defined]
-    return _inner
-
-
-def test_ask_returns_the_expected_shape(auth_client, ready_project, monkeypatch):
+def test_a_saved_answer_keeps_its_markdown_text_sources_and_confidence(
+    auth_client, ready_project, monkeypatch
+):
     fake = _fake_ask(
         answer="**موجودی نقد** برابر ۱۰۰ است.",
         confidence="medium",
@@ -363,118 +426,53 @@ def test_ask_returns_the_expected_shape(auth_client, ready_project, monkeypatch)
         route_reasoning="شیت مرتبط پیدا شد",
     )
     monkeypatch.setattr("api.workshops.financial_chatbot.chatbot.ask_with_history", fake)
-    chat = auth_client.post(_api(ready_project.id) + "/sessions", json={"title": "شکل"}).json()
+    chat = _new_session(auth_client, ready_project.id, title="شکل")
 
-    response = auth_client.post(
-        _api(ready_project.id) + f"/sessions/{chat['id']}/ask",
-        json={"question": "موجودی نقد چقدر است؟", "recent_history": []},
-    )
+    row = _ask_and_wait(auth_client, ready_project.id, chat["id"], "موجودی نقد چقدر است؟")
 
-    assert response.status_code == 200
-    data = response.json()
-    assert set(data) == {
-        "answer",
-        "confidence",
-        "sources",
-        "route_reasoning",
-        "history_turns_used",
-    }
-    assert data["confidence"] == "medium"
-    assert data["sources"][0]["file_key"] == "financial_statements"
-    assert data["route_reasoning"] == "شیت مرتبط پیدا شد"
-    assert data["history_turns_used"] == 0
-    # پاسخ دست‌نخورده به‌عنوان داده منتقل می‌شود (هیچ HTML/escape سمت سرور).
-    assert data["answer"] == "**موجودی نقد** برابر ۱۰۰ است."
+    assert row["status"] == "complete"
+    assert row["confidence"] == "medium"
+    assert row["route_reasoning"] == "شیت مرتبط پیدا شد"
+    assert row["sources"] == [
+        {
+            "file_key": "financial_statements",
+            "sheet_names": ["ترازنامه"],
+            "chunk_id": "c1",
+            # منابع عیناً همان دیکشنری سرویس‌اند (گردکردن شباهت کار خود پکیج RAG،
+            # در ``ChatSource.to_dict``، است نه این لایه).
+            "similarity": 0.8123,
+            "snippet": "موجودی نقد | 100",
+        }
+    ]
+    # متن مدل دست‌نخورده ذخیره/برگردانده می‌شود (هیچ escape سمت سرور).
+    assert row["content"] == "**موجودی نقد** برابر ۱۰۰ است."
     assert fake.calls[0]["question"] == "موجودی نقد چقدر است؟"
 
 
-def test_ask_forwards_the_recent_history_of_this_request_only(auth_client, ready_project, monkeypatch):
+def test_a_client_supplied_history_is_ignored(auth_client, ready_project, monkeypatch):
+    """زمینه‌ی گفتگو فقط از ردیف‌های ذخیره‌شده می‌آید؛ payload کلاینت بی‌اثر است.
+
+    پیش از این فاز، مرورگر خودش ``recent_history`` را می‌فرستاد. با تاریخچه‌ی
+    سرور-ساید، یک کلاینت دست‌کاری‌شده نباید بتواند زمینه‌ی جعلی به مدل تزریق کند.
+    """
     fake = _fake_ask()
     monkeypatch.setattr("api.workshops.financial_chatbot.chatbot.ask_with_history", fake)
-    chat = auth_client.post(_api(ready_project.id) + "/sessions", json={"title": "زمینه"}).json()
+    chat = _new_session(auth_client, ready_project.id, title="زمینه")
 
-    history = [
-        {"role": "user", "content": "پرسش اول"},
-        {"role": "assistant", "content": "پاسخ اول"},
-    ]
     response = auth_client.post(
         _api(ready_project.id) + f"/sessions/{chat['id']}/ask",
-        json={"question": "پرسش دوم", "recent_history": history},
+        json={
+            "question": "پرسش تازه",
+            "recent_history": [{"role": "user", "content": "تاریخچه‌ی جعلی"}],
+        },
+    )
+    assert response.status_code == 202, response.text
+    _wait_for_message(
+        auth_client, ready_project.id, chat["id"], response.json()["assistant_message_id"]
     )
 
-    assert response.status_code == 200
-    assert response.json()["history_turns_used"] == 2
-    assert fake.calls[0]["history"] == history
-
-
-def test_two_concurrent_asks_never_share_history(auth_client, ready_project, monkeypatch):
-    """بی‌حالتی سرور: دو پرسش هم‌زمان روی دو گفتگوی مختلف، هرکدام فقط زمینه‌ی خودش را می‌بیند.
-
-    برای اینکه «هم‌زمانی» واقعاً اتفاق بیفتد (نه فقط پشت‌سرهم)، تابع جعلی روی یک
-    ``Barrier`` می‌ایستد تا هر دو درخواست به هم برسند. اگر موتور تست نتواند دو
-    درخواست را واقعاً موازی اجرا کند، سد با تایم‌اوت باز می‌شود و تست همچنان
-    معتبر می‌ماند (ویژگی اصلی -- «هر پاسخ فقط از payload خودش ساخته می‌شود» --
-    مستقل از موازی‌بودن واقعی سنجیده می‌شود).
-    """
-    session_a = auth_client.post(_api(ready_project.id) + "/sessions", json={"title": "الف"}).json()
-    session_b = auth_client.post(_api(ready_project.id) + "/sessions", json={"title": "ب"}).json()
-
-    barrier = threading.Barrier(2, timeout=5)
-    seen: dict[str, list] = {}
-    lock = threading.Lock()
-
-    def _inner(session, project, question, recent_history=None):
-        history = _as_dicts(recent_history)
-        try:
-            barrier.wait()
-        except threading.BrokenBarrierError:  # pragma: no cover - اجرای غیرموازی
-            pass
-        with lock:
-            seen[question] = history
-        # پاسخ «اثر انگشت» زمینه‌ی همان درخواست است: هیچ حالت مشترکی وجود ندارد.
-        return {
-            "answer": f"پاسخ برای {question} با {len(history)} نوبت زمینه",
-            "confidence": "high",
-            "sources": [],
-            "route_reasoning": "",
-            "history_turns_used": len(history),
-        }
-
-    monkeypatch.setattr("api.workshops.financial_chatbot.chatbot.ask_with_history", _inner)
-
-    history_a = [{"role": "user", "content": "متن مخصوص الف"}]
-    history_b = [
-        {"role": "user", "content": "متن مخصوص ب"},
-        {"role": "assistant", "content": "پاسخ مخصوص ب"},
-        {"role": "user", "content": "پیگیری مخصوص ب"},
-    ]
-
-    def _call(session_id: int, question: str, history: list) -> dict:
-        # هر ترد کلاینت خودش را می‌سازد تا یک portal مشترک بین دو ترد به کار نیفتد.
-        with TestClient(app) as local_client:
-            login = local_client.post(
-                "/login", data={"username": USERNAME, "password": PASSWORD}, follow_redirects=False
-            )
-            assert login.status_code == 303
-            response = local_client.post(
-                _api(ready_project.id) + f"/sessions/{session_id}/ask",
-                json={"question": question, "recent_history": history},
-            )
-            assert response.status_code == 200
-            return response.json()
-
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        future_a = pool.submit(_call, session_a["id"], "پرسش الف", history_a)
-        future_b = pool.submit(_call, session_b["id"], "پرسش ب", history_b)
-        result_a = future_a.result(timeout=30)
-        result_b = future_b.result(timeout=30)
-
-    assert result_a["answer"] == "پاسخ برای پرسش الف با 1 نوبت زمینه"
-    assert result_b["answer"] == "پاسخ برای پرسش ب با 3 نوبت زمینه"
-    assert result_a["history_turns_used"] == 1
-    assert result_b["history_turns_used"] == 3
-    assert seen["پرسش الف"] == history_a
-    assert seen["پرسش ب"] == history_b
+    assert fake.calls[0]["question"] == "پرسش تازه"
+    assert fake.calls[0]["history"] == []
 
 
 def test_ask_rejects_an_empty_question(auth_client, ready_project, monkeypatch):
@@ -482,7 +480,7 @@ def test_ask_rejects_an_empty_question(auth_client, ready_project, monkeypatch):
         "api.workshops.financial_chatbot.chatbot.ask_with_history",
         _fake_ask(),
     )
-    chat = auth_client.post(_api(ready_project.id) + "/sessions", json={"title": "خالی"}).json()
+    chat = _new_session(auth_client, ready_project.id, title="خالی")
 
     response = auth_client.post(
         _api(ready_project.id) + f"/sessions/{chat['id']}/ask", json={"question": ""}
@@ -490,6 +488,86 @@ def test_ask_rejects_an_empty_question(auth_client, ready_project, monkeypatch):
 
     # سقف/کف اعتبارسنجی Pydantic پیش از رسیدن به سرویس جلوی پرسش خالی را می‌گیرد.
     assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# زمینه‌ی گفتگو: ساخت از ردیف‌های ذخیره‌شده
+# ---------------------------------------------------------------------------
+def test_build_recent_history_excludes_the_given_rows_and_caps_the_window(
+    db_session, ready_project, user
+):
+    chat = chat_repo.create(
+        db_session, project_id=ready_project.id, user_id=user.id, title="زمینه"
+    )
+    rows = [
+        messages_repo.create_user_message(
+            db_session,
+            session_id=chat.id,
+            project_id=ready_project.id,
+            user_id=user.id,
+            content=f"پیام {index}",
+        )
+        for index in range(10)
+    ]
+
+    history = chatbot.build_recent_history(
+        db_session,
+        session_id=chat.id,
+        project_id=ready_project.id,
+        user_id=user.id,
+        exclude_message_ids=(rows[-1].id,),
+    )
+
+    assert len(history) == chatbot.MAX_CONTEXT_TURNS
+    assert history[-1]["content"] == "پیام 8"
+    assert all(turn["content"] != "پیام 9" for turn in history)
+    # ردیف‌های بی‌متن (پاسخ ``pending``) هرگز به مدل داده نمی‌شوند.
+    messages_repo.create_pending_assistant_message(
+        db_session, session_id=chat.id, project_id=ready_project.id, user_id=user.id
+    )
+    assert all(turn["content"].strip() for turn in chatbot.build_recent_history(
+        db_session,
+        session_id=chat.id,
+        project_id=ready_project.id,
+        user_id=user.id,
+    ))
+
+
+def test_build_recent_history_never_reads_another_session_or_user(db_session, ready_project, user, second_user):
+    other_project = projects_repo.create(db_session, second_user.id, "پروژه‌ی دیگر")
+    mine = chat_repo.create(
+        db_session, project_id=ready_project.id, user_id=user.id, title="مال من"
+    )
+    other_project_chat = chat_repo.create(
+        db_session, project_id=other_project.id, user_id=second_user.id, title="مال دیگری"
+    )
+    messages_repo.create_user_message(
+        db_session,
+        session_id=other_project_chat.id,
+        project_id=other_project.id,
+        user_id=second_user.id,
+        content="محرمانه",
+    )
+
+    assert (
+        chatbot.build_recent_history(
+            db_session,
+            session_id=mine.id,
+            project_id=ready_project.id,
+            user_id=user.id,
+        )
+        == []
+    )
+    # کلید نادرست (همان گفتگو، پروژه‌ی دیگر): باز هم چیزی خوانده نمی‌شود.
+    assert (
+        chatbot.build_recent_history(
+            db_session,
+            session_id=other_project_chat.id,
+            project_id=ready_project.id,
+            user_id=user.id,
+        )
+        == []
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -572,6 +650,8 @@ def test_ask_with_history_builds_the_kb_and_llm_client_from_the_adapter(
     assert "موجودی چقدر است؟" in sent["question"]
     # ۵) کاتالوگ روتر از شیت‌های واقعی همان پایگاه‌دانش ساخته شده است.
     assert "financial_statements" in sent["catalog"]
+    # ۶) خودِ این تابع چیزی نمی‌نویسد (ثبت نتیجه کار لایه‌ی سرویس/پس‌زمینه است).
+    assert db_session.query(messages_repo.ChatMessage).count() == 0
 
 
 def test_compose_question_is_unchanged_for_a_first_turn():
@@ -613,7 +693,27 @@ def test_is_available_follows_the_project_pointer(project, ready_project):
 
 
 # ---------------------------------------------------------------------------
-# XSS / ذخیره‌نشدن محتوا (قابل‌سنجش در این لایه)
+# پاک‌سازی راه‌اندازی: پیام‌های ناتمام فرآیند قبلی
+# ---------------------------------------------------------------------------
+def test_pending_messages_of_a_previous_process_are_marked_failed(db_session, ready_project, user):
+    chat = chat_repo.create(
+        db_session, project_id=ready_project.id, user_id=user.id, title="ناتمام"
+    )
+    stuck = messages_repo.create_pending_assistant_message(
+        db_session, session_id=chat.id, project_id=ready_project.id, user_id=user.id
+    )
+
+    marked = messages_repo.mark_pending_messages_failed(db_session, error_message="سرور ری‌استارت شد.")
+
+    assert marked == 1
+    db_session.expire_all()
+    refreshed = db_session.get(messages_repo.ChatMessage, stuck.id)
+    assert refreshed.status == "failed"
+    assert refreshed.error_message == "سرور ری‌استارت شد."
+
+
+# ---------------------------------------------------------------------------
+# XSS / انتقال امن محتوای مدل (قابل‌سنجش در این لایه)
 # ---------------------------------------------------------------------------
 SUSPICIOUS_ANSWER = (
     '<script>alert("xss")</script>'
@@ -637,16 +737,20 @@ def test_model_output_is_transported_as_json_data_and_never_as_html(
         "api.workshops.financial_chatbot.chatbot.ask_with_history",
         _fake_ask(answer=SUSPICIOUS_ANSWER, confidence="needs_review"),
     )
-    chat = auth_client.post(_api(ready_project.id) + "/sessions", json={"title": "امنیت"}).json()
+    chat = _new_session(auth_client, ready_project.id, title="امنیت")
 
-    response = auth_client.post(
-        _api(ready_project.id) + f"/sessions/{chat['id']}/ask", json={"question": "سؤال"}
+    response = auth_client.get(
+        _api(ready_project.id) + f"/sessions/{chat['id']}/messages"
     )
-
-    assert response.status_code == 200
     assert response.headers["content-type"].startswith("application/json")
+
+    row = _ask_and_wait(auth_client, ready_project.id, chat["id"], "سؤال")
+    assert row["content"] == SUSPICIOUS_ANSWER
+
+    listed = auth_client.get(_api(ready_project.id) + f"/sessions/{chat['id']}/messages")
+    assert listed.headers["content-type"].startswith("application/json")
     # متن خام مدل، بی‌کم‌وکاست، به‌عنوان *داده* برمی‌گردد.
-    assert response.json()["answer"] == SUSPICIOUS_ANSWER
+    assert listed.json()["messages"][-1]["content"] == SUSPICIOUS_ANSWER
 
 
 def test_front_end_sanitization_is_escape_first():
@@ -660,8 +764,8 @@ def test_front_end_sanitization_is_escape_first():
        گیومه‌ها، چون URL پیوندها در ویژگی ``href`` قرار می‌گیرد).
     ۲) هر مسیر درون‌خطی Markdown به‌شکل ``renderInline(escapeHtml(...))`` نوشته
        شده است -- یعنی هیچ متنی بدون فرار به خروجی نمی‌رسد.
-    ۳) محتوای پاسخ هم از همان مسیر می‌گذرد (``renderMarkdown(answer)``) و تنها
-       منبع HTML عنصر پاسخ، همین تابع است.
+    ۳) محتوای پاسخ هم از همان مسیر می‌گذرد (``renderMarkdown(message.content``)
+       و تنها منبع HTML عنصر پاسخ، همین تابع است.
     ۴) پیوندها فقط با پیشوندهای مجاز رندر می‌شوند (``javascript:`` رد می‌شود).
     ۵) قالب هیچ متنی را با ``| safe`` رندر نمی‌کند؛ تنها استثنا فراخوانی
        ``icon()`` است که SVG ثابت و درون‌برنامه‌ای برمی‌گرداند.
@@ -678,7 +782,7 @@ def test_front_end_sanitization_is_escape_first():
     assert "renderInline(escapeHtml(" in source
 
     # ۳) پاسخ مدل فقط از مسیر امن به DOM می‌رود
-    assert "renderMarkdown(answer)" in source
+    assert "renderMarkdown(message.content" in source
     assert "psa-chat-answer psa-prose" in source
     assert "innerHTML = answer" not in source
     assert "innerHTML = data.answer" not in source
@@ -697,36 +801,43 @@ def test_front_end_sanitization_is_escape_first():
     assert "psa-chat-messages" in template
 
 
-def test_history_and_messages_are_never_persisted_by_the_client():
-    """قرارداد «بدون ذخیره‌سازی محتوا» در سمت مرورگر.
+def test_the_browser_stores_only_the_open_session_id_and_loads_messages_from_the_server():
+    """قرارداد تاریخچه‌ی سرور-ساید در سمت مرورگر.
 
     تنها چیزی که در ``localStorage`` نوشته می‌شود شناسه‌ی آخرین گفتگوی باز است
-    (متادیتا). آرایه‌ی حافظه‌ای پیام‌ها (``state.history``) هرگز سریالایز یا
-    ذخیره نمی‌شود، و با انتخاب یک گفتگوی دیگر یا بارگذاری مجدد صفحه خالی می‌شود.
+    (متادیتا). پیام‌ها در مرورگر ذخیره نمی‌شوند؛ هر بار از سرور خوانده می‌شوند
+    (``GET .../messages``) و زمینه‌ی چندنوبتی هم سمت سرور از همان ردیف‌ها ساخته
+    می‌شود.
     """
     source = JS_PATH.read_text(encoding="utf-8")
 
     # ذخیره‌سازی مرورگر فقط شناسه‌ی گفتگو را می‌گیرد...
     assert "setItem(STORAGE_KEY, String(sessionId))" in source
-    # ... و هیچ‌جا آرایه‌ی پیام‌ها سریالایز/ذخیره نمی‌شود.
-    assert "JSON.stringify(state.history)" not in source
     assert "setItem(STORAGE_KEY, JSON" not in source
-    # گفتگوی جاری همیشه با حافظه‌ی خالی شروع می‌شود (نه بازیابی پیام‌ها).
-    assert "state.history = [];" in source
+    # ... و هیچ آرایه‌ی محلی‌ای از پیام‌ها وجود ندارد که تاریخچه را جعل کند.
+    assert "state.history" not in source
+    assert "recent_history" not in source
 
-    # سمت سرور هم هیچ جدول پیامی وجود ندارد.
+    # سمت سرور: جدول پیام‌ها با همه‌ی ستون‌های مستندش وجود دارد.
     from api.db import models
 
-    assert not any("message" in name.lower() for name in models.Base.metadata.tables)
-    assert "chat_sessions" in models.Base.metadata.tables
-    assert list(models.Base.metadata.tables["chat_sessions"].columns.keys()) == [
+    table = models.Base.metadata.tables["chat_messages"]
+    assert list(table.columns.keys()) == [
         "id",
+        "session_id",
         "project_id",
         "user_id",
-        "title",
+        "role",
+        "content",
+        "status",
+        "confidence",
+        "sources",
+        "route_reasoning",
+        "error_message",
         "created_at",
-        "updated_at",
     ]
+    # شناسه‌ی گفتگو هم (مثل پایگاه‌دانش) یک UUID رشته‌ای است.
+    assert str(models.Base.metadata.tables["chat_sessions"].columns["id"].type) == "VARCHAR(36)"
 
 
 def test_workshop_is_registered_and_not_hidden_when_gated(auth_client, project):

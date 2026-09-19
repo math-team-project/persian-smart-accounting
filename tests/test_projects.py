@@ -405,8 +405,9 @@ def test_delete_project_removes_knowledge_bases_files_and_vector_store_directori
     assert kb_storage.vector_store_root().exists()
 
 
-def test_delete_project_removes_its_chat_sessions(auth_client, db_session, project, user):
-    """گفتگوهای همین پروژه (فقط متادیتا) هم با حذف پروژه پاک می‌شوند."""
+def test_delete_project_removes_its_chat_sessions_and_messages(auth_client, db_session, project, user):
+    """گفتگوهای همین پروژه **و پیام‌هایشان** هم با حذف پروژه پاک می‌شوند."""
+    from api.repositories import chat_messages as messages_repo
     from api.repositories import chat_sessions as chat_repo
 
     chats = [
@@ -415,6 +416,17 @@ def test_delete_project_removes_its_chat_sessions(auth_client, db_session, proje
     ]
     chat_ids = [chat.id for chat in chats]
     assert chat_ids
+    message_ids = [
+        messages_repo.create_user_message(
+            db_session,
+            session_id=chat.id,
+            project_id=project.id,
+            user_id=user.id,
+            content="پرسش کاربر",
+        ).id
+        for chat in chats
+    ]
+    assert message_ids
 
     response = auth_client.post(
         f"/projects/{project.id}/delete", data={"confirm": "delete"}, follow_redirects=False
@@ -426,14 +438,18 @@ def test_delete_project_removes_its_chat_sessions(auth_client, db_session, proje
         assert fresh.scalars(select(chat_repo.ChatSession).where(
             chat_repo.ChatSession.id.in_(chat_ids)
         )).all() == []
+        assert fresh.scalars(select(messages_repo.ChatMessage).where(
+            messages_repo.ChatMessage.id.in_(message_ids)
+        )).all() == []
 
 
 def test_deleting_project_a_never_touches_project_b_same_user(auth_client, db_session, project, user):
     """**مهم‌ترین تست این فاز**: دو پروژه‌ی یک کاربر، حذف یکی نباید به دیگری دست بزند.
 
     هر دو پروژه در همین یک تست ساخته می‌شوند و هر دو پایگاه‌دانش، ردیف فایل،
-    گفتگو و پوشه‌ی روی‌دیسک دارند -- پس هر نشتی (DB یا دیسک) قطعاً دیده می‌شود.
+    گفتگو، پیام و پوشه‌ی روی‌دیسک دارند -- پس هر نشتی (DB یا دیسک) قطعاً دیده می‌شود.
     """
+    from api.repositories import chat_messages as messages_repo
     from api.repositories import chat_sessions as chat_repo
     from api.repositories import knowledge_bases as kb_repo
 
@@ -443,9 +459,16 @@ def test_deleting_project_a_never_touches_project_b_same_user(auth_client, db_se
     kb_b = _seed_ready_kb(db_session, project_b)
     chat_a = chat_repo.create(db_session, project_id=project.id, user_id=user.id, title="گفتگوی الف")
     chat_b = chat_repo.create(db_session, project_id=project_b.id, user_id=user.id, title="گفتگوی ب")
+    message_a = messages_repo.create_user_message(
+        db_session, session_id=chat_a.id, project_id=project.id, user_id=user.id, content="پرسش الف"
+    )
+    message_b = messages_repo.create_user_message(
+        db_session, session_id=chat_b.id, project_id=project_b.id, user_id=user.id, content="پرسش ب"
+    )
 
     kb_a_id, kb_b_id = kb_a.id, kb_b.id
     chat_a_id, chat_b_id = chat_a.id, chat_b.id
+    message_a_id, message_b_id = message_a.id, message_b.id
     project_b_id = project_b.id
     files_b = sorted(row.id for row in kb_repo.list_files(db_session, kb_b.id))
     dir_a = _project_vector_directory(project) / kb_a_id
@@ -475,6 +498,9 @@ def test_deleting_project_a_never_touches_project_b_same_user(auth_client, db_se
         ) == files_b
         assert fresh.get(chat_repo.ChatSession, chat_b_id) is not None
         assert fresh.get(chat_repo.ChatSession, chat_a_id) is None
+        # پیام‌ها هم همین‌طور: پیام پروژه‌ی A رفته، پیام پروژه‌ی B سر جایش است.
+        assert fresh.get(messages_repo.ChatMessage, message_b_id) is not None
+        assert fresh.get(messages_repo.ChatMessage, message_a_id) is None
         # اشاره‌گر پروژه‌ی B هم به پایگاه‌دانش خودش باقی می‌ماند.
         assert fresh.get(Project, project_b_id).latest_ready_kb_id == kb_b_id
 

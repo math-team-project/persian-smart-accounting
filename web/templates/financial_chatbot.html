@@ -29,13 +29,13 @@
 
 {# آدرس API این کارگاه داخل پروژهٔ جاری -- از رجیستری کارگاه‌ها می‌آید تا هیچ
    آدرسی در جاوااسکریپت هاردکد نباشد. ``storageKey`` فقط شناسهٔ آخرین گفتگوی باز
-   را نگه می‌دارد (متادیتا)؛ هیچ متنی از گفتگو در مرورگر ذخیره نمی‌شود. #}
+   را نگه می‌دارد (متادیتا)؛ پیام‌ها روی سرور ذخیره می‌شوند و مرورگر هیچ متنی از
+   گفتگو را نگه نمی‌دارد. #}
 <script>
   window.PSA_WORKSHOP = {
     apiBase: "{{ api_base }}",
     projectId: {{ project.id }},
-    storageKey: "psa.financial_chatbot.sessionId.p{{ project.id }}",
-    maxHistoryTurns: {{ max_history_turns | default(6) }}
+    storageKey: "psa.financial_chatbot.sessionId.p{{ project.id }}"
   };
 </script>
 
@@ -107,7 +107,8 @@
       </div>
 
       <p class="psa-help mt-3">
-        محتوای گفتگوها ذخیره نمی‌شود؛ فقط عنوان و تاریخ هر گفتگو می‌ماند.
+        پیام‌های هر گفتگو ذخیره می‌شوند؛ با باز کردن دوبارهٔ هر گفتگو، پرسش‌ها و
+        پاسخ‌های قبلی آن را می‌بینید.
       </p>
 
       <hr class="psa-divider my-3" />
@@ -164,13 +165,10 @@
             {{ icon('arrow-left', 16) | safe }}
             ارسال
           </button>
-          <button type="button" id="psa-chat-stop" class="psa-btn psa-btn-ghost psa-btn-sm hidden">
-            {{ icon('x', 15) | safe }}
-            توقف
-          </button>
           <p class="psa-help ms-auto hidden sm:block">
             کلید <span class="psa-num">Enter</span> می‌فرستد،
-            <span class="psa-num">Shift+Enter</span> خط جدید می‌سازد.
+            <span class="psa-num">Shift+Enter</span> خط جدید می‌سازد. پاسخ‌دهی در
+            پس‌زمینه انجام می‌شود؛ می‌توانید در حین انتظار به بخش دیگری بروید.
           </p>
         </div>
       </form>

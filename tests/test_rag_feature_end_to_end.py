@@ -4,8 +4,9 @@
 یک‌بار از ابتدا تا انتها می‌گذراند و می‌سنجد که حلقه‌ها به هم وصل‌اند:
 آپلود → اجرای چک‌لیست → ایندکس‌سازی پایگاه‌دانش → نقطه‌ی join (تطبیق هوشمند) →
 بازخورد نتیجه به همان پایگاه‌دانش → ``ready`` شدن + به‌روزرسانی
-``projects.latest_ready_kb_id`` → باز شدن کارگاه چت‌بات → ساخت گفتگو → پرسش →
-سیاست نگهداری در اجرای بعدی → حذف کامل پروژه.
+``projects.latest_ready_kb_id`` → باز شدن کارگاه چت‌بات → ساخت گفتگو → پرسش
+(۲۰۲ + polling پاسخ) → تاریخچه‌ی ماندگار پیام‌ها → سیاست نگهداری در اجرای بعدی →
+حذف کامل پروژه.
 
 تنها مرزهایی که جعلی می‌شوند، مرزهای خارجی‌اند (مدل زبانی، embedder، استور
 برداری، خواننده‌ی فایل‌ها و خودِ ``pipeline.start_checklist_job`` که به
@@ -26,6 +27,7 @@ embedder/استور می‌دهد. جعلی‌کردنش یعنی «خواندن
 from __future__ import annotations
 
 import io
+import time
 import types
 from pathlib import Path
 
@@ -35,6 +37,7 @@ from api import storage
 from api.config import get_settings
 from api.db.base import SessionLocal
 from api.db.models import (
+    ChatMessage,
     ChatSession,
     KBFile,
     KnowledgeBase,
@@ -286,6 +289,33 @@ def _count(model, **filters) -> int:
         return int(session.scalar(stmt) or 0)
 
 
+def _ask_and_wait(auth_client, project_id: int, chat_id: str, question: str, timeout: float = 15.0) -> dict:
+    """پرسش می‌فرستد (۲۰۲) و تا نهایی‌شدن پاسخ همان پیام polling می‌کند.
+
+    دقیقاً همان کاری که ``web/static/js/financial_chatbot.js`` می‌کند: پاسخ‌دهی
+    یک کار پس‌زمینه است، پس مسیر HTTP فوراً برمی‌گردد و نتیجه از ردیف پیام خوانده
+    می‌شود.
+    """
+    response = auth_client.post(
+        f"/api/projects/{project_id}/{CHATBOT_SLUG}/sessions/{chat_id}/ask",
+        json={"question": question},
+    )
+    assert response.status_code == 202, response.text
+    started = response.json()
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        polled = auth_client.get(
+            f"/api/projects/{project_id}/{CHATBOT_SLUG}/sessions/{chat_id}"
+            f"/messages/{started['assistant_message_id']}"
+        )
+        assert polled.status_code == 200, polled.text
+        row = polled.json()
+        if row["status"] in ("complete", "failed"):
+            return row
+        time.sleep(0.02)
+    raise AssertionError("پاسخ چت‌بات در مهلت مقرر نهایی نشد")
+
+
 def _xlsx(slot_key: str):
     return (
         slot_key,
@@ -490,7 +520,7 @@ def test_the_whole_rag_feature_works_end_to_end_and_leaves_nothing_behind(
     assert "هنوز پایگاه‌دانشی برای این پروژه ساخته نشده است" not in body
 
     # =====================================================================
-    # ۴) گفتگو + پرسش، با زمینه‌ی چندنوبتی
+    # ۴) گفتگو + پرسش: پاسخ پس‌زمینه، تاریخچه‌ی ماندگار
     # =====================================================================
     session_response = auth_client.post(
         f"/api/projects/{project.id}/{CHATBOT_SLUG}/sessions",
@@ -500,42 +530,54 @@ def test_the_whole_rag_feature_works_end_to_end_and_leaves_nothing_behind(
     chat_id = session_response.json()["id"]
     assert chat_id
 
-    ask_response = auth_client.post(
-        f"/api/projects/{project.id}/{CHATBOT_SLUG}/sessions/{chat_id}/ask",
-        json={
-            "question": "کدام موارد چک‌لیست رد شدند؟",
-            "recent_history": [
-                {"role": "user", "content": "سلام"},
-                {"role": "assistant", "content": "سلام، در خدمتم."},
-            ],
-        },
-    )
-    assert ask_response.status_code == 200, ask_response.text
-    answer = ask_response.json()
-    assert answer["answer"].strip()
-    assert answer["confidence"] == "high"
-    assert answer["history_turns_used"] == 2
-    assert "گفتگوی قبلی" in captured["ask_calls"][-1]["question"]
+    first_answer = _ask_and_wait(auth_client, project.id, chat_id, "کدام موارد چک‌لیست رد شدند؟")
+    assert first_answer["status"] == "complete", first_answer
+    assert first_answer["content"].strip()
+    assert first_answer["confidence"] == "high"
     assert captured["ask_calls"][-1]["use_router"] is True
+    # اولین پرسش این گفتگو زمینه‌ی قبلی ندارد (سرور تاریخچه را از ردیف‌های ذخیره‌شده
+    # می‌سازد، نه از payload کلاینت).
+    assert "گفتگوی قبلی" not in captured["ask_calls"][-1]["question"]
 
     # پاسخ از پایگاه‌دانشِ همان پروژه آمده و همان دو سند ایندکس‌شده را می‌بیند.
     assert captured["readonly_calls"][-1] == (user.id, project.id, kb_one_id)
-    assert {source["file_key"] for source in answer["sources"]} >= {
+    assert {source["file_key"] for source in first_answer["sources"]} >= {
         "revised_budget",
         CHECKLIST_RESULTS_KEY,
     }
     checklist_source = next(
-        source for source in answer["sources"] if source["file_key"] == CHECKLIST_RESULTS_KEY
+        source
+        for source in first_answer["sources"]
+        if source["file_key"] == CHECKLIST_RESULTS_KEY
     )
     assert "موارد عدم تطابق (FALSE)" in checklist_source["snippet"]
     # کاتالوگ روتر از شیت‌های واقعاً ایندکس‌شده ساخته شده (نه از یک فهرست ثابت).
     assert set(captured["ask_calls"][-1]["sheet_catalog"]) >= {"revised_budget", CHECKLIST_RESULTS_KEY}
 
-    # گفتگو فقط متادیتا است: هیچ متنی از پرسش/پاسخ در پایگاه‌داده نیست.
+    # پرسش دوم در همان گفتگو: زمینه‌ی چندنوبتی از پیام‌های *ذخیره‌شده* می‌آید.
+    second_answer = _ask_and_wait(auth_client, project.id, chat_id, "و موجودی نقد چقدر بود؟")
+    assert second_answer["status"] == "complete", second_answer
+    assert "گفتگوی قبلی" in captured["ask_calls"][-1]["question"]
+    assert "کدام موارد چک‌لیست رد شدند؟" in captured["ask_calls"][-1]["question"]
+
+    # ردیف‌های گفتگو واقعاً ماندگارند: باز کردن دوباره‌ی گفتگو همه‌ی پیام‌ها را
+    # به ترتیب برمی‌گرداند -- همان چیزی که پس از refresh/بازگشت کاربر دیده می‌شود.
     with SessionLocal() as session:
         chat_row = session.get(ChatSession, chat_id)
         assert chat_row is not None and chat_row.title == "بررسی موجودی نقد"
-        assert not hasattr(chat_row, "messages")
+        persisted = session.scalars(
+            select(ChatMessage)
+            .where(ChatMessage.session_id == chat_id)
+            .order_by(ChatMessage.created_at.asc(), ChatMessage.id.asc())
+        ).all()
+    assert [(row.role, row.status) for row in persisted] == [
+        ("user", "complete"),
+        ("assistant", "complete"),
+        ("user", "complete"),
+        ("assistant", "complete"),
+    ]
+    assert persisted[0].content == "کدام موارد چک‌لیست رد شدند؟"
+    assert persisted[1].content == first_answer["content"]
 
     # =====================================================================
     # ۵) اجرای دوم چک‌لیست: سیاست نگهداری، پایگاه‌دانش اجرای اول را هرس می‌کند
@@ -561,11 +603,8 @@ def test_the_whole_rag_feature_works_end_to_end_and_leaves_nothing_behind(
     assert _chunk_records_by_file_key(user.id, project.id, kb_two_id)
 
     # چت‌بات حالا به نسخه‌ی جدید اشاره می‌کند (گفتگوی قبلی دست‌نخورده می‌ماند).
-    second_ask = auth_client.post(
-        f"/api/projects/{project.id}/{CHATBOT_SLUG}/sessions/{chat_id}/ask",
-        json={"question": "پایگاه‌دانش فعلی کدام است؟"},
-    )
-    assert second_ask.status_code == 200, second_ask.text
+    third_answer = _ask_and_wait(auth_client, project.id, chat_id, "پایگاه‌دانش فعلی کدام است؟")
+    assert third_answer["status"] == "complete", third_answer
     assert captured["readonly_calls"][-1] == (user.id, project.id, kb_two_id)
 
     # =====================================================================
@@ -591,6 +630,7 @@ def test_the_whole_rag_feature_works_end_to_end_and_leaves_nothing_behind(
     assert _count(KnowledgeBase, project_id=project.id) == 0
     assert _count(KBFile, knowledge_base_id=kb_two_id) == 0
     assert _count(ChatSession, project_id=project.id) == 0
+    assert _count(ChatMessage, project_id=project.id) == 0
     assert _count(WorkshopRun, project_id=project.id) == 0
     assert _count(WorkshopSetting, project_id=project.id) == 0
 

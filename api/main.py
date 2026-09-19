@@ -36,6 +36,7 @@ from api.auth.deps import LoginRequired  # noqa: E402
 from api.auth.deps import current_user  # noqa: E402
 from api.config import get_settings  # noqa: E402
 from api.db.base import SessionLocal, init_db  # noqa: E402
+from api.repositories import chat_messages as chat_messages_repo  # noqa: E402
 from api.routers import auth as auth_router  # noqa: E402
 from api.routers import dashboard  # noqa: E402
 from api.routers import settings as settings_router  # noqa: E402
@@ -112,6 +113,13 @@ for workshop in WORKSHOPS.values():
 init_db()
 with SessionLocal() as _session:
     workshop_runs.mark_orphaned_runs(_session)
+    # قرینه‌ی بالا برای چت‌بات مالی: هر پاسخ ``pending`` باقی‌مانده از فرآیند قبلی
+    # (پرسش پس‌زمینه‌ی این کارگاه در حافظه‌ی همین فرآیند بود) ناموفق علامت می‌خورد،
+    # وگرنه UI برای همیشه «در حال پاسخ‌گویی» نشان می‌داد.
+    chat_messages_repo.mark_pending_messages_failed(
+        _session,
+        error_message="پاسخ‌دهی به دلیل راه‌اندازی مجدد سرور ناتمام ماند. لطفاً پرسش را دوباره بفرستید.",
+    )
 
 
 @app.exception_handler(LoginRequired)

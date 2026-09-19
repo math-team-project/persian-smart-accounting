@@ -1,22 +1,21 @@
-"""کارگاه «چت‌بات مالی» -- پرسش/پاسخ زنده روی پایگاه‌دانش آماده‌ی پروژه.
+"""کارگاه «چت‌بات مالی» -- پرسش/پاسخ روی پایگاه‌دانش آماده‌ی پروژه.
 
 این ماژول **منطق پردازش** این کارگاه است و مثل بقیه‌ی سرویس‌های پروژه از هر
 دغدغه‌ی HTTP پاک نگه داشته شده است: هیچ ``Request``/``HTTPException``ی این‌جا
-نیست و هیچ رکوردی در پایگاه‌داده نوشته نمی‌شود. مدیریت گفتگوها (ساخت/فهرست/حذف)
-جدا و در ``api/repositories/chat_sessions.py`` است؛ این ماژول فقط «یک پرسش را
-با زمینه‌ی گفتگو به مدل می‌دهد و پاسخ را برمی‌گرداند».
+نیست. مدیریت گفتگوها و پیام‌ها جدا و در ``api/repositories/chat_sessions.py`` و
+``api/repositories/chat_messages.py`` است.
 
-سه تصمیم طراحی که باید مستند بمانند
------------------------------------
+چهار تصمیم طراحی که باید مستند بمانند
+-------------------------------------
 
 ۱) **کدام پایگاه‌دانش؟** فقط و فقط ``projects.latest_ready_kb_id``. این ماژول
    هرگز جدول ``knowledge_bases`` را برای «حدس‌زدن جدیدترین» پرس‌وجو نمی‌کند و
    کاربر هم اجازه‌ی انتخاب نسخه‌ی قدیمی‌تر را ندارد -- چت‌بات همیشه با
    جدیدترین پایگاه‌دانشِ آماده‌ی همان پروژه حرف می‌زند.
 
-۲) **زمینه‌ی چندنوبتی (multi-turn) -- و چرا سرور بی‌حالت (stateless) است.**
+۲) **زمینه‌ی چندنوبتی (multi-turn) -- و اینکه حالا واقعاً روی سرور است.**
    ``rag_chat_module`` عمداً دست‌نخورده می‌ماند و تابع ``chat_ask`` آن فقط یک
-   رشته‌ی ``question`` می‌گیرد؛ نه تاریخچه‌ای می‌پذیرد و نه ``LLMClient.complete``
+   رشته‌ی ``question`` می‌گیرد؛ نه تاریخی می‌پذیرد و نه ``LLMClient.complete``
    آن (``complete(system, user, max_tokens)``) امکان فرستادن یک گفتگوی چندپیامی
    را می‌دهد. بنابراین گزینه‌ی «(ب) دورزدن chat_ask و ساختن گفتگوی چندپیامی»
    بدون تغییر خودِ آن پکیج عملاً ممکن نیست. راه انتخاب‌شده گزینه‌ی «(الف)» است:
@@ -25,17 +24,26 @@
    می‌رسد، در حالی که مسیر روتر→بازیابی→پاسخ ``chat_ask`` دست‌نخورده و مشترک
    با بقیه‌ی مصرف‌کننده‌های آن پکیج باقی می‌ماند.
 
-   این تاریخچه **هرگز نوشته نمی‌شود**: نه در پایگاه‌داده، نه روی دیسک. فقط در
-   همان درخواست HTTP زندگی می‌کند و در حافظه‌ی صفحه‌ی مرورگر نگه داشته می‌شود
-   (``web/static/js/financial_chatbot.js``) -- به همین دلیل هم سرور برای هر
-   پرسش کاملاً بی‌حالت است و هم باز کردن دوباره‌ی یک گفتگوی قدیمی، پیام‌های
-   قبلی را برنمی‌گرداند (این عمدی است، نه یک قابلیت جاافتاده).
+   منبع آن نوبت‌ها **ردیف‌های ذخیره‌شده‌ی ``chat_messages`` است** (نه حافظه‌ی
+   مرورگر، که پیش از این فاز بود): ``_recent_history`` آخرین چند پیام همان گفتگو
+   را -- با فیلتر سه‌گانه‌ی ``(session_id, project_id, user_id)`` -- می‌خواند.
+   نتیجه‌اش این است که یک گفتگوی باز‌شده‌ی قدیمی هم زمینه‌ی واقعی خودش را دارد و
+   هم اینکه هیچ کلاینتی نمی‌تواند یک «تاریخچه»ی ساختگی به مدل تزریق کند.
 
 ۳) **متن chunk ها از کجا می‌آید؟** از ``rag_ai_adapter.build_readonly_knowledge_base``
    که کش درون‌حافظه‌ای استور را از ``chunks.jsonl`` همان پایگاه‌دانش بازسازی
    می‌کند (توضیح کامل در ``api/services/kb_storage.py``). اگر آن فایل نباشد
    (پایگاه‌دانشی که پیش از این تغییر ساخته شده)، به‌جای پاسخ بی‌معنا یک پیام
    فارسی روشن برگردانده می‌شود.
+
+۴) **پاسخ‌دهی یک کار پس‌زمینه است.** ``answer_question`` همان چیزی است که ترد
+   پس‌زمینه اجرا می‌کند (از ``api/jobs/chat_jobs.py``): دو فراخوانی مدل داخل
+   ``chat_ask`` چند ثانیه طول می‌کشند، بنابراین درخواست HTTP منتظرشان نمی‌ماند و
+   کاربر می‌تواند به کارگاه/گفتگوی دیگری برود. مسئولیت این تابع، برخلاف
+   ``ask_with_history`` (که خالص است و هیچ نمی‌نویسد)، *ثبت* نتیجه روی همان ردیف
+   ``pending`` است: موفق → ``mark_assistant_message_complete``، هر خطا →
+   ``mark_assistant_message_failed`` با پیام فارسی. هیچ مسیری نباید یک پیام را
+   برای همیشه در ``pending`` رها کند.
 """
 from __future__ import annotations
 
@@ -44,19 +52,27 @@ from typing import Any, Iterable, Optional
 
 from sqlalchemy.orm import Session
 
+from api.db.base import SessionLocal
 from api.db.models import Project
+from api.repositories import chat_messages as chat_messages_repo
+from api.repositories import chat_sessions as chat_sessions_repo
+from api.repositories import projects as projects_repo
 from api.services import checklist_kb_service, rag_ai_adapter
 from api.services.rag_ai_adapter import FINANCIAL_CHATBOT_WORKSHOP_SLUG as WORKSHOP_SLUG
 
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "ASK_FAILED_FA",
     "ChatbotError",
     "ChatbotUnavailableError",
     "GATED_MESSAGE_FA",
     "NO_INDEX_MESSAGE_FA",
+    "PROJECT_GONE_FA",
     "WORKSHOP_SLUG",
+    "answer_question",
     "ask_with_history",
+    "build_recent_history",
     "build_sheet_catalog",
     "compose_question",
     "is_available",
@@ -79,6 +95,11 @@ NO_INDEX_MESSAGE_FA = (
     "پایگاه‌دانش ساخته شود."
 )
 EMPTY_QUESTION_FA = "متن پرسش را وارد کنید."
+# خطای پیش‌بینی‌نشده‌ی پاسخ‌دهی (سرویس مدل قطع شد، خطای شبکه، ...). پیام فنی
+# خام هرگز به کاربر نشان داده نمی‌شود؛ متن کامل در لاگ سرور می‌ماند.
+ASK_FAILED_FA = "خطای غیرمنتظره‌ای هنگام پاسخ‌دهی رخ داد. لطفاً دوباره تلاش کنید."
+# پروژه/گفتگو در فاصله‌ی بین ثبت پرسش و تولید پاسخ حذف شده است.
+PROJECT_GONE_FA = "این گفتگو دیگر در دسترس نیست (پروژه حذف شده است)."
 
 # حداکثر تعداد نوبت‌های تاریخی که به مدل فرستاده می‌شود (آخرین N نوبت). انتخاب
 # ۶ نوبت (یعنی حدود سه رفت‌وبرگشت) تعادل بین «فهم سؤال پیگیری» و کوچک نگه‌داشتن
@@ -229,10 +250,13 @@ def ask_with_history(
     خروجی یک دیکشنری قابل‌سریال‌سازی نزدیک به ``ChatAnswer.to_dict()`` است:
     ``{answer, confidence, sources, route_reasoning, history_turns_used}``.
 
+    این تابع **خالص است و چیزی نمی‌نویسد** (نه پیام، نه ردیف گفتگو). زمینه‌ی
+    گفتگو را فراخواننده از پیام‌های ذخیره‌شده می‌سازد
+    (``build_recent_history``) و ثبت نتیجه کار ``answer_question`` است.
+
     ``session`` فقط برای یک کار لازم است: خواندن تنظیمات هوش مصنوعی همین پروژه
     برای همین کارگاه از طریق ``rag_ai_adapter.build_llm_client`` (همان زنجیره‌ی
-    ``ai_settings.resolve_ai_settings``). این ماژول هیچ نوشتنی در پایگاه‌داده
-    انجام نمی‌دهد؛ نه پیام، نه ردیف گفتگو -- آن‌ها کار لایه‌ی روتر/مخزن هستند.
+    ``ai_settings.resolve_ai_settings``).
 
     Raises:
         ChatbotUnavailableError: پروژه پایگاه‌دانش آماده ندارد، متن قابل‌جست‌وجو
@@ -283,6 +307,120 @@ def ask_with_history(
         "route_reasoning": str(payload.get("route_reasoning", "") or ""),
         "history_turns_used": turns_used,
     }
+
+
+# ---------------------------------------------------------------------------
+# زمینه‌ی گفتگو از پیام‌های ذخیره‌شده (تصمیم ۲ در داک‌استرینگ ماژول)
+# ---------------------------------------------------------------------------
+def build_recent_history(
+    session: Session,
+    *,
+    session_id: str,
+    project_id: int,
+    user_id: int,
+    exclude_message_ids: Iterable[str] = (),
+    limit: int = MAX_CONTEXT_TURNS,
+) -> list[dict[str, str]]:
+    """آخرین نوبت‌های یک گفتگو، از **ردیف‌های ذخیره‌شده** همان گفتگو.
+
+    سه‌گانه‌ی ``(session_id, project_id, user_id)`` به ``list_by_session`` پاس
+    می‌شود، پس این تابع ساختاراً نمی‌تواند زمینه‌ی گفتگویی دیگر -- چه در همان
+    پروژه و چه در پروژه‌ی کاربر دیگر -- را بخواند.
+
+    ``exclude_message_ids`` معمولاً همان دو ردیفی است که همین حالا برای این پرسش
+    ساخته شده‌اند: پرسش تازه‌ی کاربر (که جداگانه به مدل داده می‌شود و نباید دو بار
+    بیاید) و ردیف جانشین پاسخ (که هنوز خالی است). ردیف‌های بی‌متن هم در
+    ``history_turns`` حذف می‌شوند.
+    """
+    excluded = set(exclude_message_ids or ())
+    rows = chat_messages_repo.list_by_session(
+        session, session_id, project_id=project_id, user_id=user_id
+    )
+    turns = chat_messages_repo.history_turns(row for row in rows if row.id not in excluded)
+    return turns[-limit:]
+
+
+# ---------------------------------------------------------------------------
+# کار پس‌زمینه: پاسخ به یک پرسش و ثبت آن روی همان ردیف پیام
+# ---------------------------------------------------------------------------
+def answer_question(
+    *,
+    user_id: int,
+    project_id: int,
+    session_id: str,
+    user_message_id: str,
+    assistant_message_id: str,
+) -> None:
+    """تنها کاری که ترد پس‌زمینه اجرا می‌کند: پرسش را پاسخ بده و نتیجه را ثبت کن.
+
+    ورودی‌ها همه شناسه‌اند، نه متن پرسش: خودِ پرسش از همان ردیف ذخیره‌شده خوانده
+    می‌شود تا همیشه همان چیزی باشد که کاربر فرستاده و در تاریخچه دیده می‌شود.
+
+    این تابع در یک ترد پس‌زمینه اجرا می‌شود (نشست درخواست HTTP در آن لحظه بسته
+    شده است)، بنابراین نشست پایگاه‌داده‌ی خودش را باز می‌کند -- دقیقاً مثل
+    ``api/workshops/runs.py::finalize_run``.
+
+    دو نشست، عمداً: فراخوانی مدل چند ثانیه (گاه دقیقه) طول می‌کشد و اگر همان
+    تراکنشِ خواندنی تا لحظه‌ی نوشتنِ نتیجه باز بماند، روی SQLite/WAL هر نوشتنِ
+    هم‌زمان دیگری (مثلاً ثبت نتیجه‌ی یک کارگاه در پروژه‌ای دیگر) می‌تواند ارتقای
+    آن تراکنش به نوشتن را با «پایگاه‌داده مشغول است» رد کند. نوشتن نتیجه در یک
+    نشست کوتاه و تازه انجام می‌شود.
+
+    هر مسیر خطا سرانجام پیام را از ``pending`` بیرون می‌آورد؛ هیچ استثنایی از این
+    تابع بیرون نمی‌زند که ردیف را معلق بگذارد.
+    """
+    error: Optional[str] = None
+    result: Optional[dict[str, Any]] = None
+
+    with SessionLocal() as db:
+        project = projects_repo.get_owned(db, project_id, user_id)
+        question_row = chat_messages_repo.get_by_id(
+            db,
+            user_message_id,
+            session_id=session_id,
+            project_id=project_id,
+            user_id=user_id,
+        )
+        if project is None or question_row is None:
+            # پروژه/گفتگو در همین فاصله حذف شده است. ردیف پاسخ هم قاعدتاً با آن
+            # رفته؛ اگر نرفته باشد، پایین برایش خطا ثبت می‌شود.
+            logger.warning(
+                "chat ask %s aborted: project or question message no longer exists",
+                assistant_message_id,
+            )
+            error = PROJECT_GONE_FA
+        else:
+            history = build_recent_history(
+                db,
+                session_id=session_id,
+                project_id=project_id,
+                user_id=user_id,
+                exclude_message_ids=(user_message_id, assistant_message_id),
+            )
+            try:
+                result = ask_with_history(db, project, question_row.content, history)
+            except ChatbotUnavailableError as exc:
+                # بدون پایگاه‌دانش/متن قابل‌جست‌وجو -- پیام فارسی خودِ سرویس.
+                logger.info("chat ask %s unavailable: %s", assistant_message_id, exc)
+                error = str(exc) or NO_INDEX_MESSAGE_FA
+            except Exception as exc:  # noqa: BLE001 -- هیچ stack trace خامی به کاربر نرسد
+                logger.exception("chat ask %s failed", assistant_message_id)
+                error = ASK_FAILED_FA
+
+    with SessionLocal() as db:
+        if result is not None:
+            chat_messages_repo.mark_assistant_message_complete(db, assistant_message_id, result)
+            # «آخرین استفاده» گفتگو فقط پس از یک پاسخ موفق تازه می‌شود.
+            chat = chat_sessions_repo.get_by_id(
+                db, session_id, user_id=user_id, project_id=project_id
+            )
+            if chat is not None:
+                chat_sessions_repo.touch(db, chat)
+            logger.info("chat ask %s completed", assistant_message_id)
+        else:
+            chat_messages_repo.mark_assistant_message_failed(
+                db, assistant_message_id, error or ASK_FAILED_FA
+            )
 
 
 # ---------------------------------------------------------------------------

@@ -12,14 +12,17 @@ Postgres در آینده تغییری محدود و متمرکز باشد.
 """
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator
 from pathlib import Path
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, inspect
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from api.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 
 class Base(DeclarativeBase):
@@ -67,7 +70,42 @@ def init_db() -> None:
     # ماژول مدل‌ها باید پیش از create_all ایمپورت شود تا متادیتا پر باشد.
     from api.db import models  # noqa: F401
 
+    _upgrade_legacy_chat_sessions()
     Base.metadata.create_all(engine)
+
+
+def _upgrade_legacy_chat_sessions() -> None:
+    """جدول ``chat_sessions`` نسخه‌ی قدیمی (شناسه‌ی عددی) را کنار می‌گذارد.
+
+    پیش از این فاز، ``chat_sessions.id`` یک عدد خودکارافزاینده بود و هیچ محتوای
+    گفتگویی ذخیره نمی‌شد. از این فاز به بعد این شناسه یک UUID رشته‌ای است (تا کلید
+    ترکیبی ``(project_id, session_id, assistant_message_id)`` واقعاً جهانی‌یکتا
+    باشد). ``create_all`` نمی‌تواند نوع یک ستون موجود را عوض کند، و یک ستون
+    ``INTEGER PRIMARY KEY`` در SQLite حتی یک رشته‌ی UUID را هم نمی‌پذیرد
+    («datatype mismatch») -- یعنی بدون این ارتقای کوچک، اولین تلاش برای ساخت
+    گفتگو در یک پایگاه‌داده‌ی موجود شکست می‌خورد.
+
+    طبق طراحی صریح همان نسخه‌ی قدیمی، آن جدول *فقط* عنوان/زمان دو گفتگو را داشت و
+    هیچ پیامی نداشت؛ پس کنارگذاشتنش هیچ محتوایی را از دست نمی‌دهد. این تابع فقط
+    روی SQLite و فقط وقتی اجرا می‌شود که واقعاً شکل قدیمی تشخیص داده شود (ستون
+    ``id`` عددی باشد)، بنابراین روی پایگاه‌داده‌ی درست هیچ اثری ندارد.
+    """
+    if not engine.url.drivername.startswith("sqlite"):  # pragma: no cover - SQLite پیش‌فرض است
+        return
+    inspector = inspect(engine)
+    if not inspector.has_table("chat_sessions"):
+        return
+    columns = {column["name"]: column for column in inspector.get_columns("chat_sessions")}
+    id_column = columns.get("id")
+    if id_column is None or "INT" not in str(id_column["type"]).upper():
+        return
+
+    with engine.begin() as connection:
+        connection.exec_driver_sql("DROP TABLE chat_sessions")
+    logger.warning(
+        "legacy chat_sessions table (integer id) dropped; it stored titles only, "
+        "and the new schema uses a UUID primary key"
+    )
 
 
 def get_session() -> Iterator[Session]:

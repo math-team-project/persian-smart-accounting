@@ -48,11 +48,11 @@ projects (one per organization / fiscal period), and runs any registered
 same project without their state colliding, and every finished run is kept in
 that project's **history** (result file + run metadata only — uploaded inputs are
 still deleted after each run). Deleting a project removes **all** of its data:
-database rows (runs, encrypted settings, knowledge-base and chat-session rows),
-result files on disk, and every on-disk vector store the project's knowledge bases
-built (`data/vector_stores/{user}/{project}/`). A project cannot be deleted while
-one of its workshops still has a job running — the request is refused with a
-Persian message until that job finishes.
+database rows (runs, encrypted settings, knowledge-base rows, chat sessions and
+every chat message), result files on disk, and every on-disk vector store the
+project's knowledge bases built (`data/vector_stores/{user}/{project}/`). A project
+cannot be deleted while one of its workshops still has a job running — the request
+is refused with a Persian message until that job finishes.
 
 1. **Financial audit checklist** — Upload the budget/financial-statement
    Excel (or PDF/legacy `.xls`) files of an organization for a given fiscal
@@ -89,11 +89,14 @@ Persian message until that job finishes.
    **knowledge base built by the checklist workshop** for that project (see
    [Knowledge-base infrastructure](#knowledge-base-infrastructure-rag_chat_module)),
    so this workshop stays gated until at least one checklist run has succeeded.
-   Chats are lightweight **named threads**: you can create, list and delete them,
-   and follow-up questions in the currently-open conversation are answered with
-   awareness of the last few exchanges — but **no message is ever persisted**,
-   so reopening an old chat shows an empty conversation. See
-   [Pipeline → Financial chatbot](#financial-chatbot-workshop).
+   Chats are **named threads whose full message history is persisted**: create,
+   list, delete, and reopen them — reopening shows the real past questions and
+   answers (follow-up questions are answered with awareness of the last few
+   persisted exchanges). Asking a question is a **background job**: the request
+   returns immediately, the answer is produced server-side regardless of what the
+   page does, and the UI polls the message until it is ready — so you can switch
+   to another chat, or to another workshop entirely, and come back to the answer.
+   See [Pipeline → Financial chatbot](#financial-chatbot-workshop).
 
 **Intended users:** internal auditors, financial committees, and board
 members of public-sector organizations who need to quickly verify budget
@@ -105,10 +108,12 @@ of spreadsheets.
 The dashboard is a **FastAPI** application (`api/`) with a server-rendered
 **Jinja2 + Tailwind** frontend (`web/`) — no separate JS build step, no SPA
 framework. Every workshop shares the same UI shell/components but has its own
-processing pipeline. The three job-based workshops each run in a background
-thread so a page can poll job status
-(`GET /api/projects/{id}/<slug>/jobs/{job_id}`) without blocking, while the
-financial chatbot answers live, one request at a time:
+processing pipeline. Every workshop's long-running work runs in a background
+thread so a page can poll job status without blocking: the three job-based
+workshops poll
+(`GET /api/projects/{id}/<slug>/jobs/{job_id}`), while the financial chatbot's
+per-question work is polled per message
+(`GET /api/projects/{id}/financial_chatbot/sessions/{sid}/messages/{message_id}`):
 
 ```mermaid
 flowchart TD
@@ -124,7 +129,7 @@ flowchart TD
     WS1 --> RUNS[api/workshops/runs.py:<br/>start run, live panel, history, download]
     WS2 --> RUNS
     WS3 --> RUNS
-    RUNS --> DB[(SQLite: users, projects, workshop_runs,<br/>workshop_settings, knowledge_bases, chat_sessions)]
+    RUNS --> DB[(SQLite: users, projects, workshop_runs,<br/>workshop_settings, knowledge_bases,<br/>chat_sessions, chat_messages)]
     RUNS --> FILES[Result files: data/results/project-N/run-M-*.docx]
 
     WS1 --> API1[api/workshops/checklist.py + services/checklist_service.py]
@@ -147,7 +152,8 @@ flowchart TD
     A3 --> R3[budget_analysis/report.py: deterministic RTL .docx render]
 
     WS4 --> API4[api/workshops/financial_chatbot.py +<br/>services/financial_chatbot_service.py]
-    API4 --> CH[(chat_sessions: title + timestamps only,<br/>NO message content)]
+    API4 --> CH[(chat_sessions: title + timestamps<br/>chat_messages: full transcript)]
+    API4 --> JOBS[api/jobs/chat_jobs.py:<br/>one background job per question,<br/>keyed by (project, session, message)]
     API4 --> RAG[llm_variable_resolver.chat_ask:<br/>router -> vector search -> answer]
     RAG --> KB
     API4 -.-> SETT
@@ -160,11 +166,15 @@ Each workshop is deliberately kept **thin at the API layer**: its project-scoped
 router only parses the HTTP request and calls a service function; the service
 validates/saves uploads and hands off to the unchanged
 `pipeline.py`/`audit_pipeline.py`/`budget_analysis` background-job functions (the
-job-less financial chatbot's service instead builds a read-only knowledge base and
-calls `rag_chat_module` synchronously); a
-single in-memory `JobManager` (`api/jobs/job_manager.py`) tracks job dicts for
-every workshop — each job tagged with `(project_id, workshop_type, run_id)` — so
-concurrent runs never share state. When a job reaches its final status, a
+financial chatbot's service instead builds a read-only knowledge base and calls
+`rag_chat_module` from its own small background runner,
+`api/jobs/chat_jobs.py`); a
+single in-memory `JobManager` (`api/jobs/job_manager.py`) tracks job dicts for the
+file-based workshops — each job tagged with `(project_id, workshop_type, run_id)` —
+so concurrent runs never share state, while the chatbot's questions are tracked
+one-per-thread by `api/jobs/chat_jobs.py` under
+`(project_id, session_id, assistant_message_id)`. When a `JobManager` job reaches
+its final status, a
 completion callback (registered via `JobManager.watch_lifecycle`) writes the run's
 **result file** and its **history row** — this is why the pipeline modules need no
 changes for history to work.
@@ -175,15 +185,22 @@ workshop is not readable through another workshop's endpoints (the lookup helper
 `api/utils/jobs.py::get_job_or_404` and
 `api/workshops/runs.py::read_run_download` check both labels), and a project of
 another user is invisible (404, not 403, so the existence of other users'
-projects does not leak). Database access is a **per-request session**
-(`api/db/base.py::get_session`); background threads that record a finished run
-open their own short-lived session, so no session is shared between requests or
-threads.
+projects does not leak). Chat data follows the same discipline with a stricter
+key: every `chat_messages` row carries `session_id`, `project_id` **and**
+`user_id` on the row itself, so loading a conversation, polling one answer and
+creating a message are all single-table, triple-scoped queries — and the chatbot's
+in-flight background job is keyed by the full `(project_id, session_id,
+assistant_message_id)` tuple, so even a hypothetical ID collision could not make
+one user's question resolve onto another user's message row. Database access is a
+**per-request session** (`api/db/base.py::get_session`); background threads that
+record a finished run or a finished answer open their own short-lived session, so
+no session is shared between requests or threads.
 
 **Project deletion is a project-scoped cascade.** `project_service.delete_project`
 is the single entry point (there is no HTTP route that reaches the per-scope
 deletion helpers directly). It first refuses if the project still has an active
-job, then removes, in a safety-driven order: in-memory jobs, chat-session rows
+job, then removes, in a safety-driven order: in-memory jobs, chat-message rows
+(`delete_all_chat_messages_for_project`) and then chat-session rows
 (`delete_all_chat_sessions_for_project`), the on-disk vector-store directories
 (`delete_vector_store_directories_for_project` — driven by the exact
 project-scoped `knowledge_bases` rows, never by filesystem globbing), the
@@ -192,7 +209,8 @@ which first clears `projects.latest_ready_kb_id` to satisfy the FK), and finally
 the project row and its result files. Every one of these helpers takes an
 explicit `project_id` (and `user_id` where a path is built) and is
 isolation-checked, so deleting project A can never touch project B or another
-user's data.
+user's data — no chat message, run, setting, knowledge-base row or vector-store
+directory is ever left orphaned.
 
 **Workshop registry** (`api/workshops/registry.py`): "which workshops exist" is
 data, not something hardcoded in routers/templates. The dashboard's workshop
@@ -213,8 +231,10 @@ persian-smart-accounting/
 │   ├── storage.py                # Result-file storage on disk (safe path resolution + per-project cleanup)
 │   ├── auth/                     # Session-cookie auth: password hashing + FastAPI dependencies
 │   ├── db/                       # SQLite/SQLAlchemy: engine+session (base.py) and ORM models (models.py)
-│   ├── repositories/             # All dashboard queries (users, projects, workshop_runs/settings, knowledge_bases, chat_sessions)
-│   ├── jobs/job_manager.py       # In-memory job registry, keyed by (project, workshop, run) + completion hook
+│   ├── repositories/             # All dashboard queries (users, projects, workshop_runs/settings, knowledge_bases, chat_sessions, chat_messages)
+│   ├── jobs/                     # Background runners: job_manager.py (file-based workshops) + chat_jobs.py (chatbot questions)
+│   │   ├── job_manager.py        # In-memory job registry, keyed by (project, workshop, run) + completion hook
+│   │   └── chat_jobs.py          # One background thread per chatbot question, keyed by (project, session, message)
 │   ├── workshops/                # THE EXTENSION POINT: registry.py + one module per workshop
 │   │   ├── registry.py           # WorkshopDefinition + WORKSHOPS (single source of truth)
 │   │   ├── runs.py               # Run history: create row, finalize result, live jobs panel, downloads
@@ -222,13 +242,13 @@ persian-smart-accounting/
 │   │   ├── checklist.py          # Workshop: financial audit checklist (router + registry entry)
 │   │   ├── audit_summary.py      # Workshop: audit report summarization (router + registry entry)
 │   │   ├── budget_analysis.py    # Workshop: budget analysis (router + registry entry)
-│   │   └── financial_chatbot.py  # Workshop: financial chatbot (router + registry entry; NOT job-based)
+│   │   └── financial_chatbot.py  # Workshop: financial chatbot (router + registry entry; background ask, no workshop_runs row)
 │   ├── routers/                  # Thin HTML/JSON endpoints: auth.py, dashboard.py (projects+pages), settings.py
 │   ├── services/                 # Upload validation/saving + job orchestration + project deletion
 │   │   ├── checklist_service.py  # Checklist workshop adapter over pipeline.py
 │   │   ├── summary_service.py    # Audit-summary workshop adapter over audit_pipeline.py
 │   │   ├── budget_service.py     # Budget-analysis workshop adapter over budget_analysis/
-│   │   ├── financial_chatbot_service.py # Chatbot workshop: gating, multi-turn question composition, chat_ask call
+│   │   ├── financial_chatbot_service.py # Chatbot workshop: gating, DB-derived history, background chat_ask job
 │   │   ├── ai_settings.py        # Resolve defaults, validate, encrypt/decrypt per-workshop API keys
 │   │   ├── project_service.py    # Full project deletion (jobs + rows + files)
 │   │   ├── kb_storage.py         # Knowledge-base on-disk layout (Chroma files + the chunks.jsonl text sidecar)
@@ -325,16 +345,20 @@ want to compare behaviour with the original prototype.
   `window.PSA_WORKSHOP = {apiBase, projectId, storageKey}` so its JS builds URLs
   from the registry-provided base instead of hardcoding them (see
   `web/static/js/checklist.js`).
-- A workshop does **not** have to be job/polling-based. The financial chatbot is
-  a live request/response workshop: it creates no `workshop_runs` row, registers
-  no job with `JobManager`, and therefore never appears in the live panel or the
-  run history — but it still goes through the registry, so it gets its card,
-  navigation entry, page route, and AI-settings form for free. The four
+- A workshop does **not** have to use `JobManager`/`workshop_runs`. The financial
+  chatbot answers every question in a background thread of its own
+  (`api/jobs/chat_jobs.py`) and stores the transcript in its own tables
+  (`chat_sessions` + `chat_messages`), so it creates no `workshop_runs` row,
+  registers no job with `JobManager`, and therefore never appears in the live
+  panel or the run history — but it still goes through the registry, so it gets
+  its card, navigation entry, page route, and AI-settings form for free. The four
   registry callables (`estimate_progress`, `collect_result`, `has_download`,
-  `summary_chips_fa`) are still required by `WorkshopDefinition`, so a non-job
+  `summary_chips_fa`) are still required by `WorkshopDefinition`, so such a
   workshop supplies minimal no-op implementations (see
-  `api/workshops/financial_chatbot.py`). A workshop's own durable state can live
-  in its own table instead (`chat_sessions` for the chatbot).
+  `api/workshops/financial_chatbot.py`). It is still *asynchronous and polled*
+  like the other workshops: the client gets an immediate `202` and then polls the
+  answer's own message row (see the
+  [financial chatbot pipeline](#financial-chatbot-workshop)).
 - The reusable UI building blocks (`web/templates/components/*.html` +
   their companion `window.psaSetStep` / `psaSetProgress` / `psaShowToast`
   globals) are already workspace-agnostic and require no changes for a new
@@ -643,17 +667,29 @@ supported PDF path (the gate is semantic form detection, not an OCR step).
 
 ### Financial chatbot workshop
 
-This workshop is deliberately **not** a background-job workshop — it is a live
-request/response chat, so there is nothing to poll and no result file to store.
-It is stateless per request and reads exactly one thing from the database to
-find its data: `projects.latest_ready_kb_id`.
+This workshop is **not** a `JobManager`/`workshop_runs` workshop — it creates no
+history row and no result file — but asking a question is still an
+**asynchronous background job** that the browser polls, exactly like the other
+workshops. Its durable state lives in its own two tables
+(`chat_sessions` + `chat_messages`), and the one thing it reads to find its data
+is `projects.latest_ready_kb_id`.
 
 ```
-HTTP: POST /api/projects/{id}/financial-chatbot/sessions/{sid}/ask
-      {question, recent_history:[{role, content}, …]}      ← history lives only in this request
+HTTP: POST /api/projects/{id}/financial_chatbot/sessions/{sid}/ask   {question}
   ↓
-Gate (api/services/financial_chatbot_service.py::is_available)
-      projects.latest_ready_kb_id is NULL  → 409 + Persian "run the checklist workshop first"
+Gate + persistence + enqueue (api/workshops/financial_chatbot.py)
+      session triple-scoped (project_id, user_id)  → 404 (not 403) if not visible
+      projects.latest_ready_kb_id is NULL          → 409 + Persian "run the checklist first"
+      blank question                               → 422
+      chat_messages.create_user_message(...)             role=user,      status=complete
+      chat_messages.create_pending_assistant_message(...) role=assistant, status=pending
+  ↓
+HTTP 202 immediately: {user_message_id, assistant_message_id, status:"pending"}
+  ↓
+Background thread: api/jobs/chat_jobs.py (key = (project_id, session_id, assistant_message_id))
+      one thread per question; concurrent questions in other sessions run concurrently
+  ↓
+Worker: api/services/financial_chatbot_service.py::answer_question
   ↓
 Read-only knowledge base over the LATEST READY kb of this project
       rag_ai_adapter.build_readonly_knowledge_base(user_id, project_id, latest_ready_kb_id)
@@ -667,19 +703,52 @@ LLM client for THIS project + THIS workshop
       rag_ai_adapter.build_llm_client(session, project_id, workshop_slug="financial_chatbot")
         → ai_settings.py resolution chain (project+workshop setting → system default)
   ↓
-Multi-turn context (option "a": fold history into the single question)
-      compose_question(question, recent_history)
-        "گفتگوی قبلی:\nکاربر: …\nدستیار: …\n\nپرسش جدید کاربر: …\n\n<formatting hint>"
+Multi-turn context, now read from the database instead of the request
+      build_recent_history(session_id, project_id, user_id, exclude_message_ids=(the new pair))
+        → last N complete rows of THIS session, oldest-first, mapped to {role, content}
+  ↓
+compose_question(question, history)
+      "گفتگوی قبلی:\nکاربر: …\nدستیار: …\n\nپرسش جدید کاربر: …\n\n<formatting hint>"
   ↓
 llm_variable_resolver.chat_ask(composed_question, kb, llm_client, sheet_catalog=…)
       router LLM call (catalog = the real indexed file/sheet names) → vector search
       over that kb → answer LLM call
   ↓
-HTTP 200: {answer (Markdown), confidence, sources[], route_reasoning, history_turns_used}
+mark_assistant_message_complete(assistant_message_id, answer.to_dict())
+      → status=complete + content + confidence + sources(JSON) + route_reasoning
+      (on any exception instead: mark_assistant_message_failed(...) → status=failed
+       + a Persian error_message; the raw exception is logged, never stored or shown)
   ↓
-Browser renders `answer` as Markdown into the RTL message list
-      web/static/js/financial_chatbot.js: escape HTML first, then convert Markdown
+Polling (web/static/js/financial_chatbot.js, POLL_INTERVAL_MS = 1500 like the other workshops)
+      GET /api/projects/{id}/financial_chatbot/sessions/{sid}/messages/{message_id}
+        status:"pending"  → keep the «در حال پاسخگویی...» bubble and poll again
+        status:"complete" → render `content` as Markdown into the RTL message list
+        status:"failed"   → replace the bubble with the Persian error notice
 ```
+
+Opening (or reopening) a session, and the plain-messages list endpoint:
+
+```
+GET /api/projects/{id}/financial_chatbot/sessions/{sid}/messages
+      chat_messages.list_by_session(session_id, project_id, user_id)  ← triple-scoped, oldest first
+      → the full persisted transcript, including a row that is still pending
+```
+
+**The user's own message is rendered before the server answers.** The browser
+appends the user's bubble to the message list *before* it `fetch`es `/ask`, and
+then stamps the bubble with the `user_message_id` the response returns; when the
+assistant row arrives (by polling or by a later history load) the row is matched
+by `data-message-id` and updated in place instead of appended, so a fresh send
+and a reload of the same conversation produce exactly the same list with no
+duplicate and no mismatch.
+
+**Polling survives navigation.** There is no cancel API: `chat_jobs` deliberately
+exposes none, and the client never sends an `AbortController` — leaving the page
+or switching chats only stops the browser's own timer. The server-side thread
+keeps running, and returning to the session either shows the finished answer
+(loaded by `list_by_session`) or resumes polling for the row that is still
+`pending`. Multiple sessions/projects can have a question in flight at once; each
+is a separate thread, never a queue.
 
 **Why the history is folded into the question instead of sent as messages.**
 `rag_chat_module` is intentionally left unmodified, and its `chat_ask` accepts a
@@ -690,15 +759,18 @@ the recent turns, or (b) bypass `chat_ask` and drive retrieval + the LLM
 directly with a message list. Option (b) is not actually reachable without
 changing `rag_chat_module` (its LLM client cannot carry a message list), so
 option (a) was implemented; it keeps the router → retrieve → answer path shared
-with every other consumer of that package. The reasoning is repeated in a
-comment at the top of `api/services/financial_chatbot_service.py`.
+with every other consumer of that package. The turns that get serialized now come
+from `chat_messages` (the last complete rows of this session) rather than from the
+browser, which also means a client can no longer inject a fake conversation. The
+reasoning is repeated in a comment at the top of
+`api/services/financial_chatbot_service.py`.
 
 **Why a `chunks.jsonl` sidecar exists.** `ChromaVectorStore` (in
 `rag_chat_module`) keeps the retrieved `Chunk` objects in an *in-process*
 dictionary and passes only ids/vectors/`{file_key, sheets}` metadata to Chroma —
-the table text itself is never persisted. A fresh process (the chatbot's request,
-after a server restart) therefore had nothing to search: `search()` returned an
-empty list every time. Since the package stays unmodified, the dashboard writes
+the table text itself is never persisted. A fresh process (the chatbot's
+background worker, after a server restart) therefore had nothing to search:
+`search()` returned an empty list every time. Since the package stays unmodified, the dashboard writes
 the chunk text next to the same knowledge base at index time — through a thin
 recording wrapper around the adapter's vector-store factory
 (`rag_ai_adapter.build_recording_vector_store_factory`, used only by
@@ -810,26 +882,51 @@ exists in this infrastructure layer:
   `projects`, a nullable `latest_ready_kb_id` column always points at the
   newest `ready` knowledge base of that project -- consumers read this pointer
   instead of querying `knowledge_bases` directly.
-- **`chat_sessions` table** (financial chatbot) -- **metadata only, no message
-  content**. Columns: `id`, `project_id`, `user_id`, `title`, `created_at`,
-  `updated_at`. There is **no** `chat_messages` table and no transcript file
-  anywhere. This is an intentional deviation from a "normal" chat app:
+- **`chat_sessions` table** (financial chatbot) -- one row per conversation:
+  `id`, `project_id`, `user_id`, `title`, `created_at`, `updated_at`. It stores
+  only the conversation's metadata; the messages themselves live in
+  `chat_messages` below.
+- **`chat_messages` table** (financial chatbot) -- **the full transcript, for
+  real.** One row per message, with the exact columns: `id`, `session_id` (FK
+  `chat_sessions.id`), `project_id`, `user_id`, `role` (`user`/`assistant`),
+  `content`, `status`, `confidence`, `sources`, `route_reasoning`,
+  `error_message`, `created_at`. What is stored and what it means:
 
-  | Stored | Not stored |
+  | Stored | Notes |
   |---|---|
-  | chat title + id, creation time, last-used time | the user's questions |
-  | which project/user the chat belongs to | the assistant's answers, and their sources |
-  | | the multi-turn context of a conversation |
+  | the user's questions | `role="user"`, `status="complete"` as soon as `/ask` is accepted |
+  | the assistant's answers | `role="assistant"`; `content` + `confidence` + `sources` (JSON text) + `route_reasoning` once finished |
+  | the assistant's in-flight state | `status="pending"` with empty content while the background job runs; `status="failed"` + a Persian `error_message` on error (the raw exception goes to the log, not the row) |
+  | scope on every row | `session_id` + `project_id` + `user_id`, so every query is single-table and triple-scoped |
 
-  Consequences you should expect (they are the design, not a bug): reopening an
-  old chat shows an **empty** conversation (only its title/date survive);
-  deleting a chat is a hard delete of just that one row (there is nothing else to
-  clean up); multi-turn awareness exists **only** for the currently-open
-  conversation, and it lives entirely in the browser's JS memory — the browser
-  re-sends the last few turns with each question and the server is stateless per
-  request. `chat_sessions` rows are removed with their project (FK
-  `ON DELETE CASCADE`), and every read/delete is checked against both the
-  project *and* the current user.
+  Consequences you should expect: reopening an old chat shows the **real**
+  transcript (including a still-pending answer, which the client resumes
+  polling); deleting a chat is a hard delete of its rows plus the session row;
+  and multi-turn context comes from these rows (the last complete ones of the
+  same session), not from the browser. `chat_messages` rows are removed with
+  their session and with their project, and every read is checked against the
+  session *and* the project *and* the current user. A message left `pending` by a
+  server restart is swept to `failed` at startup
+  (`chat_messages.mark_pending_messages_failed`, right next to the existing
+  `workshop_runs.mark_orphaned_runs`), so a stale pending row can never hang a
+  client's polling forever.
+- **Chat-data uniqueness mirrors the knowledge-base pattern on purpose.** The
+  same design that gives every knowledge base a globally unique UUID
+  (`knowledge_bases.id` is a UUID string *and* the name of its own on-disk
+  directory) is applied to chat data: `chat_sessions.id` is a UUID string PK
+  (not an auto-increment integer), every `chat_messages` row carries
+  `session_id` + `project_id` + `user_id` directly on the row, and the table has
+  a composite index on exactly that triple
+  (`ix_chat_messages_scope` in `api/db/models.py`). The reason is the same in
+  both cases: an in-flight piece of work must be keyed by a value that is
+  globally unique, so the chatbot's background job is keyed by
+  `(project_id, session_id, assistant_message_id)` and a question can never
+  resolve onto another user's message row. This is stated in a comment in
+  `api/db/models.py` and in `api/jobs/chat_jobs.py`. One-time note: an older
+  development database whose `chat_sessions.id` was an `INTEGER PRIMARY KEY` is
+  upgraded automatically at startup (`api/db/base.py` drops that metadata-only
+  legacy table, since SQLite cannot alter a column's type and such a table would
+  reject the new UUID values).
 - **Uniqueness/versioning guarantee** -- every time a project's files are
   re-uploaded and the checklist workshop is re-run, a brand-new
   `knowledge_bases` row, a brand-new UUID, and a brand-new on-disk Chroma
@@ -891,7 +988,7 @@ exists in this infrastructure layer:
 
 | Component | Responsibility |
 |---|---|
-| `api/` | FastAPI app: routers (HTTP), services (upload validation + job orchestration + AI settings + project deletion), schemas (Pydantic response models), the shared in-memory `JobManager` |
+| `api/` | FastAPI app: routers (HTTP), services (upload validation + job orchestration + AI settings + project deletion), schemas (Pydantic response models), the shared in-memory `JobManager` for the file-based workshops, and `api/jobs/chat_jobs.py` for the chatbot's per-question background threads |
 | `web/` | Jinja2 templates + Tailwind classes + small per-workshop JS controllers (upload → poll → render results); no build step |
 | `pipeline.py` | Orchestrates the checklist workshop end-to-end; background-thread job management (unchanged business logic, called from `api/services/checklist_service.py`) |
 | `audit_pipeline.py` | Orchestrates the audit-summary workshop; background-thread job management (unchanged business logic, called from `api/services/summary_service.py`) |
@@ -904,7 +1001,7 @@ exists in this infrastructure layer:
 | `extraction_script/scripts/document_conversion/` | PDF → xlsx conversion for tabular Persian PDFs, and generic PDF/DOC → text extraction (with OCR fallback) |
 | `audit_report_generator/` | LLM-powered generator of the "committee non-conformity report" (`.docx`), built on the `openai` client library |
 | `rag_chat_module/` (`llm_variable_resolver`) | Independent, unmodified package providing versioned knowledge bases + RAG chat; the dashboard talks to it only through `api/services/rag_ai_adapter.py` and `api/services/kb_storage.py` -- see [Knowledge-base infrastructure](#knowledge-base-infrastructure-rag_chat_module) (triggered by the checklist workshop's `api/services/checklist_kb_service.py`) |
-| `api/services/financial_chatbot_service.py` | The financial chatbot workshop's processing module: gates on `projects.latest_ready_kb_id`, rebuilds a **read-only** `KnowledgeBase` through `rag_ai_adapter`, folds the browser-held recent turns into the question, and calls `rag_chat_module`'s `chat_ask`. It persists nothing; chat sessions (metadata only — `id`, title, timestamps) live in `api/repositories/chat_sessions.py` |
+| `api/services/financial_chatbot_service.py` | The financial chatbot workshop's processing module: gates on `projects.latest_ready_kb_id`, rebuilds a **read-only** `KnowledgeBase` through `rag_ai_adapter`, builds the recent turns **from `chat_messages`**, and calls `rag_chat_module`'s `chat_ask`. Its `answer_question` worker is what the background job runs; it writes the outcome back to the assistant's own row (`mark_assistant_message_complete`/`_failed`). Row-level persistence lives in `api/repositories/chat_sessions.py` + `api/repositories/chat_messages.py` |
 | `audit_summarizer/` | Standalone LLM-powered audit-report summarizer package, with its own CLI, tests, and samples |
 | `db_management/budget_management/` | Batch scripts to create the PostgreSQL schema and bulk-insert extracted budget data |
 
@@ -959,17 +1056,37 @@ under the hood). They cover:
   plus the check that a history row never contains input file names/paths;
 - **the financial chatbot workshop**: session *metadata* CRUD (creation with a
   default Persian title, newest-first listing, hard delete of exactly one row,
-  and `updated_at` moving when a question is asked) under per-user *and*
-  per-project isolation — a foreign session answers 404, never 403 — plus the
-  gated page before `projects.latest_ready_kb_id` exists (Persian instruction
+  and `updated_at` moving only once an answer actually completes) under per-user
+  *and* per-project isolation — a foreign session answers 404, never 403 — plus
+  the gated page before `projects.latest_ready_kb_id` exists (Persian instruction
   card, `/ask` refusing with 409 and the gate message) and the working page once
-  it does. The last few turns the browser sends are checked to be folded into the
-  question, two concurrent asks against two different sessions are checked to
-  each see only their own `recent_history`, an `/ask` response is checked for its
-  documented shape, and the database is checked to hold no message content at all
-  (`chat_sessions` is metadata-only). The real `ask_with_history` is exercised
-  with `rag_ai_adapter` and the model client stubbed out, so no embedder, Chroma
-  store, or network call is involved. The XSS guard is verified in two places: a
+  it does;
+- **the financial chatbot's async answering and persisted history** (its own
+  file, `tests/test_financial_chatbot_history.py`): `/ask` returns `202` with
+  `{user_message_id, assistant_message_id, status:"pending"}` while the mocked
+  ask is still blocked on a `threading.Event` (so it is fast by construction, not
+  by timing luck), and the user's row is already `complete` and the assistant's
+  row already `pending` in the database at that moment; blank questions (422) and
+  gated projects (409) write **no** rows; polling the message endpoint walks
+  `pending` → `complete`, and a failing ask lands on `status="failed"` with the
+  Persian message (an unexpected exception's raw text is never stored or
+  returned); reopening a session returns every persisted message in order
+  *including* a still-pending answer, and its `history_turns` are proven to come
+  from the database; two concurrent questions in two different sessions are
+  forced to overlap with a `threading.Barrier` and are asserted to land on their
+  own rows with their own answers (no cross-talk, jobs are concurrent and not
+  queued); the in-flight registry is checked to be keyed by the full
+  `(project_id, session_id, assistant_message_id)` triple; and the triple-scoped
+  isolation rule is verified for message reads/polls (404 through the wrong
+  session or the wrong project, and for another user). Because `TestClient`
+  cannot execute JavaScript, the display-bug fix is covered from both sides: the
+  user row is asserted to exist and be retrievable the instant `/ask` returns,
+  and the JS controller's source is asserted to append the user's bubble *before*
+  the `/ask` request, to stamp it with the returned `user_message_id`, and to
+  contain no `new AbortController`/`.abort()` (so navigation can never kill
+  server-side work). As everywhere in this suite, `rag_ai_adapter` and the
+  service's LLM internals are stubbed — no real embedder, Chroma store or
+  network call is involved. The XSS guard is verified in two places: a
   `<script>`-bearing model answer is asserted to leave the API as plain JSON (the
   Markdown rendering happens in the browser, which `TestClient` cannot execute),
   and the JS controller's renderer is asserted at the source level to escape first
@@ -1173,16 +1290,20 @@ no edits.
 8. **Update this README**: add the workshop to the Overview list, the
    [Pipeline](#pipeline) section and the [Testing](#testing) coverage list.
 
-Steps 2, 3 and 5 describe the **job-based** shape, which is what three of the four
-workshops use. `api/workshops/financial_chatbot.py` +
-`api/services/financial_chatbot_service.py` + `web/static/js/financial_chatbot.js`
-show the other shape a workshop may take: synchronous request/response, with **no
-`job_manager.create`**, no `workshop_runs` row, no polling, and therefore minimal
-no-op implementations of the four job-related registry callables — but still a
-normal registry entry, page template and project-scoped router, so it gets its
-card, navigation entry and AI-settings form exactly like the others. If your
-workshop needs durable state of its own, give it its own table
-(`chat_sessions` is the example) rather than overloading `workshop_runs`.
+Steps 2, 3 and 5 describe the **`JobManager` + `workshop_runs`** shape, which is
+what three of the four workshops use. `api/workshops/financial_chatbot.py` +
+`api/services/financial_chatbot_service.py` + `api/jobs/chat_jobs.py` +
+`web/static/js/financial_chatbot.js` show the other shape a workshop may take: no
+`job_manager.create`, no `workshop_runs` row, no result file — but still
+**asynchronous and polled** (the client posts, gets an immediate `202` with a row
+id, then polls that row) and still a normal registry entry, page template and
+project-scoped router, so it gets its card, navigation entry and AI-settings form
+exactly like the others. That also means the four job-related registry callables
+are minimal no-ops there. If your workshop needs durable state of its own, give
+it its own table (`chat_sessions` + `chat_messages` are the example) rather than
+overloading `workshop_runs` — and if that state is worked on in the background,
+key the in-flight job by the full `(project_id, <parent_id>, <row_id>)` triple
+the way `api/jobs/chat_jobs.py` does.
 
 ## License
 

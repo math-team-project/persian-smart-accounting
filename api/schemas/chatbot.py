@@ -1,10 +1,14 @@
-"""مدل‌های Pydantic کارگاه «چت‌بات مالی» (گفتگوهای متادیتا-محور + پرسش/پاسخ).
+"""مدل‌های Pydantic کارگاه «چت‌بات مالی» (گفتگوها، پیام‌های ذخیره‌شده، پرسش).
 
-نکته‌ی مهم درباره‌ی ``recent_history``: این فهرست **هیچ‌گاه ذخیره نمی‌شود**. فقط
-در بدنه‌ی همان یک درخواست HTTP وجود دارد، به سرویس پاس داده می‌شود تا به پرسش
-مدل اضافه شود، و بعد از پاسخ دور ریخته می‌شود. مرورگر هم آن را فقط در حافظه‌ی
-همان صفحه نگه می‌دارد (نه در ``localStorage``). سقف‌های این فایل برای همین
-هستند: یک payload بزرگ یا بی‌پایان نباید به مدل فرستاده شود.
+نکته‌ی مهم درباره‌ی تاریخچه‌ی گفتگو: از این فاز، **پیام‌ها روی سرور ذخیره می‌شوند**
+(جدول ``chat_messages``) و زمینه‌ی چندنوبتی از همان ردیف‌های ذخیره‌شده ساخته
+می‌شود. بنابراین بدنه‌ی پرسش فقط ``question`` را می‌فرستد: دیگر هیچ کلاینتی
+«تاریخچه»ی خودش را همراه پرسش به مدل تزریق نمی‌کند و دو منبع حقیقت وجود ندارد.
+
+پاسخ ``POST .../ask`` هم دیگر خودِ پاسخ مدل نیست: چون پاسخ‌دهی یک کار پس‌زمینه
+است (``api/jobs/chat_jobs.py``)، این مسیر فقط شناسه‌ی دو پیام (پرسش کاربر و ردیف
+جانشین پاسخ) را برمی‌گرداند و UI با ``GET .../messages/{message_id}`` تا رسیدن
+به وضعیت پایانی polling می‌کند.
 """
 from __future__ import annotations
 
@@ -13,19 +17,13 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
-# سقف تعداد نوبت‌های تاریخی که سرور می‌پذیرد. مرورگر معمولاً ۶ تا ۱۰ نوبت آخر
-# را می‌فرستد؛ این سقف محافظ سرور است (نه قرارداد UI) تا یک کلاینت دست‌کاری‌شده
-# نتواند پنجره‌ی زمینه‌ی مدل را بی‌نهایت کند.
-MAX_HISTORY_TURNS = 24
-# سقف طول هر پیام تاریخی/پرسش -- همان مرتبه‌ی اندازه‌ی یک پرسش واقعی کاربر.
+# سقف طول پرسش -- همان مرتبه‌ی اندازه‌ی یک پرسش واقعی کاربر و همان سقفی که
+# ``api/repositories/chat_messages.py`` هم اعمال می‌کند.
 MAX_TEXT_LENGTH = 4000
 
-
-class ChatTurn(BaseModel):
-    """یک نوبت گفتگو در همان درخواست -- زودگذر و ذخیره‌نشدنی."""
-
-    role: Literal["user", "assistant"]
-    content: str = Field(min_length=1, max_length=MAX_TEXT_LENGTH)
+MessageRole = Literal["user", "assistant"]
+MessageStatus = Literal["pending", "complete", "failed"]
+Confidence = Literal["high", "medium", "needs_review"]
 
 
 class CreateChatSessionRequest(BaseModel):
@@ -35,9 +33,9 @@ class CreateChatSessionRequest(BaseModel):
 
 
 class ChatSessionOut(BaseModel):
-    """متادیتای یک گفتگو -- تنها چیزی که این کارگاه ذخیره می‌کند."""
+    """متادیتای یک گفتگو. ``id`` یک UUID رشته‌ای است (نه عدد)."""
 
-    id: int
+    id: str
     title: str
     created_at: datetime
     updated_at: datetime
@@ -45,15 +43,6 @@ class ChatSessionOut(BaseModel):
 
 class ChatSessionListOut(BaseModel):
     sessions: list[ChatSessionOut]
-
-
-class ChatAskRequest(BaseModel):
-    """بدنه‌ی پرسش: خودِ پرسش + زمینه‌ی گفتگوی زنده (اختیاری، ذخیره نمی‌شود)."""
-
-    question: str = Field(min_length=1, max_length=MAX_TEXT_LENGTH)
-    recent_history: list[ChatTurn] = Field(
-        default_factory=list, max_length=MAX_HISTORY_TURNS
-    )
 
 
 class ChatSourceOut(BaseModel):
@@ -66,13 +55,50 @@ class ChatSourceOut(BaseModel):
     snippet: str = ""
 
 
-class ChatAskOut(BaseModel):
-    """پاسخ یک پرسش -- شکل آن از ``ChatAnswer.to_dict()`` پکیج RAG می‌آید."""
+class ChatMessageOut(BaseModel):
+    """یک پیام ذخیره‌شده -- شکل مشترک بارگذاری تاریخچه و polling وضعیت پاسخ.
 
-    answer: str
-    confidence: Literal["high", "medium", "needs_review"] = "medium"
+    همان ردیف ``chat_messages`` است: پرسش کاربر (``status="complete"``)، پاسخ
+    آماده (``complete``)، پاسخ در حال تولید (``pending``، با متن خالی) یا پاسخ
+    ناموفق (``failed``، با ``error_message`` و بدون متن).
+    """
+
+    id: str
+    session_id: str
+    role: MessageRole
+    content: str = ""
+    status: MessageStatus = "complete"
+    confidence: Optional[Confidence] = None
     sources: list[ChatSourceOut] = Field(default_factory=list)
     route_reasoning: str = ""
-    # تعداد نوبت‌های تاریخی که واقعاً به مدل فرستاده شد -- برای شفافیت/اشکال‌زدایی
-    # سمت UI (کاربر می‌بیند سامانه «چند پیام قبلی» را در نظر گرفته است).
-    history_turns_used: int = 0
+    error_message: Optional[str] = None
+    created_at: datetime
+
+
+class ChatMessageListOut(BaseModel):
+    """تاریخچه‌ی کامل یک گفتگو، قدیمی‌ترین اول (همان ترتیبی که UI رندر می‌کند)."""
+
+    messages: list[ChatMessageOut]
+
+
+class ChatAskRequest(BaseModel):
+    """بدنه‌ی پرسش: فقط خودِ پرسش.
+
+    زمینه‌ی گفتگو دیگر از سمت کلاینت نمی‌آید؛ سرور همان گفتگو را از
+    ``chat_messages`` می‌خواند (نگاه کنید به داک‌استرینگ بالای این فایل).
+    """
+
+    question: str = Field(min_length=1, max_length=MAX_TEXT_LENGTH)
+
+
+class ChatAskStartedOut(BaseModel):
+    """پاسخ ``POST .../ask`` -- یعنی «پرسش ثبت شد و پاسخ در پس‌زمینه ساخته می‌شود».
+
+    ``user_message_id`` همان ردیفی است که بلافاصله در UI رندر می‌شود و در هر
+    بارگذاری بعدی تاریخچه برمی‌گردد؛ ``assistant_message_id`` شناسه‌ی ردیفی است که
+    باید تا رسیدن به ``complete``/``failed`` polling شود.
+    """
+
+    user_message_id: str
+    assistant_message_id: str
+    status: MessageStatus = "pending"

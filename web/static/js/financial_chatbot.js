@@ -1,21 +1,38 @@
 /**
- * منطق صفحه‌ی کارگاه «چت‌بات مالی» (گفتگوهای نام‌دار + پرسش/پاسخ زنده).
+ * منطق صفحه‌ی کارگاه «چت‌بات مالی» (گفتگوهای نام‌دار + پرسش/پاسخ ماندگار).
  *
  * ساختار کلی از همان الگوی ``budget_analysis.js``/``checklist.js`` پیروی می‌کند
  * (بدون هیچ وابستگی بیرونی و بدون مرحله‌ی build، آدرس‌ها از ``window.PSA_WORKSHOP``
  * که رجیستری تزریق کرده می‌آیند، و همه‌ی خطاها با ``window.psaShowToast`` نمایش
- * داده می‌شوند). تفاوت اصلی این است که این‌جا حلقه‌ی polling وجود ندارد: پاسخ
- * یک درخواست/پاسخ زنده است.
+ * داده می‌شوند).
  *
- * دو قرارداد مهم این فایل که باید حفظ شوند:
+ * چهار قرارداد مهم این فایل که باید حفظ شوند:
  *
- * ۱) **زمینه‌ی چندنوبتی فقط در حافظه است.** آرایه‌ی ``state.history`` تنها
- *    نگه‌دارنده‌ی پیام‌های گفتگوی جاری است؛ در ``localStorage`` نوشته *نمی‌شود*
- *    (تنها شناسه‌ی آخرین گفتگوی باز ذخیره می‌شود، که صرفاً متادیتا است) و با
- *    هر بارگذاری مجدد صفحه یا انتخاب یک گفتگوی دیگر خالی می‌شود. به همین دلیل
- *    باز کردن دوباره‌ی یک گفتگوی قدیمی، گفتگویی خالی نشان می‌دهد -- این عمدی است.
+ * ۱) **پیام کاربر همان لحظه رندر می‌شود.** پیش از این، صفحه فقط یک حباب «در حال
+ *    تایپ» می‌ساخت و پرسش خودِ کاربر را هرگز نشان نمی‌داد (تابعش تعریف شده بود
+ *    ولی هیچ‌جا صدا زده نمی‌شد) -- همان باگ گزارش‌شده. این‌جا پرسش بلافاصله
+ *    (پیش از پاسخ سرور) راست‌چین رندر می‌شود، و به‌محض رسیدن پاسخ ``ask``،
+ *    شناسه‌ی همان ردیف ذخیره‌شده روی همان عنصر گذاشته می‌شود. بنابراین نمایش
+ *    «ارسال تازه» و «تاریچه‌ی بارگذاری‌شده از سرور» یکی است -- نه پیام تکراری،
+ *    نه پیام گم‌شده.
  *
- * ۲) **خروجی مدل هرگز به‌صورت HTML خام تزریق نمی‌شود.** مسیر امن این است:
+ * ۲) **تاریخچه از سرور می‌آید، نه از حافظه‌ی مرورگر.** با انتخاب هر گفتگو،
+ *    ``GET /sessions/{id}/messages`` خوانده و همه‌ی پیام‌ها (پرسش‌ها، پاسخ‌های
+ *    کامل، و پاسخ‌های در حال تولید) رندر می‌شوند. در ``localStorage`` فقط شناسه‌ی
+ *    آخرین گفتگوی باز می‌ماند (متادیتا) -- هیچ متنی از گفتگو در مرورگر ذخیره
+ *    نمی‌شود و زمینه‌ی چندنوبتی هم سمت سرور ساخته می‌شود.
+ *
+ * ۳) **پاسخ در پس‌زمینه ساخته می‌شود.** ``POST .../ask`` فوراً (۲۰۲) برمی‌گردد و
+ *    تنها شناسه‌ی پیام‌ها را می‌دهد؛ سپس این فایل با یک بازه‌ی ثابت
+ *    (``POLL_INTERVAL_MS``، همان ۱۵۰۰ میلی‌ثانیه‌ی ``checklist.js``/
+ *    ``budget_analysis.js``) وضعیت همان پیام را polling می‌کند تا ``complete`` یا
+ *    ``failed`` شود. هیچ AbortController ای به این درخواست‌ها گره نخورده است:
+ *    رفتن به گفتگو/کارگاه دیگر فقط *polling سمت کلاینت* را متوقف می‌کند و کار
+ *    سمت سرور را نمی‌کشد. با برگشتن به همان گفتگو، تاریخچه دوباره خوانده می‌شود
+ *    (پاسخ تمام‌شده را نشان می‌دهد) و اگر پاسخی هنوز ``pending`` باشد، polling
+ *    برای همان از سر گرفته می‌شود.
+ *
+ * ۴) **خروجی مدل هرگز به‌صورت HTML خام تزریق نمی‌شود.** مسیر امن این است:
  *    ابتدا کل متن با ``escapeHtml`` بی‌اثر می‌شود، سپس تبدیل Markdown انجام
  *    می‌گیرد و در پایان، فقط تگ‌هایی که خودِ ``renderMarkdown`` ساخته است داخل
  *    عنصر پاسخ قرار می‌گیرد. یعنی یک ``<script>`` در پاسخ مدل به متن قابل‌مشاهده
@@ -29,17 +46,18 @@
   var API_BASE = CFG.apiBase || "";
   var STORAGE_KEY = CFG.storageKey || "psa.financial_chatbot.sessionId";
 
-  /* تعداد نوبت‌هایی که در حافظه نگه داشته می‌شود (بیشتر از آنچه فرستاده می‌شود،
-     تا پیام‌های نمایش‌داده‌شده‌ی گفتگو ناقص نشوند). */
-  var CLIENT_HISTORY_LIMIT = 12;
-  /* همان سقفی که سرور هم اعمال می‌کند (``MAX_CONTEXT_TURNS`` در سرویس). */
-  var HISTORY_TURNS_SENT = Number(CFG.maxHistoryTurns || 6);
+  /* همان فاصله‌ی polling بقیه‌ی کارگاه‌ها. پاسخ یک پرسش چند ثانیه طول می‌کشد،
+     پس یک درخواست سبک هر ۱.۵ ثانیه هزینه‌ی محسوسی ندارد. */
+  var POLL_INTERVAL_MS = 1500;
 
   var CONFIDENCE_FA = {
     high: { label: "اطمینان بالا", cls: "psa-badge-success" },
     medium: { label: "اطمینان متوسط", cls: "psa-badge-warning" },
     needs_review: { label: "نیازمند بازبینی", cls: "psa-badge-danger" }
   };
+
+  var PENDING_HINT_FA =
+    "در حال پاسخ‌گویی… می‌توانید به گفتگو یا کارگاه دیگری بروید؛ پاسخ در پس‌زمینه ساخته می‌شود.";
 
   var ICONS = {
     user: '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
@@ -51,11 +69,18 @@
   var state = {
     sessionId: null,
     sessions: [],
-    /** زمینه‌ی گفتگوی *همین صفحه* -- هرگز ذخیره نمی‌شود. */
-    history: [],
-    busy: false,
-    controller: null
+    /** شناسه‌ی پیام‌های در حال تولید پاسخ → عنصر همان ردیف (فقط همین گفتگو). */
+    pending: {},
+    pollTimer: null,
+    posting: false,
+    /* با هر بار عوض‌کردن گفتگو یک عدد بالا می‌رود تا پاسخ‌های دیرآمده‌ی یک
+       درخواست قدیمی، در گفتگوی جدید رندر نشوند. */
+    generation: 0
   };
+
+  /* HTML اولیه‌ی حالت «گفتگوی خالی» که قالب رندر کرده است -- نگه داشته می‌شود تا
+     اگر همه‌ی پیام‌ها پاک شدند، همان (و نه یک نسخه‌ی دست‌ساز) برگردد. */
+  var emptyPlaceholderHtml = null;
 
   /* ==================================================================
      کمک‌تابع‌های عمومی
@@ -110,8 +135,7 @@
   function readStoredSessionId() {
     try {
       var raw = window.localStorage.getItem(STORAGE_KEY);
-      var parsed = raw === null ? NaN : Number(raw);
-      return isFinite(parsed) && parsed > 0 ? parsed : null;
+      return raw ? String(raw) : null;
     } catch (err) {
       return null;
     }
@@ -127,6 +151,18 @@
     } catch (err) {
       /* حالت ناشناس/مسدود: فقط یادآوری گفتگوی باز از دست می‌رود. */
     }
+  }
+
+  function sessionsUrl() {
+    return API_BASE + "/sessions";
+  }
+
+  function sessionUrl(sessionId) {
+    return sessionsUrl() + "/" + encodeURIComponent(sessionId);
+  }
+
+  function messageUrl(sessionId, messageId) {
+    return sessionUrl(sessionId) + "/messages/" + encodeURIComponent(messageId);
   }
 
   /* ==================================================================
@@ -365,11 +401,10 @@
   }
 
   /* ==================================================================
-     رندر گفتگو
+     رندر پیام‌ها
      ================================================================== */
-  function clearMessages() {
-    var box = byId("psa-chat-messages");
-    if (box) box.innerHTML = "";
+  function messagesBox() {
+    return byId("psa-chat-messages");
   }
 
   function hidePlaceholder() {
@@ -377,12 +412,34 @@
     if (placeholder) placeholder.remove();
   }
 
-  function appendRow(role, innerHtml, extraClass) {
-    var box = byId("psa-chat-messages");
+  function showEmptyPlaceholder() {
+    var box = messagesBox();
+    if (!box || !emptyPlaceholderHtml) return;
+    box.innerHTML = emptyPlaceholderHtml;
+  }
+
+  /** فقط ردیف‌های پیام را پاک می‌کند (placeholder دست‌نخورده می‌ماند). */
+  function clearRenderedMessages() {
+    var box = messagesBox();
+    if (!box) return;
+    var rows = box.querySelectorAll(".psa-chat-row");
+    for (var index = 0; index < rows.length; index += 1) {
+      rows[index].remove();
+    }
+  }
+
+  function scrollToBottom() {
+    var box = messagesBox();
+    if (box) box.scrollTop = box.scrollHeight;
+  }
+
+  function appendRow(role, innerHtml, extraClass, messageId) {
+    var box = messagesBox();
     if (!box) return null;
     hidePlaceholder();
     var row = document.createElement("div");
     row.className = "psa-chat-row is-" + role + (extraClass ? " " + extraClass : "");
+    if (messageId) row.setAttribute("data-message-id", messageId);
     row.innerHTML =
       '<span class="psa-chat-avatar is-' + role + '" aria-hidden="true">' +
       (role === "user" ? ICONS.user : ICONS.bot) +
@@ -393,30 +450,35 @@
     return row;
   }
 
-  function scrollToBottom() {
-    var box = byId("psa-chat-messages");
-    if (box) box.scrollTop = box.scrollHeight;
+  function rowFor(messageId) {
+    var box = messagesBox();
+    if (!box || !/^[A-Za-z0-9_-]+$/.test(String(messageId || ""))) return null;
+    return box.querySelector('[data-message-id="' + messageId + '"]');
   }
 
-  function appendUser(question) {
-    appendRow("user", "<p>" + renderInline(escapeHtml(question)) + "</p>");
+  function userBodyHtml(text) {
+    return "<p>" + renderInline(escapeHtml(text)) + "</p>";
   }
 
-  function appendBot(answer, sources, confidence, historyTurns) {
-    var meta = CONFIDENCE_FA[confidence] || CONFIDENCE_FA.medium;
-    var parts = ['<div class="psa-chat-answer psa-prose">' + renderMarkdown(answer) + "</div>"];
+  function botBodyHtml(message) {
+    if (message.status === "failed") {
+      var failure = message.error_message || "پاسخ‌دهی به این پرسش ناموفق بود.";
+      return '<p class="psa-chat-notice is-error">' + escapeHtml(failure) + "</p>";
+    }
 
-    var footer = [
-      '<span class="psa-badge ' + meta.cls + '">' + escapeHtml(meta.label) + "</span>"
-    ];
-    if (historyTurns > 0) {
-      footer.push(
-        '<span class="psa-chat-hint">با در نظر گرفتن ' + faDigits(historyTurns) + " پیام قبلی</span>"
+    var parts = ['<div class="psa-chat-answer psa-prose">' + renderMarkdown(message.content || "") + "</div>"];
+
+    var meta = CONFIDENCE_FA[message.confidence];
+    if (meta) {
+      parts.push(
+        '<div class="psa-chat-meta">' +
+          '<span class="psa-badge ' + meta.cls + '">' + escapeHtml(meta.label) + "</span>" +
+          "</div>"
       );
     }
-    parts.push('<div class="psa-chat-meta">' + footer.join("") + "</div>");
 
-    if (sources && sources.length) {
+    var sources = message.sources || [];
+    if (sources.length) {
       var chips = sources
         .map(function (source) {
           var sheets = (source.sheet_names || []).join(" ، ");
@@ -428,7 +490,51 @@
       parts.push('<div class="psa-chat-sources"><span class="psa-help">منابع:</span>' + chips + "</div>");
     }
 
-    return appendRow("bot", parts.join(""));
+    return parts.join("");
+  }
+
+  function pendingBodyHtml() {
+    return (
+      '<p class="psa-chat-typing mt-1" aria-label="در حال پاسخ‌گویی">' +
+      "<span></span><span></span><span></span></p>" +
+      '<p class="psa-chat-hint">' + escapeHtml(PENDING_HINT_FA) + "</p>"
+    );
+  }
+
+  /**
+   * یک پیام سرور را رندر می‌کند: اگر ردیفش از قبل وجود دارد فقط محتوایش را
+   * به‌روز می‌کند، وگرنه ردیف تازه می‌سازد. همین یک تابع هم تاریخچه‌ی بارگذاری‌شده
+   * و هم پاسخ تازه‌رسیده‌ی polling را می‌کشد، پس هیچ پیام تکراری ساخته نمی‌شود.
+   */
+  function renderMessage(message) {
+    if (!message || !message.role) return null;
+    var existing = message.id ? rowFor(message.id) : null;
+
+    if (message.role === "user") {
+      if (existing) {
+        existing.querySelector(".psa-chat-bubble").innerHTML = userBodyHtml(message.content);
+        return existing;
+      }
+      return appendRow("user", userBodyHtml(message.content), null, message.id);
+    }
+
+    if (message.status === "pending") {
+      var pendingRow =
+        existing || appendRow("bot", pendingBodyHtml(), "is-loading", message.id);
+      if (pendingRow) registerPending(message.id, pendingRow);
+      return pendingRow;
+    }
+
+    if (existing) {
+      existing.classList.remove("is-loading");
+      existing.querySelector(".psa-chat-bubble").innerHTML = botBodyHtml(message);
+      unregisterPending(message.id);
+      scrollToBottom();
+      return existing;
+    }
+    var row = appendRow("bot", botBodyHtml(message), null, message.id);
+    unregisterPending(message.id);
+    return row;
   }
 
   function appendNotice(text, isError) {
@@ -438,13 +544,73 @@
     );
   }
 
-  function appendLoading() {
-    return appendRow(
-      "bot",
-      '<p class="psa-chat-typing" aria-label="در حال تهیه پاسخ">' +
-        "<span></span><span></span><span></span></p>",
-      "is-loading"
-    );
+  /* ==================================================================
+     polling پاسخ‌های در حال تولید
+     ================================================================== */
+  function pendingIds() {
+    return Object.keys(state.pending);
+  }
+
+  function registerPending(messageId, row) {
+    if (!messageId) return;
+    state.pending[messageId] = row || null;
+    startPolling();
+  }
+
+  function unregisterPending(messageId) {
+    if (!messageId) return;
+    delete state.pending[messageId];
+    if (!pendingIds().length) stopPolling();
+  }
+
+  function startPolling() {
+    if (state.pollTimer || !pendingIds().length) return;
+    state.pollTimer = window.setInterval(pollPending, POLL_INTERVAL_MS);
+  }
+
+  /**
+   * توقف polling سمت کلاینت. **کار سمت سرور را نمی‌کشد** -- پاسخ در پس‌زمینه
+   * ساخته می‌شود و با بازگشت به همین گفتگو، تاریخچه وضعیت واقعی را نشان می‌دهد
+   * (و اگر هنوز ``pending`` باشد، polling از سر گرفته می‌شود).
+   */
+  function stopPolling() {
+    if (state.pollTimer) {
+      window.clearInterval(state.pollTimer);
+      state.pollTimer = null;
+    }
+  }
+
+  async function pollPending() {
+    var sessionId = state.sessionId;
+    if (!sessionId || !pendingIds().length) {
+      stopPolling();
+      return;
+    }
+    var generation = state.generation;
+    var ids = pendingIds();
+    for (var index = 0; index < ids.length; index += 1) {
+      await pollOne(sessionId, ids[index], generation);
+    }
+  }
+
+  async function pollOne(sessionId, messageId, generation) {
+    try {
+      var response = await fetch(messageUrl(sessionId, messageId));
+      if (response.status === 404) {
+        // گفتگو/پیام دیگر وجود ندارد (مثلاً حذف شده) -- polling بی‌فایده است.
+        unregisterPending(messageId);
+        return;
+      }
+      if (!response.ok) return; // خطای موقت: دور بعد دوباره تلاش می‌شود
+      var message = await response.json();
+      if (generation !== state.generation || sessionId !== state.sessionId) return;
+      if (message.status === "pending") return;
+      renderMessage(message);
+      // «آخرین استفاده» گفتگو تازه شده است؛ فهرست کنار را هم به‌روز نگه می‌داریم.
+      loadSessions();
+    } catch (err) {
+      /* شبکه/سرور در این لحظه: دور بعد دوباره تلاش می‌شود. */
+    }
   }
 
   /* ==================================================================
@@ -481,7 +647,7 @@
     var errorBox = byId("psa-chat-list-error");
     setHidden(errorBox, true);
     try {
-      var response = await fetch(API_BASE + "/sessions");
+      var response = await fetch(sessionsUrl());
       if (!response.ok) throw new Error(await parseErrorDetail(response));
       var data = await response.json();
       state.sessions = data.sessions || [];
@@ -509,7 +675,7 @@
 
     if (button) button.disabled = true;
     try {
-      var response = await fetch(API_BASE + "/sessions", {
+      var response = await fetch(sessionsUrl(), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: title || null })
@@ -518,7 +684,7 @@
       var chat = await response.json();
       if (titleInput) titleInput.value = "";
       await loadSessions();
-      selectSession(chat.id);
+      await selectSession(chat.id);
       var input = byId("psa-chat-input");
       if (input) input.focus();
     } catch (err) {
@@ -532,15 +698,13 @@
   }
 
   async function deleteSession(sessionId) {
-    if (!window.confirm("این گفتگو حذف شود؟ (محتوای گفتگو از قبل ذخیره نشده است)")) return;
+    if (!window.confirm("این گفتگو و کل پیام‌هایش حذف شود؟ این کار برگشت‌پذیر نیست.")) return;
     try {
-      var response = await fetch(API_BASE + "/sessions/" + encodeURIComponent(sessionId), {
-        method: "DELETE"
-      });
+      var response = await fetch(sessionUrl(sessionId), { method: "DELETE" });
       if (response.status !== 204 && !response.ok) {
         throw new Error(await parseErrorDetail(response));
       }
-      if (state.sessionId === sessionId) clearActiveSession();
+      if (state.sessionId === sessionId) showNoSessionSelected();
       await loadSessions();
       window.psaShowToast("گفتگو حذف شد.", "success");
     } catch (err) {
@@ -561,12 +725,14 @@
     if (send) send.disabled = !enabled;
   }
 
-  function clearActiveSession() {
+  /** وضعیت «هیچ گفتگویی انتخاب نشده است» -- بدون هیچ درخواستی به سرور. */
+  function showNoSessionSelected() {
+    state.generation += 1;
     state.sessionId = null;
-    state.history = [];
+    state.pending = {};
+    stopPolling();
     storeSessionId(null);
-    clearMessages();
-    var box = byId("psa-chat-messages");
+    var box = messagesBox();
     if (box) {
       box.innerHTML =
         '<div class="psa-chat-placeholder" id="psa-chat-placeholder">' +
@@ -583,33 +749,59 @@
     renderSessionList();
   }
 
-  function selectSession(sessionId) {
+  async function loadMessages(sessionId) {
+    var response = await fetch(sessionUrl(sessionId) + "/messages");
+    if (!response.ok) throw new Error(await parseErrorDetail(response));
+    var data = await response.json();
+    var messages = data.messages || [];
+
+    // اگر کاربر در همین فاصله گفتگو را عوض کرده باشد، این پاسخ دیگر مربوط نیست.
+    if (state.sessionId !== sessionId) return;
+
+    clearRenderedMessages();
+    state.pending = {};
+    stopPolling();
+    if (!messages.length) {
+      showEmptyPlaceholder();
+      return;
+    }
+    messages.forEach(renderMessage);
+  }
+
+  /**
+   * یک گفتگو را باز می‌کند: تاریخچه‌ی **ذخیره‌شده** را می‌خواند و رندر می‌کند،
+   * و هر پیامی که هنوز ``pending`` است را دوباره به polling می‌سپارد (کاربر ممکن
+   * است پرسشی را در یک گفتگوی دیگر یا حتی در یک بازدید قبلی فرستاده باشد).
+   */
+  async function selectSession(sessionId) {
     var chat = state.sessions.filter(function (item) {
       return item.id === sessionId;
     })[0];
     if (!chat) return;
 
+    state.generation += 1;
     state.sessionId = chat.id;
-    /* زمینه‌ی گفتگو هرگز بازیابی نمی‌شود: باز کردن یک گفتگو همیشه یک صفحه‌ی
-       خالی است، چون هیچ پیامی ذخیره نشده است. */
-    state.history = [];
+    state.pending = {};
+    stopPolling();
     storeSessionId(chat.id);
-    clearMessages();
+    clearRenderedMessages();
+    setComposerEnabled(false);
 
     var title = byId("psa-chat-title");
     if (title) title.textContent = chat.title;
     var subtitle = byId("psa-chat-subtitle");
     if (subtitle) {
       subtitle.textContent =
-        "ساخته‌شده در " + formatDate(chat.created_at) + " — محتوای گفتگو ذخیره نمی‌شود.";
+        "ساخته‌شده در " + formatDate(chat.created_at) + " — آخرین استفاده " + formatDate(chat.updated_at);
     }
 
-    appendRow(
-      "bot",
-      '<p class="psa-chat-notice">گفتگوی «' +
-        escapeHtml(chat.title) +
-        "» باز است. پاسخ‌ها از پایگاه‌دانش همین پروژه ساخته می‌شوند.</p>"
-    );
+    try {
+      await loadMessages(chat.id);
+    } catch (err) {
+      var message = err && err.message ? err.message : String(err);
+      appendNotice(message, true);
+      window.psaShowToast(message, "error");
+    }
 
     setComposerEnabled(true);
     renderSessionList();
@@ -620,72 +812,55 @@
   /* ==================================================================
      پرسش
      ================================================================== */
-  function setBusy(busy) {
-    state.busy = busy;
+  function setPosting(posting) {
+    state.posting = posting;
     var send = byId("psa-chat-send");
-    var stop = byId("psa-chat-stop");
-    setHidden(stop, !busy);
-    if (send) send.disabled = busy;
-    var input = byId("psa-chat-input");
-    if (input) input.disabled = busy || state.sessionId === null;
-  }
-
-  /** آخرین N نوبت گفتگو -- تنها چیزی که همراه پرسش به سرور می‌رود. */
-  function historyPayload() {
-    return state.history.slice(-HISTORY_TURNS_SENT).map(function (turn) {
-      return { role: turn.role, content: turn.content };
-    });
-  }
-
-  function rememberTurn(role, content) {
-    state.history.push({ role: role, content: content });
-    if (state.history.length > CLIENT_HISTORY_LIMIT) {
-      state.history = state.history.slice(-CLIENT_HISTORY_LIMIT);
-    }
+    if (send) send.disabled = posting;
   }
 
   async function ask(question) {
-    var loading = appendLoading();
-    var controller = new AbortController();
-    state.controller = controller;
-    setBusy(true);
+    var sessionId = state.sessionId;
+    if (!sessionId) return;
 
-    // پرسش کاربر و زمینه‌ی قبلی همین حالا ثبت می‌شوند تا answered-history درست بماند.
-    var sentHistory = historyPayload();
-    rememberTurn("user", question);
+    // ۱) رندر آنی پرسش کاربر -- پیش از آنکه حتی درخواست برود. این دقیقاً همان
+    //    باگی است که گزارش شده بود: پیام کاربر باید همان لحظه دیده شود.
+    var optimisticRow = appendRow("user", userBodyHtml(question));
+    setPosting(true);
 
     try {
-      var response = await fetch(
-        API_BASE + "/sessions/" + encodeURIComponent(state.sessionId) + "/ask",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: question, recent_history: sentHistory }),
-          signal: controller.signal
-        }
-      );
+      var response = await fetch(sessionUrl(sessionId) + "/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: question })
+      });
       if (!response.ok) throw new Error(await parseErrorDetail(response));
       var data = await response.json();
 
-      if (loading) loading.remove();
-      var answer = data.answer || "پاسخی دریافت نشد.";
-      appendBot(answer, data.sources, data.confidence, data.history_turns_used);
-      rememberTurn("assistant", answer);
+      // ۲) شناسه‌ی ردیف ذخیره‌شده روی همان حباب می‌نشیند: از این لحظه، این پیام
+      //    همان پیامی است که تاریخچه‌ی سرور هم برمی‌گرداند (بدون تکرار).
+      if (optimisticRow && data.user_message_id) {
+        optimisticRow.setAttribute("data-message-id", data.user_message_id);
+      }
+      if (state.sessionId !== sessionId) return; // کاربر گفتگو را عوض کرده است
+
+      // ۳) حباب «در حال پاسخ‌گویی» برای ردیف دستیار + شروع polling.
+      var pendingRow = appendRow(
+        "bot",
+        pendingBodyHtml(),
+        "is-loading",
+        data.assistant_message_id
+      );
+      registerPending(data.assistant_message_id, pendingRow);
     } catch (err) {
-      if (loading) loading.remove();
-      if (err && err.name === "AbortError") {
-        appendNotice("درخواست متوقف شد.", false);
-        // پرسش ناتمام از حافظه حذف می‌شود تا نوبت بعدی زمینه‌ی نادرست نگیرد.
-        state.history.pop();
-      } else {
-        var message = err && err.message ? err.message : String(err);
+      // پرسش هرگز ثبت نشد: حباب خوش‌بینانه نباید بماند.
+      if (optimisticRow) optimisticRow.remove();
+      var message = err && err.message ? err.message : String(err);
+      if (state.sessionId === sessionId) {
         appendNotice(message, true);
         window.psaShowToast(message, "error");
-        state.history.pop();
       }
     } finally {
-      state.controller = null;
-      setBusy(false);
+      setPosting(false);
       var input = byId("psa-chat-input");
       if (input) input.focus();
     }
@@ -693,7 +868,7 @@
 
   function submitQuestion(event) {
     event.preventDefault();
-    if (state.busy || !state.sessionId) return;
+    if (state.posting || !state.sessionId) return;
     var input = byId("psa-chat-input");
     if (!input) return;
     var question = input.value.trim();
@@ -735,32 +910,32 @@
       });
     }
 
-    var stopButton = byId("psa-chat-stop");
-    if (stopButton) {
-      stopButton.addEventListener("click", function () {
-        if (state.controller) state.controller.abort();
-      });
-    }
-
     var list = byId("psa-chat-list");
     if (list) {
       list.addEventListener("click", function (event) {
         var openButton = event.target.closest("[data-psa-open]");
         if (openButton) {
-          selectSession(Number(openButton.getAttribute("data-psa-open")));
+          selectSession(openButton.getAttribute("data-psa-open"));
           return;
         }
         var deleteButton = event.target.closest("[data-psa-delete]");
         if (deleteButton) {
           event.stopPropagation();
-          deleteSession(Number(deleteButton.getAttribute("data-psa-delete")));
+          deleteSession(deleteButton.getAttribute("data-psa-delete"));
         }
       });
     }
+
+    // با ترک صفحه، فقط polling سمت کلاینت متوقف می‌شود؛ پرسش‌های در جریان روی
+    // سرور تمام می‌شوند و با بازگشت به همین گفتگو نتیجه‌شان دیده می‌شود.
+    window.addEventListener("pagehide", stopPolling);
   }
 
   document.addEventListener("DOMContentLoaded", async function () {
     if (!byId("psa-chat-form")) return; // حالت دروازه‌بندی‌شده (بدون پایگاه‌دانش)
+    emptyPlaceholderHtml = byId("psa-chat-placeholder")
+      ? byId("psa-chat-placeholder").outerHTML
+      : null;
     attach();
     setComposerEnabled(false);
 
@@ -770,9 +945,9 @@
       return chat.id === stored;
     });
     if (stored !== null && known) {
-      selectSession(stored);
+      await selectSession(stored);
     } else {
-      clearActiveSession();
+      showNoSessionSelected();
     }
   });
 })();
