@@ -1,0 +1,44 @@
+[project]
+name = "llm-variable-resolver"
+version = "0.1.0"
+description = "LLM-based Persian financial audit variable resolver"
+requires-python = ">=3.10"
+
+dependencies = [
+    "pandas>=2.0",
+    "numpy>=1.24",
+    "tabulate>=0.9",
+    "scikit-learn>=1.3",
+    "PyYAML>=6.0",
+    "openpyxl>=3.1",
+    "pdfplumber>=0.11",
+    "PyMuPDF>=1.24",
+    "python-docx>=1.1",
+    "chromadb>=1.5.9",
+    "xlrd>=2.0",
+    "openai>=1.40",
+    "sentence-transformers>=6.1.0",
+]
+
+[project.optional-dependencies]
+ocr  = ["pytesseract>=0.3.13", "pdf2image>=1.17"]
+llm  = ["anthropic>=0.40", "openai>=1.40"]
+chroma = ["chromadb>=0.5"]
+neural = ["sentence-transformers>=3.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["llm_variable_resolver"]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cuda", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cuda"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true
