@@ -23,13 +23,14 @@ summary of an existing audit report.
 6. [Usage](#usage)
 7. [Pipeline](#pipeline)
 8. [AI settings](#ai-settings)
-9. [Project Components](#project-components)
-10. [Data](#data)
-11. [Notebooks](#notebooks)
-12. [Testing](#testing)
-13. [Troubleshooting](#troubleshooting)
-14. [Development](#development)
-15. [License](#license)
+9. [Knowledge-base infrastructure (rag_chat_module)](#knowledge-base-infrastructure-rag_chat_module)
+10. [Project Components](#project-components)
+11. [Data](#data)
+12. [Notebooks](#notebooks)
+13. [Testing](#testing)
+14. [Troubleshooting](#troubleshooting)
+15. [Development](#development)
+16. [License](#license)
 
 ---
 
@@ -171,7 +172,7 @@ persian-smart-accounting/
 │   ├── storage.py                # Result-file storage on disk (safe path resolution + per-project cleanup)
 │   ├── auth/                     # Session-cookie auth: password hashing + FastAPI dependencies
 │   ├── db/                       # SQLite/SQLAlchemy: engine+session (base.py) and ORM models (models.py)
-│   ├── repositories/             # All dashboard queries (users, projects, workshop_runs/settings)
+│   ├── repositories/             # All dashboard queries (users, projects, workshop_runs/settings, knowledge_bases)
 │   ├── jobs/job_manager.py       # In-memory job registry, keyed by (project, workshop, run) + completion hook
 │   ├── workshops/                # THE EXTENSION POINT: registry.py + one module per workshop
 │   │   ├── registry.py           # WorkshopDefinition + WORKSHOPS (single source of truth)
@@ -186,7 +187,10 @@ persian-smart-accounting/
 │   │   ├── summary_service.py    # Audit-summary workshop adapter over audit_pipeline.py
 │   │   ├── budget_service.py     # Budget-analysis workshop adapter over budget_analysis/
 │   │   ├── ai_settings.py        # Resolve defaults, validate, encrypt/decrypt per-workshop API keys
-│   │   └── project_service.py    # Full project deletion (jobs + rows + files)
+│   │   ├── project_service.py    # Full project deletion (jobs + rows + files)
+│   │   ├── kb_storage.py         # Knowledge-base on-disk layout (Chroma files)
+│   │   ├── rag_ai_adapter.py     # Only place allowed to build rag_chat_module objects
+│   │   └── checklist_kb_service.py # Checklist-triggered KB indexing + resolver + retention (see Pipeline)
 │   ├── schemas/                  # Pydantic response models (common.py holds the shared JobStatus type)
 │   └── utils/                    # icons.py, uploads.py, jobs.py, downloads.py, formatting.py (Jalali/digits)
 │
@@ -222,6 +226,8 @@ persian-smart-accounting/
 │
 ├── audit_report_generator/       # LLM-powered "committee non-conformity report" package
 ├── audit_summarizer/             # Standalone LLM-powered "audit report summary" package (own CLI + tests)
+├── rag_chat_module/              # Independent knowledge-base/RAG-chat package (llm_variable_resolver); unmodified,
+│                                # see "Knowledge-base infrastructure" -- triggered by the checklist workshop
 ├── db_management/                # Batch/offline PostgreSQL population scripts (independent of the dashboard)
 └── docs/
     └── PROGRESS_REPORT.md        # Living development log (weekly progress, architecture history, backlog)
@@ -242,6 +248,17 @@ want to compare behaviour with the original prototype.
   `budget_analysis/` (both out of scope for the API/UI build) don't expose a
   `FILE_SLOTS`-equivalent structure; each is documented in a comment at its call
   site, and no template hardcodes a slot.
+  `api/services/checklist_kb_service.py` reuses the very same `FILE_SLOTS` keys
+  as the knowledge base's `file_registry` keys (e.g. `"revised_budget"`,
+  `"financial_statements"`), plus two extra fixed keys it owns itself:
+  `"checklist_definition"` (the checklist question bank JSON) and
+  `"checklist_results"` (the resolved checklist output, added back after the
+  resolver step). If you add a new `FILE_SLOTS` entry to the checklist
+  workshop, it is automatically picked up by the knowledge-base indexing step
+  too (no separate mapping to update) — just add a short, accurate
+  `overall_description` for it next to the other entries in
+  `checklist_kb_service._FILE_SLOT_DESCRIPTIONS` so the new file is findable by
+  topic once the (future) chatbot workshop searches the knowledge base.
 - `JobStatus` (`pending`/`running`/`done`/`error`) has a single definition in
   `api/schemas/common.py`, used by every workshop schema.
 - The **workshop registry** (`api/workshops/registry.py`) is the extension point.
@@ -352,6 +369,9 @@ All secrets are read from environment variables (via `python-dotenv`, so a
 | `PSA_RESULTS_DIR` | `api/storage.py` | Where each run's **result** file is kept (`project-N/run-M-*.docx`). Default: `data/results` |
 | `PSA_SESSION_MAX_AGE` | `api/main.py` | Session cookie lifetime in seconds. Default: 1209600 (14 days) |
 | `PSA_MAX_UPLOAD_MB`, `PSA_JOB_TTL_SECONDS`, `PSA_LOG_LEVEL` | `api/` layer | Upload size limit, in-memory job TTL after completion, and log level |
+| `PSA_VECTOR_STORE_ROOT` | `api/services/kb_storage.py` | Root directory of every knowledge base's on-disk Chroma files (`{root}/{user_id}/{project_id}/{kb_id}/`, see [Knowledge-base infrastructure](#knowledge-base-infrastructure-rag_chat_module)). Default: `data/vector_stores` |
+| `PSA_KB_RETENTION_COUNT` | `api/repositories/knowledge_bases.py` | How many `ready`/`failed` knowledge bases per project are kept before being considered stale. Default: `3` |
+| `PSA_EMBEDDING_MODEL` | `api/services/rag_ai_adapter.py` | Sentence-transformers model used to build new knowledge bases. Default: `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` |
 
 Additional configuration files:
 
@@ -453,29 +473,56 @@ is not (yet) read by the dashboard itself.
 
 ### Financial audit checklist workspace
 
+This workshop is also the **trigger that creates the project's knowledge
+base** (see "Knowledge-base infrastructure" below): the moment a run starts,
+file indexing kicks off in parallel with the checklist evaluation itself, and
+the two branches rejoin just before committee-report generation:
+
 ```
 Uploaded files (budget/revised budget/financial statements/trial balance/…)
   ↓
 xls/pdf → xlsx normalization (pipeline.save_uploaded_file)
   ↓
-Specialized extraction per document type
-  (extraction_script.scripts.xlsx.budget.budget_process — budget forms
-   extraction_script.scripts.xlsx.financial_statements.process — financial statements
-   pandas.read_excel + fuzzy content matching — trial balance)
+  ├────────────────────────────────────────┐
+  │ (main thread)                          │ (parallel background thread)
+  │ Specialized extraction per document type│ New knowledge_bases row (status="indexing")
+  │  (budget_process / financial_statements │   ↓
+  │   .process / pandas + fuzzy matching)   │ KnowledgeBase.index_files(...) over the same
+  │  ↓                                      │ uploaded files + the checklist definition JSON
+  │ Sheet merge into one dataset (IMPORTED_DF)│   ↓
+  │  ↓                                      │ status="ready"-pending / "failed"
+  │ Year/column relabeling                  │ (api/services/checklist_kb_service.py)
+  │  ↓                                      │
+  │ Audit checklist evaluation, question by │
+  │ question (checklist_process.run_audit_  │
+  │ pipeline) → raw FALSE items             │
+  │  ↓                                      │
+  └───────────────────────────────────────┘
+              ↓ join point (blocks until indexing finishes, ok or failed)
+If indexing succeeded: RAG resolver (rag_chat_module's run_full_audit, using
+the just-built knowledge base) re-checks the raw FALSE items against the
+indexed documents → an updated/corrected set of non-conforming items.
+If indexing failed: the raw FALSE items are used unchanged (graceful fallback).
   ↓
-Sheet merge into one unified in-memory dataset (IMPORTED_DF)
+Committee report generation (audit_report_generator, LLM-powered, optional) —
+fed the resolved (or raw, on fallback) non-conforming items
   ↓
-Year/column relabeling (extraction_script.scripts.checklist.year_relabeler)
-  ↓
-Audit checklist evaluation, question by question
-  (extraction_script.scripts.checklist.checklist_process.run_audit_pipeline)
-  ↓
-Non-conforming ("FALSE") items collected
-  ↓
-Committee report generation (audit_report_generator, LLM-powered, optional)
+The resolved checklist results are indexed into the SAME knowledge base
+(one more file, "checklist_results") → knowledge_bases.status="ready" →
+projects.latest_ready_kb_id updated → retention policy applied
   ↓
 Output: on-screen results + downloadable .docx committee report
 ```
+
+Either branch failing degrades gracefully: a KB indexing/resolver problem
+never breaks the checklist workshop itself (the report falls back to the raw,
+un-resolved checklist result); the checklist pipeline's own failure modes are
+unchanged from before this phase. The synchronization between the two threads
+is a small `ChecklistKBJoin` object (`api/services/checklist_kb_service.py`) --
+a `threading.Event` set by the indexing thread once it finishes (success or
+failure) and awaited, in-place, by the checklist thread right before it would
+otherwise generate the committee report; no new concurrency library is
+introduced.
 
 ### Audit report summarization workspace
 
@@ -582,6 +629,94 @@ was rotated) falls back to the system default with a warning in the server log.
 Settings only affect the **runs started after saving** them; the settings row (and
 its key) is deleted together with the project.
 
+## Knowledge-base infrastructure (rag_chat_module)
+
+Alongside the dashboard sits `rag_chat_module` (importable as
+`llm_variable_resolver`), a separate, already-implemented package that provides a
+versioned knowledge base (chunking, embedding, vector search) and RAG-based chat
+over a project's financial documents.
+
+**The financial audit checklist workshop is the trigger that creates and
+populates each project's knowledge base** (`api/services/checklist_kb_service.py`,
+see the pipeline diagram above): every "انجام تحلیل" submit starts a brand-new
+knowledge base indexing run in parallel with the checklist evaluation itself,
+then -- once the checklist's raw result is available -- runs an LLM/RAG
+"resolver" step (`llm_variable_resolver.full_run.run_full_audit`) over that same
+freshly-indexed knowledge base to re-check the non-conforming items against the
+actual uploaded documents, and finally indexes the resolved checklist results
+back into the same knowledge base (so a future chatbot workshop can answer
+questions like "which checklist items failed and why"). **A knowledge base is
+not considered `ready` -- and `projects.latest_ready_kb_id` is not updated --
+until this whole sequence (index files → resolve → index results) has finished.**
+If indexing itself fails, the checklist workshop falls back to its raw,
+un-resolved result exactly as it worked before this phase -- a knowledge-base
+problem never breaks the checklist workshop. `projects.latest_ready_kb_id` is
+what the (not-yet-built) chatbot workshop will read to know which knowledge
+base to search; **only the `PSA_KB_RETENTION_COUNT` most recent knowledge bases
+per project are kept on disk** -- right after a knowledge base is marked ready,
+`knowledge_bases.list_stale_beyond_retention` is queried for that project and
+every stale row (older knowledge bases, never the current
+`latest_ready_kb_id`, never another project's rows) is deleted both on disk
+(`kb_storage.delete_kb_directory`) and in the database (row + its `kb_files`).
+
+The chatbot workshop itself (letting a user chat with a ready knowledge base)
+is not built yet -- that is a following piece of work. What exists so far:
+
+- **`knowledge_bases` table** -- one row per indexed version of a project's files:
+  a UUID primary key (also the name of its on-disk directory), the owning
+  `project_id` *and* `user_id` (a knowledge base belongs to one user and one
+  project -- this app has no project sharing), the `embedding_model` and
+  `embedding_device` actually used to build it, a `status`
+  (`indexing`/`ready`/`failed`) with an optional `error_message`, and the
+  Chroma collection name/persist directory. **`kb_files` table** -- one row per
+  input file of a knowledge base (logical `file_key`, original filename,
+  status, sheet/chunk counts), kept only for diagnostics/traceability. On
+  `projects`, a nullable `latest_ready_kb_id` column always points at the
+  newest `ready` knowledge base of that project -- any future consumer (the
+  planned chatbot workshop) reads this pointer instead of querying
+  `knowledge_bases` directly.
+- **Uniqueness/versioning guarantee** -- every time a project's files are
+  re-uploaded and the checklist workshop is re-run, a brand-new
+  `knowledge_bases` row, a brand-new UUID, and a brand-new on-disk Chroma
+  directory are created. A knowledge base is never overwritten or reused, even
+  for the same `(user_id, project_id)` pair -- see
+  `api/repositories/knowledge_bases.py::create`. A retention policy
+  (`PSA_KB_RETENTION_COUNT`, `list_stale_beyond_retention`) identifies stale
+  knowledge bases beyond the N most recent per project, and is now enforced
+  right after each checklist run marks its own knowledge base `ready`
+  (`api/services/checklist_kb_service.py::_apply_retention`): every stale row's
+  on-disk directory and database rows (`knowledge_bases` + its `kb_files`) are
+  deleted together, scoped to that one project, and the row currently pointed
+  at by `projects.latest_ready_kb_id` is defensively re-checked (re-read at
+  deletion time, not reused from earlier in the run) and never deleted.
+- **On-disk layout** -- `api/services/kb_storage.py` is the single source of
+  truth for where a knowledge base's Chroma files live:
+  `{PSA_VECTOR_STORE_ROOT}/{user_id}/{project_id}/{kb_id}/`. Every read/write
+  resolves the path against `PSA_VECTOR_STORE_ROOT` and refuses anything that
+  would land outside it (mirroring the safety pattern in `api/storage.py`).
+  Each knowledge base's directory also holds a `manifest.json`
+  (`embedding_model`, `embedding_device`, `created_at`,
+  `chroma_collection_name`) -- redundant with the database row on purpose, so
+  the embedding model behind any on-disk index is recoverable by inspecting
+  the folder alone, without a database.
+- **`api/services/rag_ai_adapter.py`** -- the only place in the dashboard
+  allowed to construct `rag_chat_module` objects
+  (`OpenAIClient`/`SentenceTransformerEmbedder`/`ChromaVectorStore`).
+  `build_llm_client` builds an OpenAI-compatible client from this project's own
+  `ai_settings.py` resolution chain (project+workshop setting -> system
+  default) for a new workshop slug, `financial_chatbot` -- `ai_settings.py`
+  itself needs no change to support it, since it never special-cases workshop
+  slugs. `build_embedder` builds a `SentenceTransformerEmbedder` for
+  `PSA_EMBEDDING_MODEL`, detecting CUDA itself (via `torch.cuda.is_available()`)
+  instead of relying on the package's own `device="auto"`, so the resolved
+  device is logged and can be persisted in the database/manifest.
+  `build_vector_store_factory` returns a factory that builds a `ChromaVectorStore`
+  for one knowledge base's collection/persist directory.
+- **`rag_chat_module` itself is not modified.** It stays fully usable on its
+  own (its own CLI/scripts, `providers.yaml`, `pipeline.yaml`) -- the dashboard
+  only ever talks to it through the two modules above, in Python, at call
+  time; it never writes to or reads `rag_chat_module/config/*.yaml`.
+
 ## Project Components
 
 | Component | Responsibility |
@@ -598,6 +733,7 @@ its key) is deleted together with the project.
 | `extraction_script/scripts/checklist/` | Audit checklist evaluation engine: condition parsing, formula evaluation (`math_func_to_latex_code.py`), fuzzy metadata search, year/column relabeling |
 | `extraction_script/scripts/document_conversion/` | PDF → xlsx conversion for tabular Persian PDFs, and generic PDF/DOC → text extraction (with OCR fallback) |
 | `audit_report_generator/` | LLM-powered generator of the "committee non-conformity report" (`.docx`), built on the `openai` client library |
+| `rag_chat_module/` (`llm_variable_resolver`) | Independent, unmodified package providing versioned knowledge bases + RAG chat; the dashboard talks to it only through `api/services/rag_ai_adapter.py` and `api/services/kb_storage.py` -- see [Knowledge-base infrastructure](#knowledge-base-infrastructure-rag_chat_module) (triggered by the checklist workshop's `api/services/checklist_kb_service.py`) |
 | `audit_summarizer/` | Standalone LLM-powered audit-report summarizer package, with its own CLI, tests, and samples |
 | `db_management/budget_management/` | Batch scripts to create the PostgreSQL schema and bulk-insert extracted budget data |
 
@@ -658,7 +794,15 @@ under the hood). They cover:
   project, two runs of the same workshop staying apart, jobs of different
   projects isolated, and a job/run of one workshop *not* being readable through
   another workshop's endpoints;
-- **formatting**: Jalali date conversion and Persian digit/number rendering.
+- **formatting**: Jalali date conversion and Persian digit/number rendering;
+- **knowledge-base infrastructure**: `knowledge_bases` repository (creation always
+  gets a fresh UUID row, per-user/per-project isolation, atomic
+  `mark_ready_and_update_project_pointer`, retention-policy listing), `kb_storage`
+  path safety/idempotent deletion, and `rag_ai_adapter` building its objects from
+  resolved AI settings -- all with `OpenAIClient`/`SentenceTransformerEmbedder`/
+  `ChromaVectorStore` stubbed out, so these tests need no GPU, network access, or
+  the real `rag_chat_module` package either (this infrastructure is not yet
+  reachable from any workshop, so there is no end-to-end test for it).
 
 They never run the real extraction/checklist/LLM pipelines:
 `pipeline.start_checklist_job`, `audit_pipeline.start_audit_summary_job` and

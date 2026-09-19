@@ -83,6 +83,27 @@ class Settings(BaseSettings):
         default=None, alias="PSA_AI_SETTINGS_ENCRYPTION_KEY"
     )
 
+    # --- زیرساخت پایگاه‌دانش (Knowledge Base) برای ``rag_chat_module`` --------
+    # این تنظیمات فقط زیرساخت هستند و هنوز به هیچ کارگاهی وصل نشده‌اند (به کارگاه
+    # آینده‌ی «دستیار مالی» -- financial_chatbot -- در فاز بعد وصل می‌شوند).
+    # ریشه‌ی ذخیره‌سازی دیسک ایندکس‌های برداری (Chroma) هر پایگاه‌دانش؛ ساختار:
+    # ``{root}/{user_id}/{project_id}/{kb_id}/``. با حذف پروژه (فاز بعد) کل
+    # زیرپوشه‌ی همان پروژه پاک می‌شود.
+    vector_store_root: Path = Field(
+        default=DATA_DIR / "vector_stores", alias="PSA_VECTOR_STORE_ROOT"
+    )
+    # تعداد پایگاه‌دانش‌های آماده/ناموفقی که به‌ازای هر پروژه نگه داشته می‌شوند؛
+    # مابقی «قدیمی‌تر از سیاست نگهداری» محسوب می‌شوند (حذف واقعی در فاز بعد است --
+    # این‌جا فقط پرس‌وجوی شمارش/فهرست ساخته می‌شود).
+    kb_retention_count: int = Field(default=3, alias="PSA_KB_RETENTION_COUNT")
+    # مدل embedding مورد استفاده برای ساخت پایگاه‌دانش‌های جدید. مدل‌ها روی دیسک
+    # کش می‌شوند و معمولاً ثابت می‌مانند، اما هر پایگاه‌دانش دقیقاً ثبت می‌کند با
+    # کدام مدل ساخته شده است (ستون ``embedding_model``).
+    embedding_model: str = Field(
+        default="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+        alias="PSA_EMBEDDING_MODEL",
+    )
+
     @property
     def max_upload_bytes(self) -> int:
         return self.max_upload_mb * 1024 * 1024

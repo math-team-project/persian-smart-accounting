@@ -26,7 +26,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 import pandas as pd
 import warnings
 warnings.filterwarnings('ignore')  # Suppress all warnings
@@ -672,6 +672,9 @@ def run_full_pipeline(
     job: Optional[dict[str, Any]] = None,
     audit_report_path: Optional[Path] = None,
     entity_name: Optional[str] = None,
+    resolve_false_questions: Optional[
+        "Callable[[list[dict[str, Any]], list[dict[str, Any]]], list[dict[str, Any]]]"
+    ] = None,
 ) -> dict[str, Any]:
     """
     اجرای کامل خط پردازش: استخراج/ادفام فایل‌های اکسل، اجرای چک‌لیست حسابرسی و
@@ -680,6 +683,11 @@ def run_full_pipeline(
     اگر ``job`` داده شود، مرحله جاری فعلی در ``job["stage"]`` و لاگ کامل در
     ``job["logs"]`` نگه داشته می‌شود تا داشبورد بتواند به‌صورت زنده (تایمر + مرحله
     فعلی) وضعیت پردازش را نمایش دهد.
+
+    ``resolve_false_questions`` یک قلاب اختیاری است (پیش‌فرض بدون رفتار هیچ کاری
+    نمی‌کند) که لایه‌ی سرویس (``checklist_service``) می‌تواند برای جایگزینی موارد
+    FALSE با نتیجه‌ی پایگاه‌دانش (RAG resolver) پیش از تولید گزارش کمیسیون پاس
+    بدهد -- این تابع (``pipeline.py``) هیچ ایده‌ای درباره‌ی پایگاه‌دانش/RAG ندارد.
     """
     start = time.time()
 
@@ -695,8 +703,17 @@ def run_full_pipeline(
     )
     summary = summarize_checklist(checklist_results)
 
+    report_false_questions = false_questions
+    if resolve_false_questions is not None:
+        _set_stage(job, "در حال انتظار تکمیل فهرست‌بندی دانش پروژه و تطبیق هوشمند موارد عدم تطابق...")
+        try:
+            report_false_questions = resolve_false_questions(false_questions, checklist_results)
+        except Exception as exc:  # noqa: BLE001 -- مرحله‌ی جدید هرگز نباید اجرای موجود را خراب کند
+            _set_stage(job, f"هشدار: تطبیق هوشمند نتایج چک‌لیست ناموفق بود: {exc}")
+            report_false_questions = false_questions
+
     committee_report = generate_committee_report_output(
-        false_questions,
+        report_false_questions,
         workdir=workdir,
         audit_report_path=audit_report_path,
         entity_name=entity_name,
@@ -711,6 +728,7 @@ def run_full_pipeline(
         "warnings": processed_inputs.warnings,
         "checklist_results": checklist_results,
         "false_questions": false_questions,
+        "resolved_false_questions": report_false_questions,
         "summary": summary,
         "committee_report": committee_report,
         "elapsed_seconds": elapsed,
@@ -740,12 +758,18 @@ def start_checklist_job(
     workdir: Path,
     audit_report_path: Optional[Path] = None,
     entity_name: Optional[str] = None,
+    resolve_false_questions: Optional[
+        "Callable[[list[dict[str, Any]], list[dict[str, Any]]], list[dict[str, Any]]]"
+    ] = None,
 ) -> None:
     """
     اجرای run_full_pipeline در یک ترد پس‌زمینه‌ی جدا، دقیقاً مطابق الگوی
     start_audit_summary_job در audit_pipeline.py. ترد پس‌زمینه هرگز مستقیماً
     st.session_state[...] را تنظیم نمی‌کند، فقط فیلدهای درونی همین job dict را تقییر
     می‌دهد.
+
+    ``resolve_false_questions`` مستقیماً به ``run_full_pipeline`` پاس داده می‌شود (نگاه کنید
+    داکمنت آن تابع).
     """
 
     def _worker() -> None:
@@ -757,6 +781,7 @@ def start_checklist_job(
                 job=job,
                 audit_report_path=audit_report_path,
                 entity_name=entity_name,
+                resolve_false_questions=resolve_false_questions,
             )
             job["result"] = result
             job["status"] = "done"

@@ -21,6 +21,15 @@ def _gated_starters(monkeypatch):
     import audit_pipeline
     import pipeline
 
+    from api.services import checklist_kb_service
+
+    class _FakeJoin:
+        def resolve_false_questions(self, false_questions, checklist_results):
+            return false_questions
+
+    # جلوگیری از ایندکس‌سازی واقعی پایگاه‌دانش (embedder/LLM واقعی) در این تست‌ها.
+    monkeypatch.setattr(checklist_kb_service, "start_indexing", lambda **kwargs: _FakeJoin())
+
     gates: dict[str, dict] = {"checklist": {}, "audit-summary": {}}
 
     def make_starter(kind: str):

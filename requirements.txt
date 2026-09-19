@@ -54,6 +54,15 @@ sqlalchemy>=2.0
 passlib>=1.7.4           # password hashing (pbkdf2_sha256, pure-python: no extra build)
 itsdangerous>=2.1        # required by Starlette's SessionMiddleware (session cookies)
 
+# --- Knowledge-base / RAG infrastructure (api/services/rag_ai_adapter.py, kb_storage.py) ---
+# rag_chat_module (llm_variable_resolver) itself is not modified; the dashboard only
+# imports its public classes through these two modules. These packages are already
+# rag_chat_module's own dependencies, listed here too because the dashboard now
+# imports them directly (not just through rag_chat_module's own environment).
+torch>=2.0                # CUDA detection for embedding_device (api/services/rag_ai_adapter.py)
+sentence-transformers>=3.0 # SentenceTransformerEmbedder (multilingual embeddings)
+chromadb>=0.5              # ChromaVectorStore (per-knowledge-base persistent vector index)
+
 # --- Testing --------------------------------------------------------------------
 pytest>=8.0
 httpx>=0.27              # required by fastapi.testclient.TestClient (api/ tests)
