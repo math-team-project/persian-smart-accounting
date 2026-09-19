@@ -62,7 +62,7 @@ embedder:
   #   auto  -> cuda > mps > cpu (best available)
   #   cuda  -> if unavailable, warns and falls back to CPU
   #   cpu   -> always works
-  device: cpu
+  device: auto
   
 # -----------------------------------------------------------------
 # Persian text normalization.
