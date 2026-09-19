@@ -15,6 +15,7 @@ STATIC_ASSETS = [
     "/static/js/checklist.js",
     "/static/js/audit_summary.js",
     "/static/js/budget_analysis.js",
+    "/static/js/financial_chatbot.js",
     "/static/js/project.js",
     "/static/js/ai_settings.js",
 ]

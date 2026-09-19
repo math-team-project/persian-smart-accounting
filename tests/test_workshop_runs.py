@@ -39,10 +39,28 @@ def _required_files() -> dict:
     )
 
 
+def _stub_checklist_kb_indexing(monkeypatch):
+    """جلوگیری از اجرای واقعی ایندکس‌سازی پایگاه‌دانش (embedder/LLM واقعی) در این
+    تست‌ها -- این فایل فقط جریان تاریخچه/نتیجه را می‌آزماید، نه پایگاه‌دانش را
+    (آن، موضوع ``tests/test_checklist_kb_service.py`` است).
+    """
+    from api.services import checklist_kb_service
+
+    class _FakeJoin:
+        def resolve_false_questions(self, false_questions, checklist_results):
+            return false_questions
+
+    monkeypatch.setattr(
+        checklist_kb_service, "start_indexing", lambda **kwargs: _FakeJoin()
+    )
+
+
 def _make_fake_start_checklist_job(monkeypatch, *, status: str = "done", error: str | None = None):
     import pipeline
 
-    def _fake(job, file_paths, workdir, audit_report_path=None, entity_name=None):
+    _stub_checklist_kb_indexing(monkeypatch)
+
+    def _fake(job, file_paths, workdir, audit_report_path=None, entity_name=None, **kwargs):
         job["stage"] = "پردازش با موفقیت به اتمام رسید" if status == "done" else "پردازش با خطا متوقف شد"
         job["logs"] = ["در حال شروع پردازش...", "استخراج فایل‌های ورودی..."]
         if status == "error":
@@ -354,7 +372,9 @@ def test_checklist_run_without_report_shows_report_error(auth_client, db_session
     """اگر تولید گزارش کمیسیون شکست بخورد، اجرا موفق می‌ماند اما تاریخچه باید علت را نشان دهد."""
     import pipeline
 
-    def _fake(job, file_paths, workdir, audit_report_path=None, entity_name=None):
+    _stub_checklist_kb_indexing(monkeypatch)
+
+    def _fake(job, file_paths, workdir, audit_report_path=None, entity_name=None, **kwargs):
         job["status"] = "done"
         job["result"] = {
             "summary": {

@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}چت‌بات مالی{% endblock %}
+
+{% block content %}
+{% include "components/toast.html" with context %}
+
+<!-- ===================== مسیر پروژه ===================== -->
+<nav class="psa-meta mb-3 flex items-center gap-1.5" aria-label="مسیر صفحه">
+  <a href="/" class="psa-footer-link">پروژه‌ها</a>
+  <span aria-hidden="true">{{ icon('chevron-left', 13) | safe }}</span>
+  <a href="/projects/{{ project.id }}" class="psa-footer-link">{{ project.name }}</a>
+  <span aria-hidden="true">{{ icon('chevron-left', 13) | safe }}</span>
+  <span class="text-slate-700">{{ workshop.display_name_fa }}</span>
+</nav>
+
+<!-- ===================== سرصفحهٔ کارگاه ===================== -->
+<header class="mb-6">
+  <span class="psa-eyebrow">
+    {{ icon('sparkles', 14) | safe }}
+    پرسش و پاسخ روی اسناد پروژه — پروژهٔ «{{ project.name }}»
+  </span>
+  <h1 class="psa-page-title mt-3">چت‌بات مالی</h1>
+  <p class="psa-page-subtitle">
+    از اسناد حسابرسی همین پروژه بپرسید و پاسخ را با استناد به فایل و شیت منبع
+    ببینید. پاسخ‌ها بر پایهٔ <strong>جدیدترین پایگاه‌دانش آمادهٔ پروژه</strong> ساخته
+    می‌شوند؛ برای ساخت آن باید یک بار کارگاه چک‌لیست اجرا شده باشد.
+  </p>
+</header>
+
+{# آدرس API این کارگاه داخل پروژهٔ جاری -- از رجیستری کارگاه‌ها می‌آید تا هیچ
+   آدرسی در جاوااسکریپت هاردکد نباشد. ``storageKey`` فقط شناسهٔ آخرین گفتگوی باز
+   را نگه می‌دارد (متادیتا)؛ هیچ متنی از گفتگو در مرورگر ذخیره نمی‌شود. #}
+<script>
+  window.PSA_WORKSHOP = {
+    apiBase: "{{ api_base }}",
+    projectId: {{ project.id }},
+    storageKey: "psa.financial_chatbot.sessionId.p{{ project.id }}",
+    maxHistoryTurns: {{ max_history_turns | default(6) }}
+  };
+</script>
+
+{% if not chatbot_available %}
+  {# ---------------- حالت دروازه‌بندی‌شده: هنوز پایگاه‌دانشی ساخته نشده ---------------- #}
+  <section class="psa-card psa-card-elevated psa-card-topline p-6 sm:p-8">
+    <div class="mx-auto flex max-w-2xl flex-col items-center text-center">
+      <span class="psa-icon-tile psa-icon-tile-lg is-gold">{{ icon('database', 26) | safe }}</span>
+      <h2 class="mt-4 text-base font-bold text-slate-900">هنوز پایگاه‌دانشی برای این پروژه ساخته نشده است</h2>
+      <p class="psa-section-hint mt-2 leading-7">{{ gate_message }}</p>
+
+      <a href="{{ checklist_url }}" class="psa-btn psa-btn-primary psa-btn-lg mt-5">
+        {{ icon('clipboard-check', 17) | safe }}
+        رفتن به کارگاه چک‌لیست حسابرسی
+      </a>
+
+      <ol class="mt-6 w-full space-y-3 text-start">
+        {% set gate_steps = [
+          ('اجرای تحلیل چک‌لیست', 'اسناد بودجه و صورت‌های مالی سازمان را در کارگاه چک‌لیست بارگذاری و تحلیل کنید.'),
+          ('ساخت پایگاه‌دانش', 'در همان اجرا، ایندکس جست‌وجوی اسناد ساخته و آماده می‌شود.'),
+          ('شروع گفتگو', 'به این صفحه برگردید و اولین گفتگوی خود را با چت‌بات مالی شروع کنید.')
+        ] %}
+        {% set gate_digits = ['۱', '۲', '۳'] %}
+        {% for step_title, step_desc in gate_steps %}
+        <li class="flex gap-3">
+          <span class="psa-badge psa-badge-neutral psa-num shrink-0">{{ gate_digits[loop.index0] }}</span>
+          <span>
+            <span class="block text-xs font-bold text-slate-800">{{ step_title }}</span>
+            <span class="block text-xs leading-6 text-slate-500">{{ step_desc }}</span>
+          </span>
+        </li>
+        {% endfor %}
+      </ol>
+
+      <div class="psa-note mt-6 w-full text-start">
+        {{ icon('info', 16) | safe }}
+        <span>
+          این کارگاه از فهرست کارگاه‌های پروژه پنهان نشده است تا مسیر رسیدن به
+          حالت فعال برای شما روشن باشد؛ فقط رابط گفتگو تا آماده‌شدن پایگاه‌دانش
+          غیرفعال است.
+        </span>
+      </div>
+    </div>
+  </section>
+{% else %}
+  {# ---------------- رابط گفتگو ---------------- #}
+  <div class="psa-chat-layout">
+    <!-- ============ ستون کنار: فهرست گفتگوها ============ -->
+    <aside class="psa-card p-4 sm:p-5" aria-label="فهرست گفتگوها">
+      <h2 class="psa-section-title">
+        {{ icon('layers', 16) | safe }}
+        گفتگوها
+      </h2>
+
+      <div class="mt-3 space-y-2">
+        <label for="psa-chat-new-title" class="psa-label">عنوان گفتگوی جدید (اختیاری)</label>
+        <input
+          type="text"
+          id="psa-chat-new-title"
+          class="psa-input"
+          maxlength="200"
+          placeholder="مثلاً بررسی موجودی نقد"
+          autocomplete="off"
+        />
+        <button type="button" id="psa-chat-new" class="psa-btn psa-btn-secondary psa-btn-block">
+          {{ icon('plus', 15) | safe }}
+          ساخت گفتگوی جدید
+        </button>
+      </div>
+
+      <p class="psa-help mt-3">
+        محتوای گفتگوها ذخیره نمی‌شود؛ فقط عنوان و تاریخ هر گفتگو می‌ماند.
+      </p>
+
+      <hr class="psa-divider my-3" />
+
+      <ul id="psa-chat-list" class="psa-chat-list"></ul>
+      <p id="psa-chat-list-empty" class="psa-help hidden">هنوز گفتگویی نساخته‌اید.</p>
+      <p id="psa-chat-list-error" class="psa-help is-error hidden"></p>
+    </aside>
+
+    <!-- ============ پنل اصلی: گفتگوی جاری ============ -->
+    <section class="psa-card psa-card-elevated flex min-h-0 flex-col p-0" aria-label="گفتگوی جاری">
+      <header class="psa-chat-head">
+        <div class="min-w-0">
+          <p class="psa-chat-title" id="psa-chat-title">گفتگویی انتخاب نشده است</p>
+          <p class="psa-help" id="psa-chat-subtitle">
+            از فهرست کنار یک گفتگو را انتخاب کنید یا «گفتگوی جدید» بزنید.
+          </p>
+        </div>
+        <span class="psa-badge psa-badge-gold shrink-0">
+          {{ icon('sparkles', 13) | safe }}
+          پاسخ بر پایهٔ پایگاه‌دانش پروژه
+        </span>
+      </header>
+
+      <div
+        id="psa-chat-messages"
+        class="psa-chat-messages"
+        role="log"
+        aria-live="polite"
+        aria-label="پیام‌های گفتگو"
+      >
+        <div class="psa-chat-placeholder" id="psa-chat-placeholder">
+          {{ icon('sparkles', 22) | safe }}
+          <p class="mt-2 text-sm font-semibold text-slate-700">پرسش خود را بنویسید</p>
+          <p class="psa-help mt-1">
+            برای نمونه: «موجودی نقد در پایان سال چقدر بوده است؟» یا
+            «کدام موارد چک‌لیست رد شدند؟»
+          </p>
+        </div>
+      </div>
+
+      <form id="psa-chat-form" class="psa-chat-form" novalidate>
+        <label for="psa-chat-input" class="psa-label sr-only">متن پرسش</label>
+        <textarea
+          id="psa-chat-input"
+          class="psa-input psa-chat-input"
+          rows="2"
+          maxlength="4000"
+          placeholder="پرسش خود را دربارهٔ اسناد این پروژه بنویسید…"
+          disabled
+        ></textarea>
+        <div class="flex items-center gap-2">
+          <button type="submit" id="psa-chat-send" class="psa-btn psa-btn-gold" disabled>
+            {{ icon('arrow-left', 16) | safe }}
+            ارسال
+          </button>
+          <button type="button" id="psa-chat-stop" class="psa-btn psa-btn-ghost psa-btn-sm hidden">
+            {{ icon('x', 15) | safe }}
+            توقف
+          </button>
+          <p class="psa-help ms-auto hidden sm:block">
+            کلید <span class="psa-num">Enter</span> می‌فرستد،
+            <span class="psa-num">Shift+Enter</span> خط جدید می‌سازد.
+          </p>
+        </div>
+      </form>
+    </section>
+  </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+{% if chatbot_available %}
+<script src="/static/js/financial_chatbot.js"></script>
+{% endif %}
+{% endblock %}

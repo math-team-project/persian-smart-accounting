@@ -1,0 +1,185 @@
+[project]
+name = "persian-smart-accounting"
+version = "0.1.0"
+description = "Persian Smart Accounting — dashboard, API, and audit pipelines for Iranian public-sector financial statements, plus the LLM-based Persian financial audit variable resolver."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "Persian Smart Accounting Team" },
+]
+keywords = [
+    "accounting", "audit", "persian", "iran", "financial-statements",
+    "streamlit", "fastapi", "llm", "variable-resolver",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Natural Language :: Persian",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+# Main runtime dependencies (everything needed for the full stack).
+# Merged from the original requirements.txt groups plus the llm_variable_resolver
+# dependency set. Duplicate packages keep the higher of the two version floors.
+dependencies = [
+    # --- Dashboard (Streamlit UI) -------------------------------------------
+    "streamlit>=1.38",
+    "plotly>=5.22",
+    # --- API + web UI (FastAPI) ---------------------------------------------
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "jinja2>=3.1",
+    "python-multipart>=0.0.9",
+    "pydantic-settings>=2.2",
+    # --- Data processing ----------------------------------------------------
+    "pandas>=2.2",
+    "numpy>=1.26",
+    "openpyxl>=3.1",
+    "xlrd>=2.0",
+    "rapidfuzz>=3.6",
+    "pyprojroot>=0.3",
+    "tabulate>=0.9",
+    "scikit-learn>=1.3",
+    "PyYAML>=6.0",
+    # --- Document conversion / text extraction ------------------------------
+    "pdfplumber>=0.11",
+    "pypdf>=4.0",
+    "pymupdf>=1.24",
+    "pytesseract>=0.3.13",
+    "pdf2image>=1.17",
+    "python-docx>=1.1",
+    # --- LLM integrations ---------------------------------------------------
+    "openai>=1.40",
+    "requests>=2.31",
+    # --- Embeddings / vector store (llm_variable_resolver) ------------------
+    "chromadb>=1.5.9",
+    "sentence-transformers>=6.1.0",
+    # --- Database (legacy PostgreSQL client) --------------------------------
+    "psycopg2-binary>=2.9",
+    # --- Configuration / secrets --------------------------------------------
+    "python-dotenv>=1.0",
+    "cryptography>=42.0",
+    # --- Dashboard layer (auth + projects + run history) --------------------
+    "sqlalchemy>=2.0",
+    "passlib>=1.7.4",
+    "itsdangerous>=2.1",
+    "tree>=0.2.4",
+    "directory-tree>=1.0.0",
+]
+
+[project.optional-dependencies]
+# --- Testing ----------------------------------------------------------------
+test = [
+    "pytest>=8.0",
+    "httpx>=0.27",
+]
+
+# --- Convenience extras to install only a subset of the stack ---------------
+dashboard = [
+    "streamlit>=1.38",
+    "plotly>=5.22",
+]
+api = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "jinja2>=3.1",
+    "python-multipart>=0.0.9",
+    "pydantic-settings>=2.2",
+    "sqlalchemy>=2.0",
+    "passlib>=1.7.4",
+    "itsdangerous>=2.1",
+]
+data = [
+    "pandas>=2.2",
+    "numpy>=1.26",
+    "openpyxl>=3.1",
+    "xlrd>=2.0",
+    "rapidfuzz>=3.6",
+    "pyprojroot>=0.3",
+    "tabulate>=0.9",
+    "scikit-learn>=1.3",
+    "PyYAML>=6.0",
+]
+documents = [
+    "pdfplumber>=0.11",
+    "pypdf>=4.0",
+    "pymupdf>=1.24",
+    "python-docx>=1.1",
+]
+database = [
+    "psycopg2-binary>=2.9",
+]
+config = [
+    "python-dotenv>=1.0",
+    "cryptography>=42.0",
+]
+
+# --- llm_variable_resolver optional groups ---------------------------------
+# Merged: the previous "llm" group and the new "llm" group collapse into one.
+llm = [
+    "openai>=1.40",
+    "requests>=2.31",
+    "anthropic>=0.40",
+]
+ocr = [
+    "pytesseract>=0.3.13",
+    "pdf2image>=1.17",
+]
+chroma = [
+    "chromadb>=0.5",
+]
+neural = [
+    "sentence-transformers>=3.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "api",
+    "extraction_script",
+    "audit_summarizer",
+    "audit_report_generator",
+    "llm_variable_resolver",
+]
+
+# ---------------------------------------------------------------------------
+# uv / PyTorch CUDA index configuration (for sentence-transformers / torch).
+# ---------------------------------------------------------------------------
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cuda", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cuda"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true
+
+# ---------------------------------------------------------------------------
+# Tooling configuration (tests, lint, format).
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra -q"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP"]
+ignore = ["E501"]  # long lines are handled by the formatter
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]

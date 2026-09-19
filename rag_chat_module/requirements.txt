@@ -1,0 +1,67 @@
+# =====================================================================
+# llm_variable_resolver - Python dependencies
+#
+# Install everything:        pip install -r requirements.txt
+# Install without extras:    pip install -r requirements.txt
+#                            (optional deps are commented out below;
+#                             uncomment only the ones you need)
+#
+# Tested on Python 3.10+.
+# =====================================================================
+
+# ---------------------------------------------------------------------
+# Core - always required
+# ---------------------------------------------------------------------
+pandas>=2.0
+numpy>=1.24
+tabulate>=0.9              # required by pandas.DataFrame.to_markdown
+scikit-learn>=1.3          # TfidfVectorizer (default offline embedder)
+PyYAML>=6.0                # config/pipeline.yaml loader
+xlrd>=2.0
+
+# ---------------------------------------------------------------------
+# Readers - required by llm_variable_resolver.readers
+# ---------------------------------------------------------------------
+openpyxl>=3.1              # ExcelReader
+pdfplumber>=0.11           # PDFReader (pdf_to_excel_fa + table extraction)
+PyMuPDF>=1.24              # PDF text extraction with correct RTL order
+python-docx>=1.1           # DOCX fallback in file_to_text.py
+
+# ---------------------------------------------------------------------
+# OCR fallback for scanned PDFs (file_to_text._pdf_to_text)
+# Only needed if your PDFs may be scanned images without a text layer.
+# Also requires the external binary `tesseract-ocr` with the Persian
+# language pack (`fas`), installed via your OS package manager.
+# ---------------------------------------------------------------------
+pytesseract>=0.3.13
+pdf2image>=1.17
+
+# ---------------------------------------------------------------------
+# LLM clients
+# Install only the ones you actually use as voters.
+# ---------------------------------------------------------------------
+anthropic>=0.40            # AnthropicClient (Claude)
+openai>=1.40               # OpenAIClient (GPT / any OpenAI-compatible)
+
+# ---------------------------------------------------------------------
+# Vector store (optional - only if you switch to Chroma)
+# Backend is selected in config/pipeline.yaml under `vector_store.backend`.
+# ---------------------------------------------------------------------
+chromadb>=0.5
+
+# ---------------------------------------------------------------------
+# Embedder (optional - only if you switch to a neural encoder)
+# Backend is selected in config/pipeline.yaml under `embedder.backend`.
+# Note: downloads model weights from huggingface.co on first use
+#       (~120 MB for the default multilingual MiniLM model).
+# ---------------------------------------------------------------------
+sentence-transformers>=3.0
+
+# ---------------------------------------------------------------------
+# PDF legacy-format support in file_to_text.py
+# .doc/.rtf/.odt files are converted via LibreOffice (external binary),
+# not via pip. Install LibreOffice separately:
+#   - Ubuntu/Debian:  sudo apt install libreoffice
+#   - macOS:          brew install --cask libreoffice
+#   - Windows:        https://www.libreoffice.org/download/
+# ---------------------------------------------------------------------

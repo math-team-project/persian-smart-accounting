@@ -33,6 +33,7 @@ from api.schemas.checklist import (
     JobStatusResponse,
     JobSummary,
 )
+from api.services import checklist_kb_service
 from api.utils.uploads import InMemoryUploadAdapter
 from api.workshops.registry import ResultArtifact
 
@@ -76,6 +77,7 @@ async def start_job(
     *,
     project_id: int,
     run_id: int,
+    user_id: Optional[int] = None,
     on_finish: Optional[Callable[[dict[str, Any]], None]] = None,
     manager: JobManager = job_manager,
 ) -> str:
@@ -151,12 +153,28 @@ async def start_job(
     # ``run_full_pipeline`` خروجی خودش این مقدار را برنمی‌گرداند و این کلید
     # صرفاً یک برچسب خصوصی روی دیکشنری job است (پایپ‌لاین آن را نمی‌خواند).
     job["_entity_name"] = (entity_name or "").strip() or None
+
+    # شروع فوری و موازی ایندکس‌سازی پایگاه‌دانش این اجرا -- در ترد جداگانه
+    # خودش (``checklist_kb_service.start_indexing``)، بدون این‌که پایپلاین
+    # چک‌لیست کندتر یا منتظر آن بماند. اگر ``user_id`` در دسترس نباشد (مثلاً
+    # فراخوانی قدیمی‌تر تست‌ها)، این قابلیت به‌طور کامل رد می‌شود و رفتار
+    # قبلی کارگاه بدون تغییر باقی می‌ماند.
+    resolve_false_questions = None
+    if user_id is not None:
+        kb_join = checklist_kb_service.start_indexing(
+            user_id=user_id,
+            project_id=project_id,
+            file_paths=file_paths,
+        )
+        resolve_false_questions = kb_join.resolve_false_questions
+
     pipeline.start_checklist_job(
         job,
         file_paths,
         workdir,
         audit_report_path=audit_report_path,
         entity_name=(entity_name or "").strip() or None,
+        resolve_false_questions=resolve_false_questions,
     )
     manager.watch_lifecycle(job_id, job)
     logger.info(

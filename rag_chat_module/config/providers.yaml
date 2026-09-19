@@ -1,0 +1,63 @@
+# =============================================================
+# Named provider presets.
+#
+# Every provider below is reached through the OpenAI SDK, since
+# all of them expose an OpenAI-compatible /chat/completions
+# endpoint. The differences are just base_url and api_key.
+#
+# Voters in config/pipeline.yaml reference one of these by key
+# under `provider_ref`.
+#
+# Per-voter overrides in pipeline.yaml can still change
+# `model`, `temperature`, `base_url`, or `api_key_env` for a
+# specific voter without touching this file.
+# =============================================================
+
+providers:
+
+  openai:
+    base_url: https://api.openai.com/v1
+    api_key_env: OPENAI_API_KEY
+    default_model: gpt-4o-mini
+    default_max_tokens: 2048
+
+  deepseek:
+    base_url: https://api.deepseek.com/v1
+    api_key_env: DEEPSEEK_API_KEY
+    default_model: deepseek-chat
+    default_max_tokens: 2048
+
+  openrouter:
+    base_url: https://openrouter.ai/api/v1
+    api_key_env: OPENROUTER_API_KEY
+    # OpenRouter exposes hundreds of models via "provider/model".
+    # Change this to whatever you actually want as the default.
+    default_model: nvidia/nemotron-3-ultra-550b-a55b:free
+    default_max_tokens: 20000
+    supports_json_mode: true
+
+  groq:
+    base_url: https://api.groq.com/openai/v1
+    api_key_env: GROQ_API_KEY
+    default_model: llama-3.3-70b-versatile
+    default_max_tokens: 2048
+
+  together:
+    base_url: https://api.together.xyz/v1
+    api_key_env: TOGETHER_API_KEY
+    default_model: meta-llama/Llama-3.3-70B-Instruct-Turbo
+    default_max_tokens: 2048
+
+  mistral:
+    base_url: https://api.mistral.ai/v1
+    api_key_env: MISTRAL_API_KEY
+    default_model: mistral-large-latest
+    default_max_tokens: 2048
+
+  # Local Ollama / vLLM / LM Studio. The key is fake; both
+  # servers accept any non-empty string.
+  local:
+    base_url: http://localhost:11434/v1        # Ollama default
+    api_key_env: LOCAL_OPENAI_API_KEY
+    default_model: llama3.1:8b
+    default_max_tokens: 2048

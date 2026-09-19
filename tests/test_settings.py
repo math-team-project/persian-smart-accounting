@@ -24,7 +24,7 @@ from api.db.models import WorkshopSetting
 from api.repositories import projects as projects_repo
 from api.repositories import workshop_runs as runs_repo
 from api.services import ai_settings
-from api.workshops.registry import get as get_workshop
+from api.workshops.registry import get as get_workshop, workshops_with_settings
 
 SLUG = "budget-analysis"
 CIPHER_PREFIX = "fernet:v1:"
@@ -346,8 +346,16 @@ def test_settings_of_other_users_project_are_not_reachable(client, db_session, s
 
 def test_only_workshops_with_applied_settings_are_configurable(auth_client, project):
     payload = _get_payload(auth_client, project.id)
-    # رجیستری تعیین می‌کند کدام کارگاه فرم تنظیمات دارد (settings_applied)
-    assert [item["slug"] for item in payload["workshops"]] == [SLUG]
+    # رجیستری تعیین می‌کند کدام کارگاه فرم تنظیمات دارد (settings_applied). الآن دو
+    # کارگاه این شرط را دارند: تحلیل بودجه (تنظیمات حل‌شده را در شروع اجرا می‌گیرد)
+    # و چت‌بات مالی (در هر پرسش، کلاینت مدل را از همین زنجیره می‌سازد). این مجموعه
+    # مستقیماً از رجیستری خوانده می‌شود تا افزودن کارگاه بعدی فقط یک ورودی رجیستری
+    # باشد، نه یک ویرایش دوباره در این تست.
+    expected = sorted(
+        workshop.slug for workshop in workshops_with_settings()
+    )
+    assert sorted(item["slug"] for item in payload["workshops"]) == expected
+    assert expected == ["budget-analysis", "financial_chatbot"]
 
     not_configurable = _put(auth_client, project.id, {"model": "x"}, slug="checklist")
     assert not_configurable.status_code == 404

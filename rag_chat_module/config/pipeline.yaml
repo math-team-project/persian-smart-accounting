@@ -1,0 +1,84 @@
+# =============================================================
+# Pipeline configuration (M1-M5).
+#
+# Every voter references one provider preset from
+# config/providers.yaml via `provider_ref`. The API key is read
+# from the environment variable named by that preset (or the
+# voter's own `api_key_env` override).
+# =============================================================
+
+# -----------------------------------------------------------------
+# Extraction voters - each runs independently on every variable
+# and their answers are aggregated by EnsembleExtractor.
+# -----------------------------------------------------------------
+extraction_voters:
+  - name: primary
+    provider_ref: openrouter           # cheap + strong Persian
+    temperature: 0.0
+    model: nvidia/nemotron-3-super-120b-a12b:free          # optional; falls back to preset default
+
+  # Uncomment for a second independent opinion:
+  - name: backup
+    provider_ref: openrouter
+    model: nvidia/nemotron-3-ultra-550b-a55b:free
+    temperature: 0.0
+
+# -----------------------------------------------------------------
+# Redesign voters - only run when a question's condition still
+# fails AFTER extraction. Leave empty to disable redesign.
+# -----------------------------------------------------------------
+redesign_voters:
+  - name: redesign-primary
+    provider_ref: openrouter
+    temperature: 0.0
+    model: nvidia/nemotron-3-super-120b-a12b:free
+
+# -----------------------------------------------------------------
+# Retrieval thresholds (char counts used as cheap token proxies).
+# -----------------------------------------------------------------
+thresholds:
+  top_k: 3
+  min_similarity: 0.05
+  min_confidence_margin: 0.1
+  slice_accept_threshold: 8000
+  full_file_threshold: 20000
+
+# -----------------------------------------------------------------
+# Vector store used by the level-3 retrieval fallback.
+# -----------------------------------------------------------------
+vector_store:
+  backend: chroma                       # "in_memory" | "chroma"
+  chroma_collection: llm_variable_resolver
+  chroma_persist_directory: ./chroma_db
+
+# -----------------------------------------------------------------
+# Embedder used by the vector store.
+# -----------------------------------------------------------------
+embedder:
+  backend: sentence_transformer
+  sentence_transformer_model: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+  cache_dir: ./.cache/models
+  # "auto" | "cpu" | "cuda" | "cuda:N" | "mps"
+  #   auto  -> cuda > mps > cpu (best available)
+  #   cuda  -> if unavailable, warns and falls back to CPU
+  #   cpu   -> always works
+  device: cpu
+  
+# -----------------------------------------------------------------
+# Persian text normalization.
+# -----------------------------------------------------------------
+normalize:
+  enabled: true
+
+# -----------------------------------------------------------------
+# Paths and I/O.
+# -----------------------------------------------------------------
+paths:
+  checklist: data/checklist.json
+  operational: data/operational.json
+  output: output/operational_updated.json
+  files_registry: config/files.yaml
+  providers: config/providers.yaml
+
+# Dry-run uses a deterministic mock client; no network, no API key.
+dry_run: false

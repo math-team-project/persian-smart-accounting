@@ -111,6 +111,7 @@ async def create_checklist_job(
             max_upload_bytes=settings.max_upload_bytes,
             project_id=project.id,
             run_id=run.id,
+            user_id=project.user_id,
             on_finish=runs.make_finalizer(run.id),
         )
     except ChecklistValidationError as exc:
@@ -209,5 +210,13 @@ WORKSHOP = register(
         # می‌خواند و داخل ``pipeline.py`` یک ``LLMConfig`` می‌سازد؛ تزریق
         # تنظیمات پروژه یعنی بازنویسی آن ماژول -- که خارج از محدوده‌ی این فاز
         # است. بنابراین فرم تنظیمات برای این کارگاه نمایش داده نمی‌شود.
+        #
+        # همین ``settings_keys`` با این حال برای یک مصرف‌کنندهی دیگر هم لازم است:
+        # مرحله‌ی «تطبیق هوشمند» پس از ایندکس‌سازی پایگاه‌دانش
+        # (``api/services/checklist_kb_service.py``) کدی داشبورد‌محور جدیدی است
+        # (نه بخشی از ``pipeline.py`` موجود) و طبق الگوی همه‌ی کارگاه‌های دیگر
+        # تنظیمات LLM خودش را از ``ai_settings.py``/``rag_ai_adapter.py`` می‌خواند (نه
+        # از متغیرهای محیطی داخلی ``pipeline.py``) -- بنابراین فرم تنظیمات همچنان
+        # روی این دو کلید/آدرس/مدل اثر می‌گذارد.
     )
 )
