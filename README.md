@@ -451,6 +451,7 @@ All secrets are read from environment variables (via `python-dotenv`, so a
 | `PSA_VECTOR_STORE_ROOT` | `api/services/kb_storage.py` | Root directory of every knowledge base's on-disk Chroma files (`{root}/{user_id}/{project_id}/{kb_id}/`, see [Knowledge-base infrastructure](#knowledge-base-infrastructure-rag_chat_module)). Default: `data/vector_stores` |
 | `PSA_KB_RETENTION_COUNT` | `api/repositories/knowledge_bases.py` | How many `ready`/`failed` knowledge bases per project are kept before being considered stale. Default: `3` |
 | `PSA_EMBEDDING_MODEL` | `api/services/rag_ai_adapter.py` | Sentence-transformers model used to build new knowledge bases. Default: `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` |
+| `PSA_BUDGET_MAX_PROMPT_CHARS` | `budget_analysis/prompt.py` | Character budget for the extracted-data block sent to the model by the budget-analysis workshop. Default: `400000` (the two real reference documents render to ~190k characters, so the default never truncates them). Lower it for a provider/model with a small context window. The budget is split *across* documents, so raising or lowering it never removes one document entirely. |
 
 Additional configuration files:
 
@@ -647,6 +648,42 @@ than producing a report from garbage. Service/transport errors are not retried
 structurally. Numeric comparisons, thresholds and deviation arithmetic are
 computed by criteria.py, not delegated to the model — the model only explains and
 prioritizes.
+
+Two limits guard this stage, and both are *sized from the real documents*, not
+guessed:
+
+* **Input — the data block.** Both documents are always sent. If the extracted
+  data exceeds `PSA_BUDGET_MAX_PROMPT_CHARS` (default 400000; the reference pair
+  renders to ~190k characters), the budget is shared out *between the documents*
+  and each document is cut on a line boundary, so the second document can never
+  be silently dropped. When a cut does happen, the affected file names are
+  announced in the prompt itself and the user sees them in the run's warnings.
+* **Output — the token budget.** The JSON contract (a matrix row per criterion
+  plus the findings/risks sections) needs roughly 15–20k tokens of *text*, and
+  reasoning models spend the same `max_tokens` budget on their hidden reasoning
+  first — measured: ~17k reasoning tokens on this task. The workshop default is
+  therefore `48_000` (`budget_analysis.llm.DEFAULT_MAX_OUTPUT_TOKENS`), not the
+  20k inherited from `audit_report_generator`, and is overridable per project
+  through the "حداکثر طول خروجی" field in the workshop's AI settings. If a model
+  still hits the cap, the response is detected as truncated
+  (`finish_reason="length"`, see `LLMClient.chat_json`) and reported immediately
+  with the token breakdown and the exact setting to raise — the same oversized
+  request is *not* re-sent in a loop.
+
+The status/importance vocabulary is kept **separate from the per-criterion
+assessment rules**, exactly as the reference prompt does. `criteria.py` rules
+contain descriptive language ("رشد غیرعادی و نیازمند اقدام/بررسی", "ریسک پایداری
+منابع"); `criteria_prompt_block` labels them *ارزیابی* (assessment) rather than
+*وضعیت* (status), and the system prompt states that `status`/`importance` must be
+one of the allowed strings verbatim, that the "در اسناد موجود نیست" /
+"قابل محاسبه نیست …" phrases are *result* texts (the status for those rows is
+always `فاقد داده کافی`), and that descriptive phrasing is not a status. The
+schema then accepts only genuine spelling variants of an allowed value (and the
+two code-defined missing-data phrases, which are equivalent to `فاقد داده کافی`)
+— anything else is still a hard validation error, so a bad vocabulary cannot slip
+through. Without that separation the model copies the descriptive phrasing into
+`status`, the schema rejects the whole response, and the run burns a full extra
+attempt (~10 minutes) before succeeding.
   ↓
 ── Stage 3: deterministic docx render (budget_analysis/report.py + docx_rtl.py) ─
 A validated report model is rendered into a right-to-left Word document with the
@@ -811,7 +848,17 @@ All four workshops use the same settings resolver chain in
 | Service URL | OpenAI-compatible base URL | `AUDIT_REPORT_LLM_BASE_URL` (default `https://openrouter.ai/api/v1`) |
 | Model name | Model identifier | `AUDIT_REPORT_LLM_MODEL` |
 | Creativity (temperature) | 0–2, lower = more consistent | Module default (`0.2`) |
-| Max output length | Upper bound on the generated report length | Module default (`20_000` tokens) |
+| Max output length | Upper bound on the generated report length | System default (`48_000` tokens, from `budget_analysis.llm.DEFAULT_MAX_OUTPUT_TOKENS`) |
+
+**"Max output length" also covers the model's hidden reasoning.** For reasoning
+models the provider bills thinking tokens against the same `max_tokens` cap —
+measured on the budget-analysis task: ~17k reasoning tokens out of the budget,
+leaving only the remainder for the JSON report. A cap that is "big enough for the
+report" but not "report + reasoning" makes the model stop mid-JSON; that is
+detected (`finish_reason="length"`) and reported as a clear, actionable Persian
+error instead of a vague parse failure after a long wait. Keep this value
+generous (the default model accepts up to 65,536) or switch to a non-reasoning
+model.
 
 **The fallback chain — user value → system default — is silent and total.**
 `api/services/ai_settings.py::resolve_ai_settings` always returns a completely
@@ -1169,6 +1216,15 @@ Note that `tests/test_budget_analysis.py` deliberately runs *real* stage 1
 the stage-2 LLM call — that is how "reads a real xlsx and a real PDF printed from
 Excel" and "missing data is never fabricated" are verified. The PDF variant of
 that test is skipped automatically when LibreOffice is not installed.
+
+The same file carries the regression tests for the two failure modes described in
+[the budget-analysis pipeline section](#budget-analysis-workshop):
+`test_real_sample_documents_fit_the_default_prompt_budget` runs the real
+`extraction_script/data/` budget PDFs through stage 1 and asserts that neither
+document is dropped from the prompt, and
+`test_truncated_model_output_fails_fast_with_actionable_error` feeds
+`LLMClient.chat_json` a `finish_reason="length"` response and asserts it is
+reported once, immediately, instead of being re-sent.
 
 There is currently no automated test suite for the extraction/checklist pipeline
 logic itself (`extraction_script/`, `pipeline.py`, `audit_pipeline.py`) — see

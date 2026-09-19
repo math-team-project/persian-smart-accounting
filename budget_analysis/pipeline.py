@@ -27,6 +27,7 @@ from budget_analysis.config import BudgetConfig
 from budget_analysis.extraction import extract_bundle
 from budget_analysis.grid import ExtractionGridError
 from budget_analysis.llm import BudgetAnalysisLLM, BudgetLLMSettings
+from budget_analysis.prompt import render_data_block
 from budget_analysis.report import ReportContext, render_report_docx
 from budget_analysis.schemas import BudgetAnalysisReport, ExtractionBundle
 
@@ -152,6 +153,17 @@ def run_budget_analysis(
     )
 
     # --- مرحله ۲ ---
+    # اگر حجم داده از سقف بودجه‌ی پرامپت بگذرد، بودجه بین اسناد تقسیم می‌شود و
+    # هیچ سندی کامل حذف نمی‌شود؛ اما کاربر باید بداند که بخشی از اقلام یک سند در
+    # تحلیل لحاظ نشده است. خودِ پرامپت هم نام همان سندها را به مدل اعلام می‌کند
+    # (``budget_analysis.prompt``) تا داده‌ی بریده‌شده را «موجود نیست» تلقی نکند.
+    truncated_documents = render_data_block(bundle).truncated_documents
+    for document_name in truncated_documents:
+        set_stage(
+            job,
+            f"هشدار: فهرست اقلام سند «{document_name}» به‌دلیل حجم داده در پرامپت بریده شد.",
+        )
+
     try:
         report: BudgetAnalysisReport = analyze_fn(
             bundle,
@@ -197,6 +209,15 @@ def run_budget_analysis(
     warnings = list(bundle.warnings)
     for document in bundle.documents:
         warnings.extend(document.warnings)
+    if truncated_documents:
+        warnings.insert(
+            0,
+            "فهرست اقلام سند(های) "
+            + "، ".join(f"«{name}»" for name in truncated_documents)
+            + " به‌دلیل حجم داده در پرامپت بریده شد؛ بخشی از اقلام آن‌ها در تحلیل "
+            "لحاظ نشده است. برای تحلیل کامل، مقدار PSA_BUDGET_MAX_PROMPT_CHARS را "
+            "افزایش دهید یا از مدلی با پنجره‌ی بزرگ‌تر استفاده کنید.",
+        )
 
     return {
         "report": report,

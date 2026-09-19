@@ -71,6 +71,30 @@ def _extract_json_block(text: str) -> str:
     return text[start : end + 1]
 
 
+def _usage_note(response: Any) -> str:
+    """توضیح خوانا از مصرف توکن پاسخ (برای پیام خطا).
+
+    تعداد توکن‌های «استدلال» (``reasoning``) در همین مصرف و در سقف ``max_tokens``
+    حساب می‌شود؛ بدون نشان دادن آن، کاربر نمی‌فهمد چرا با وجود سقف بزرگ، خروجی
+    بریده شده است.
+    """
+    usage = getattr(response, "usage", None)
+    if usage is None:
+        return ""
+    parts: list[str] = []
+    completion = getattr(usage, "completion_tokens", None)
+    if completion is not None:
+        parts.append(f"توکن خروجی: {completion:,}")
+    details = getattr(usage, "completion_tokens_details", None)
+    reasoning = getattr(details, "reasoning_tokens", None) if details is not None else None
+    if reasoning:
+        parts.append(f"که {reasoning:,} توکن آن صرف استدلال مدل شده است")
+    prompt_tokens = getattr(usage, "prompt_tokens", None)
+    if prompt_tokens is not None:
+        parts.append(f"توکن ورودی: {prompt_tokens:,}")
+    return "، ".join(parts)
+
+
 class LLMClient:
     """کلاینت نازک روی openai.OpenAI با retry و مدیریت خطای یکپارچه."""
 
@@ -82,6 +106,32 @@ class LLMClient:
             timeout=config.request_timeout,
             **(config.extra_client_kwargs or {}),
         )
+
+    def _raise_if_incomplete(self, response: Any, content: str) -> None:
+        """خروجی بریده/خالی را فوراً و با پیام قابل‌اقدام گزارش می‌کند (بدون تلاش مجدد).
+
+        ``finish_reason == "length"`` یعنی پاسخ *بریده* شده است. این حالت با
+        تکرار همان درخواست درست نمی‌شود (همان سقف، همان برش) و تنها اثرش چند
+        دقیقه انتظار اضافی و سپس خطای مبهم JSON است؛ بنابراین اینجا صریح گزارش
+        می‌شود. حالت «متن خالی با مصرف کامل توکن» هم تقریباً همیشه یعنی تمام سقف
+        صرف استدلال مدل شده است و همان راه‌حل را دارد.
+        """
+        finish_reason = getattr(response.choices[0], "finish_reason", None)
+        note = _usage_note(response)
+        suffix = f" ({note})" if note else ""
+        if finish_reason == "length":
+            raise LLMGenerationError(
+                "خروجی مدل به سقف مجاز توکن رسید و پیش از کامل شدن بریده شد "
+                f"(finish_reason=length). سقف فعلی: {self.config.max_output_tokens:,} توکن{suffix}. "
+                "این سقف شامل توکن‌های استدلال مدل هم می‌شود، پس برای مدل‌های استدلالی "
+                "باید مقدار بزرگ‌تری بگیرد. مقدار «حداکثر طول خروجی» را در تنظیمات هوش "
+                "مصنوعی این کارگاه افزایش دهید و اجرا را دوباره شروع کنید."
+            )
+        if not content.strip():
+            raise LLMGenerationError(
+                "مدل هیچ متنی برنگرداند (احتمالاً همه‌ی سقف توکن صرف استدلال شده است)"
+                f"{suffix}. مقدار «حداکثر طول خروجی» را افزایش دهید و دوباره تلاش کنید."
+            )
 
     def chat_json(self, messages: List[Dict[str, str]]) -> Any:
         """یک فراخوانی chat completion انجام می‌دهد و خروجی را به‌صورت JSON پارس می‌کند.
@@ -99,9 +149,8 @@ class LLMClient:
                     temperature=self.config.temperature,
                     max_tokens=self.config.max_output_tokens,
                 )
-                content = response.choices[0].message.content
-                if not content or not content.strip():
-                    raise LLMGenerationError("مدل خروجی خالی برگرداند.")
+                content = response.choices[0].message.content or ""
+                self._raise_if_incomplete(response, content)
 
                 cleaned = _strip_code_fence(content)
                 try:

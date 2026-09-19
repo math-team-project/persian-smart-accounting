@@ -605,6 +605,302 @@ def test_prompt_carries_substantive_rules_and_thresholds(tmp_path):
     assert "پارک تست" in user
 
 
+def test_prompt_separates_assessment_wording_from_the_status_vocabulary(tmp_path):
+    """رگرسیون: متن «قاعده ارزیابی» معیارها نباید وضعیت تلقی شود.
+
+    ``criteria.py`` قواعدی مثل «رشد غیرعادی و نیازمند اقدام/بررسی» یا «ریسک
+    پایداری منابع» دارد. وقتی این متن با برچسب «قاعده ثبت وضعیت» به مدل داده
+    می‌شد، مدل همان عبارت توصیفی را عیناً در فیلد ``status`` می‌گذاشت و خروجی
+    اعتبارسنجی را رد می‌کرد (اجرای واقعی روی اسناد نمونه: ۱۰ خطای واژگان در
+    تلاش اول).
+    """
+    from budget_analysis.criteria import criteria_prompt_block
+
+    bundle = _bundle(tmp_path)
+    system = build_messages(bundle, BudgetConfig())[0]["content"]
+    criteria_block = criteria_prompt_block()
+
+    # متن قواعد، برچسب «وضعیت» نمی‌گیرد
+    assert "قاعده ثبت وضعیت" not in system
+    assert "قاعده ارزیابی" in system
+    # و صریحاً گفته می‌شود که فقط واژگان مجاز به‌عنوان وضعیت پذیرفته می‌شود
+    assert "عیناً یکی از رشته‌های فهرست واژگان مجاز" in criteria_block
+    for phrase in ("رشد غیرعادی و نیازمند اقدام/بررسی", "زیر حد پایین", "ریسک پایداری منابع"):
+        assert phrase in system, f"مثال ضدالگو در پرامپت نیست: {phrase}"
+
+
+def test_cosmetic_status_variants_are_normalized_not_rejected():
+    """واریانت‌های نگارشی وضعیت یکدست می‌شوند، اما عبارت ناشناخته رد می‌شود."""
+    from budget_analysis.schemas import normalize_status
+
+    assert normalize_status("مورد نیازمند بررسی") == "نیازمند بررسی"
+    assert normalize_status("هشدار") == "هشدار مدیریتی"
+    assert normalize_status("مغایرت  بااهمیت") == "مغایرت بااهمیت"
+    # متن‌های استاندارد خودِ سامانه معادل «فاقد داده کافی»‌اند (نه یک وضعیت دیگر)
+    assert normalize_status(NOT_COMPUTABLE_TEXT) == "فاقد داده کافی"
+    assert normalize_status(MISSING_TEXT) == "فاقد داده کافی"
+    with pytest.raises(ValueError):
+        normalize_status("زیر حد پایین")
+
+
+def test_missing_data_note_is_a_result_text_not_a_status():
+    """رگرسیون: متن «قابل محاسبه نیست...» نباید به‌عنوان وضعیت خواسته شود.
+
+    قاعده‌ی معیار «هزینه سرانه نیروی انسانی» در ``criteria.py`` این متن را در
+    جای وضعیت می‌گذاشت و مدل هم عیناً همان را در ``status`` برمی‌گرداند.
+    """
+    from budget_analysis.criteria import criteria_prompt_block
+    from budget_analysis.schemas import ErrorMatrixRow
+
+    block = criteria_prompt_block()
+    assert "→ وضعیت «فاقد داده کافی»" in block
+
+    row = ErrorMatrixRow.model_validate(
+        {
+            "criterion_id": "C4.5",
+            "axis": "ساختار هزینه‌های نیروی انسانی",
+            "status": NOT_COMPUTABLE_TEXT,
+            "result": "",
+        }
+    )
+    assert row.status == "فاقد داده کافی"
+    assert row.result == NOT_COMPUTABLE_TEXT
+
+
+# ---------------------------------------------------------------------------
+# بودجه‌ی نویسه‌ی پرامپت (رگرسیون: سند دوم نباید از پرامپت حذف شود)
+# ---------------------------------------------------------------------------
+def _bulky_bundle(cells_per_document: int = 400):
+    """دو سند ساختگی با حجم داده‌ی زیاد -- برای آزمودن بریدن پرامپت."""
+    from budget_analysis.schemas import (
+        DocumentExtraction,
+        ExtractedCell,
+        ExtractionBundle,
+        FormExtraction,
+    )
+
+    roles = {"base_year": "سال پایه", "current_year": "سال جاری"}
+    years = {"base_year": "1404", "current_year": "1405"}
+    documents = []
+    for slot in ("base_year", "current_year"):
+        cells = [
+            ExtractedCell(
+                form_key="form_1",
+                form_name="فرم ۱ ـ منابع و مصارف",
+                section="منابع",
+                row_title=f"قلم آزمون شماره {index}",
+                row_number=index,
+                column_title=f"اصلاحیه بودجه سال {years[slot]}",
+                column_index=2,
+                value=float(index * 1_000),
+                unit="میلیون ریال",
+                year=years[slot],
+                cell_ref=f"C{index + 3}",
+                source_document=slot,
+            )
+            for index in range(1, cells_per_document + 1)
+        ]
+        documents.append(
+            DocumentExtraction(
+                slot=slot,
+                role_fa=roles[slot],
+                filename=f"{slot}.pdf",
+                detected_year=years[slot],
+                unit="میلیون ریال",
+                extraction_method="xlsx",
+                forms=[
+                    FormExtraction(
+                        form_key="form_1",
+                        form_name="فرم ۱ ـ منابع و مصارف",
+                        sheet_name="فرم 1",
+                        cell_count=len(cells),
+                    )
+                ],
+                cells=cells,
+            )
+        )
+    from budget_analysis.schemas import ExtractionBundle
+
+    return ExtractionBundle(documents=documents, base_year="1404", current_year="1405")
+
+
+def test_prompt_data_budget_keeps_both_documents_when_it_must_cut():
+    """رگرسیون: بریدن پرامپت هرگز نباید یک سند را کامل حذف کند.
+
+    نسخه‌ی قبلی متن داده را با یک برش ساده‌ی کاراکتری به ۹۰٫۰۰۰ نویسه محدود
+    می‌کرد؛ با اسناد واقعی ۱۴۰۴/۱۴۰۵ (حدود ۱۹۰ هزار نویسه) تمام سند سال جاری از
+    پرامپت حذف می‌شد و مدل بدون داده‌ی سال جاری تحلیل می‌کرد.
+    """
+    from budget_analysis.prompt import render_data_block
+
+    data = render_data_block(_bulky_bundle(), max_chars=8_000)
+
+    assert data.truncated_documents, "با بودجه‌ی کوچک باید برش رخ دهد"
+    assert "base_year.pdf" in data.text, "سرصفحه‌ی سند سال پایه باید بماند"
+    assert "current_year.pdf" in data.text, "سند سال جاری نباید کامل حذف شود"
+
+
+def test_prompt_truncation_cuts_on_line_boundaries_and_is_announced(monkeypatch):
+    """برش روی مرز خط انجام می‌شود و در پیام کاربر به مدل اعلام می‌شود."""
+    from budget_analysis.prompt import _truncate_at_line, build_user_prompt, render_data_block
+
+    bundle = _bulky_bundle()
+    full = render_data_block(bundle).text
+    piece, removed = _truncate_at_line(full, 5_000)
+    assert removed == len(full) - len(piece) > 0
+    kept_lines = piece.splitlines()
+    assert kept_lines and full.splitlines()[: len(kept_lines)] == kept_lines
+
+    monkeypatch.setenv("PSA_BUDGET_MAX_PROMPT_CHARS", "8000")
+    prompt = build_user_prompt(bundle, BudgetConfig())
+    assert "current_year.pdf" in prompt
+    assert "بریده شده است" in prompt
+    assert "فاقد داده کافی" in prompt
+
+
+def test_prompt_budget_env_override_ignores_invalid_values(monkeypatch):
+    from budget_analysis.prompt import MAX_PROMPT_DATA_CHARS, prompt_data_char_budget
+
+    monkeypatch.setenv("PSA_BUDGET_MAX_PROMPT_CHARS", "12000")
+    assert prompt_data_char_budget() == 12_000
+    monkeypatch.setenv("PSA_BUDGET_MAX_PROMPT_CHARS", "not-a-number")
+    assert prompt_data_char_budget() == MAX_PROMPT_DATA_CHARS
+    monkeypatch.setenv("PSA_BUDGET_MAX_PROMPT_CHARS", "-5")
+    assert prompt_data_char_budget() == MAX_PROMPT_DATA_CHARS
+
+
+def test_pipeline_reports_prompt_truncation_as_a_run_warning(monkeypatch, tmp_path):
+    """اگر داده‌ی پرامپت بریده شود، کاربر هم در هشدارهای اجرا ببیند."""
+    from budget_analysis.pipeline import run_budget_analysis
+
+    bundle = _bulky_bundle()
+    monkeypatch.setenv("PSA_BUDGET_MAX_PROMPT_CHARS", "4000")
+    report = BudgetAnalysisReport.model_validate(fake_report_payload())
+
+    result = run_budget_analysis(
+        {},
+        workdir=tmp_path,
+        extraction=lambda *_args, **_kwargs: bundle,
+        analyze=lambda *_args, **_kwargs: report,
+    )
+
+    joined = " ".join(result["warnings"])
+    assert "بریده شد" in joined
+    assert "base_year.pdf" in joined and "current_year.pdf" in joined
+
+
+def test_real_sample_documents_fit_the_default_prompt_budget():
+    """اسناد نمونه‌ی واقعی این کارگاه باید بدون برش در پرامپت جا شوند."""
+    from budget_analysis.prompt import MAX_PROMPT_DATA_CHARS, render_data_block
+
+    data_dir = Path(__file__).resolve().parent.parent / "extraction_script" / "data"
+    base = data_dir / "اصلاحیه بودجه تفضیلی 1404.pdf"
+    current = data_dir / "بودجه تفضیلی 1405.pdf"
+    if not base.exists() or not current.exists():
+        pytest.skip("اسناد نمونه‌ی بودجه در extraction_script/data موجود نیستند")
+
+    bundle = extract_bundle(
+        {"base_year": base, "current_year": current}, config=BudgetConfig()
+    )
+    data = render_data_block(bundle)
+
+    assert not data.truncated_documents, (
+        f"حجم داده‌ی اسناد نمونه ({len(data.text)} نویسه) از سقف پیش‌فرض "
+        f"({MAX_PROMPT_DATA_CHARS}) بیشتر است"
+    )
+    assert base.name in data.text and current.name in data.text
+
+
+# ---------------------------------------------------------------------------
+# مرحله ۲: بریده‌شدن خروجی مدل (رگرسیون: خطای مبهم پس از انتظار طولانی)
+# ---------------------------------------------------------------------------
+def test_truncated_model_output_fails_fast_with_actionable_error(monkeypatch):
+    """پاسخ بریده‌ی مدل باید فوراً و با پیام قابل‌اقدام گزارش شود، نه تکرار شود.
+
+    رگرسیون: مدل استدلالی با سقف ۲۰٫۰۰۰ توکنی، ۱۷ هزار توکن را صرف استدلال
+    می‌کرد و JSON در میانه‌ی کار بریده می‌شد؛ به‌جای پیام روشن، همان درخواست
+    سنگین چند بار تکرار می‌شد و کاربر پس از ده‌ها دقیقه خطای مبهم JSON می‌دید.
+    """
+    from types import SimpleNamespace
+
+    from audit_report_generator.config import LLMConfig
+    from audit_report_generator.exceptions import LLMGenerationError
+    from audit_report_generator.llm_client import LLMClient
+
+    usage = SimpleNamespace(
+        completion_tokens=20_000,
+        prompt_tokens=52_076,
+        completion_tokens_details=SimpleNamespace(reasoning_tokens=16_932),
+    )
+    response = SimpleNamespace(
+        choices=[
+            SimpleNamespace(
+                finish_reason="length",
+                message=SimpleNamespace(content='{"meta": {"organization": "پارک'),  # بریده
+            )
+        ],
+        usage=usage,
+    )
+    client = LLMClient(
+        LLMConfig(
+            api_key="test-key",
+            base_url="https://example.invalid/v1",
+            model="test-model",
+            max_output_tokens=20_000,
+            max_retries=3,
+            retry_backoff_seconds=0.0,
+        )
+    )
+    calls: list[dict] = []
+
+    def fake_create(**kwargs):
+        calls.append(kwargs)
+        return response
+
+    monkeypatch.setattr(client._client.chat.completions, "create", fake_create)
+
+    with pytest.raises(LLMGenerationError) as excinfo:
+        client.chat_json([{"role": "user", "content": "سلام"}])
+
+    assert len(calls) == 1, "پاسخ بریده نباید دوباره ارسال شود"
+    message = str(excinfo.value)
+    assert "بریده" in message
+    assert "20,000" in message
+    assert "16,932" in message
+    assert "حداکثر طول خروجی" in message
+
+
+def test_complete_model_output_is_still_parsed(monkeypatch):
+    """تغییر رفتار نباید مسیر موفق را بشکند."""
+    from types import SimpleNamespace
+
+    from audit_report_generator.config import LLMConfig
+    from audit_report_generator.llm_client import LLMClient
+
+    usage = SimpleNamespace(
+        completion_tokens=12,
+        prompt_tokens=10,
+        completion_tokens_details=SimpleNamespace(reasoning_tokens=0),
+    )
+    response = SimpleNamespace(
+        choices=[
+            SimpleNamespace(
+                finish_reason="stop",
+                message=SimpleNamespace(content='{"ok": true}'),
+            )
+        ],
+        usage=usage,
+    )
+    client = LLMClient(
+        LLMConfig(api_key="test-key", base_url="https://example.invalid/v1", model="m")
+    )
+    monkeypatch.setattr(
+        client._client.chat.completions, "create", lambda **_kwargs: response
+    )
+
+    assert client.chat_json([{"role": "user", "content": "سلام"}]) == {"ok": True}
+
+
 # ---------------------------------------------------------------------------
 # مرحله ۳: رندر Word
 # ---------------------------------------------------------------------------

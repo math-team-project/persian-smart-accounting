@@ -12,6 +12,8 @@
 """
 from __future__ import annotations
 
+import os
+from dataclasses import dataclass
 from typing import Optional, Sequence
 
 from budget_analysis import MISSING_TEXT, NOT_COMPUTABLE_TEXT
@@ -21,21 +23,56 @@ from budget_analysis.forms import form_name
 from budget_analysis.schemas import DocumentExtraction, ExtractedCell, ExtractionBundle
 
 __all__ = [
+    "MAX_PROMPT_DATA_CHARS",
+    "MAX_ROWS_PER_FORM",
+    "MIN_DOCUMENT_CHARS",
+    "RenderedDataBlock",
     "build_messages",
     "build_system_prompt",
     "build_user_prompt",
+    "render_data_block",
     "render_documents_for_prompt",
 ]
 
-# سقف ردیف‌های رندرشده از هر فرم و سقف کل نویسه‌های بخش داده -- تا پرامپت از
-# اندازه‌ی مدل بیرون نزند. در صورت عبور، متن هشدار به مدل داده می‌شود تا بداند
-# داده‌ی ناقص می‌بیند (و آن را با «موجود نیست» اشتباه نگیرد).
+# سقف ردیف‌های رندرشده از هر فرم -- تا پرامپت از اندازه‌ی مدل بیرون نزند.
 MAX_ROWS_PER_FORM = 150
-MAX_PROMPT_DATA_CHARS = 90_000
+
+# سقف کل نویسه‌های بخش داده. این مقدار یک «دریچه‌ی ایمنی» برای ورودی‌های
+# غیرعادی است، نه هدف: دو سند بودجه‌ی تفصیلی واقعی (نمونه‌های ۱۴۰۴ و ۱۴۰۵)
+# حدود ۱۹۰ هزار نویسه داده تولید می‌کنند، پس سقف باید بالای این اندازه باشد
+# وگرنه سند دوم بی‌سروصدا از پرامپت حذف می‌شود. برای مدل‌های با پنجره‌ی
+# محدودتر می‌توان این مقدار را با متغیر محیطی زیر کم کرد.
+MAX_PROMPT_DATA_CHARS = 400_000
+
+# کف نویسه‌ی هر سند: حتی وقتی بودجه‌ی داده کم می‌شود، هیچ سندی به‌طور کامل حذف
+# نمی‌شود و سرصفحه‌ی آن (نام فایل، سال، واحد، فهرست فرم‌ها) همیشه به مدل می‌رسد.
+MIN_DOCUMENT_CHARS = 2_000
+
+_ENV_MAX_PROMPT_CHARS = "PSA_BUDGET_MAX_PROMPT_CHARS"
+
+
+def prompt_data_char_budget() -> int:
+    """سقف نویسه‌ی بخش داده (پیش‌فرض ماژول، قابل بازنویسی با متغیر محیطی).
+
+    مقدار نامعتبر/غیرمثبت نادیده گرفته می‌شود تا یک متغیر محیطی اشتباه، اجرا را
+    به پرامپت خالی تبدیل نکند.
+    """
+    raw = os.environ.get(_ENV_MAX_PROMPT_CHARS)
+    if raw:
+        try:
+            value = int(float(raw))
+        except ValueError:
+            value = 0
+        if value > MIN_DOCUMENT_CHARS:
+            return value
+    return MAX_PROMPT_DATA_CHARS
+
 
 _HOW_TO_REPORT_MISSING = (
     f"برای هر داده‌ای که در اسناد نیست عبارت «{MISSING_TEXT}» و برای هر محاسبه‌ای که "
-    f"به‌دلیل فقدان داده ممکن نیست عبارت «{NOT_COMPUTABLE_TEXT}» را دقیقاً و بدون تغییر بنویس."
+    f"به‌دلیل فقدان داده ممکن نیست عبارت «{NOT_COMPUTABLE_TEXT}» را دقیقاً و بدون تغییر بنویس. "
+    "این دو عبارت متن *نتیجه* و *شواهد* هستند و هرگز در فیلد ``status`` نمی‌آیند: "
+    "وضعیت هر معیاری که داده‌اش کافی نیست همیشه «فاقد داده کافی» است."
 )
 
 
@@ -113,6 +150,14 @@ def build_system_prompt(config: BudgetConfig) -> str:
 وضعیت: عادی | نزدیک به حد | نیازمند بررسی | هشدار مدیریتی | مغایرت بااهمیت | ریسک بااهمیت | فاقد داده کافی | معاف
 اهمیت: عادی | قابل توجه | بااهمیت | بسیار بالا
 وضعیت و اهمیت را از هم جدا نگه دار.
+
+مقدار فیلدهای ``status`` و ``importance`` باید **عیناً** یکی از همین رشته‌ها باشد؛
+هیچ عبارت دیگری -- حتی اگر در «قاعده ارزیابی» یک معیار آمده باشد -- پذیرفته نمی‌شود.
+عبارت‌هایی مثل «رشد غیرعادی»، «رشد غیرعادی و نیازمند اقدام/بررسی»، «زیر حد پایین»،
+«ریسک پایداری منابع»، «مورد نیازمند بررسی» و «نیازمند شفاف‌سازی» *وضعیت* نیستند؛
+ارزیابی توصیفی‌اند و جای آن‌ها فیلدهای ``result``/``evidence``/``action`` است.
+«قاعده ارزیابی» می‌گوید در چه شرایطی کدام وضعیت را انتخاب کنی، نه این‌که متن آن را
+به‌عنوان وضعیت بنویسی (مثال: رشد بیش از سقف ۴۰٪ ⇒ «هشدار مدیریتی»).
 
 # قاعده‌ی صدور هشدار قطعی
 
@@ -228,16 +273,122 @@ def _select_rows(
     return chosen, len(keys) - len(chosen)
 
 
+@dataclass(frozen=True)
+class RenderedDataBlock:
+    """متن بخش داده‌ی پرامپت + نام سندهایی که به‌دلیل بودجه‌ی نویسه بریده شدند."""
+
+    text: str
+    truncated_documents: tuple[str, ...] = ()
+    dropped_char_count: int = 0
+
+
+def _truncate_at_line(text: str, limit: int) -> tuple[str, int]:
+    """متن را از انتهای یک خط کامل می‌برد (نه از میان یک ردیف داده).
+
+    بریدن از میان خط، ردیف/سلول را نیمه‌کاره به مدل می‌دهد و همان چیزی است که
+    «محل داده» را نامعتبر می‌کند؛ به همین دلیل برش همیشه روی مرز خط انجام می‌شود.
+
+    Returns:
+        ``(متن بریده, تعداد نویسه‌های حذف‌شده)``
+    """
+    if len(text) <= limit:
+        return text, 0
+    if limit <= 0:
+        return "", len(text)
+    cut = text.rfind("\n", 0, limit)
+    if cut <= 0:
+        # هیچ مرز خطی در بازه نبود (متن تک‌خطی) -- ناچار برش سخت.
+        cut = limit
+    return text[:cut], len(text) - cut
+
+
+def _share_budget(lengths: Sequence[int], total: int, floor: int) -> list[int]:
+    """سهم هر سند از بودجه‌ی نویسه‌ها.
+
+    ابتدا هر سند یک کف (``floor``) می‌گیرد تا هیچ سندی -- مشخصاً سند سال جاری --
+    به‌طور کامل از پرامپت حذف نشود (باکت‌های آب‌رسانی: هر سند کمتر از سهمش،
+    سهم واقعی‌اش را می‌گیرد و باقی‌مانده بین بقیه تقسیم می‌شود).
+    """
+    count = len(lengths)
+    if count == 0:
+        return []
+    if total <= 0:
+        return [0] * count
+
+    shares = [min(length, floor) for length in lengths]
+    if sum(shares) > total:
+        # بودجه حتی برای کف اولیه کافی نیست: تقسیم مساوی بدون کف.
+        equal = total // count
+        return [min(length, equal) for length in lengths]
+
+    remaining = total - sum(shares)
+    pending = {index for index, length in enumerate(lengths) if length > shares[index]}
+    while pending and remaining > 0:
+        share = remaining // len(pending)
+        if share <= 0:
+            break
+        satisfied = {index for index in pending if lengths[index] - shares[index] <= share}
+        if not satisfied:
+            for index in pending:
+                shares[index] += share
+            break
+        for index in satisfied:
+            remaining -= lengths[index] - shares[index]
+            shares[index] = lengths[index]
+        pending -= satisfied
+    return shares
+
+
+def render_data_block(
+    bundle: ExtractionBundle,
+    *,
+    max_rows_per_form: int = MAX_ROWS_PER_FORM,
+    max_chars: Optional[int] = None,
+) -> RenderedDataBlock:
+    """نمای متنی هر دو سند با تقسیم عادلانه‌ی بودجه‌ی نویسه بین آن‌ها.
+
+    هیچ‌گاه یک سند را برای سند دیگر کنار نمی‌گذارد: اگر حجم کل از سقف بگذرد،
+    بودجه به نسبت بین اسناد تقسیم می‌شود و برش هر سند روی مرز خط انجام می‌گیرد.
+    """
+    budget = prompt_data_char_budget() if max_chars is None else max_chars
+    blocks = [
+        _render_document(document, bundle, max_rows_per_form=max_rows_per_form)
+        for document in bundle.documents
+    ]
+    if not blocks:
+        return RenderedDataBlock(text="")
+
+    total = sum(len(block) for block in blocks)
+    if total <= budget:
+        return RenderedDataBlock(text="\n\n".join(blocks))
+
+    shares = _share_budget([len(block) for block in blocks], budget, MIN_DOCUMENT_CHARS)
+    kept: list[str] = []
+    truncated: list[str] = []
+    dropped = 0
+    for index, block in enumerate(blocks):
+        piece, removed = _truncate_at_line(block, shares[index])
+        kept.append(piece)
+        dropped += removed
+        if removed:
+            truncated.append(bundle.documents[index].filename)
+    return RenderedDataBlock(
+        text="\n\n".join(kept),
+        truncated_documents=tuple(truncated),
+        dropped_char_count=dropped,
+    )
+
+
 def render_documents_for_prompt(
     bundle: ExtractionBundle,
     *,
     max_rows_per_form: int = MAX_ROWS_PER_FORM,
+    max_chars: Optional[int] = None,
 ) -> str:
     """نمای متنی هر دو سند برای پیام کاربر (ردیف‌محور و قابل ردیابی)."""
-    parts: list[str] = []
-    for document in bundle.documents:
-        parts.append(_render_document(document, bundle, max_rows_per_form=max_rows_per_form))
-    return "\n\n".join(parts)
+    return render_data_block(
+        bundle, max_rows_per_form=max_rows_per_form, max_chars=max_chars
+    ).text
 
 
 def _render_document(
@@ -330,11 +481,7 @@ def build_user_prompt(
     extra_note: Optional[str] = None,
 ) -> str:
     """پیام ``user``: داده‌ی ساختارمند + درخواست خروجی JSON."""
-    data_block = render_documents_for_prompt(bundle)
-    truncated = False
-    if len(data_block) > MAX_PROMPT_DATA_CHARS:
-        data_block = data_block[:MAX_PROMPT_DATA_CHARS]
-        truncated = True
+    data = render_data_block(bundle)
 
     header_lines = [
         "# درخواست",
@@ -358,16 +505,19 @@ def build_user_prompt(
     if extra_note:
         header_lines.extend(["", extra_note])
 
-    if truncated:
+    if data.truncated_documents:
         header_lines.extend(
             [
                 "",
-                "توجه: فهرست اقلام به‌دلیل حجم، بریده شده است؛ نبودن یک ردیف در این فهرست "
-                "به‌معنای نبود آن در سند نیست و نباید به‌عنوان «در اسناد موجود نیست» گزارش شود.",
+                "توجه: فهرست اقلام سند(های) زیر به‌دلیل حجم داده در این پیام بریده شده است: "
+                + "، ".join(f"«{name}»" for name in data.truncated_documents)
+                + ". نبودن یک ردیف در این فهرست به‌معنای نبود آن در سند نیست و نباید "
+                "به‌عنوان «" + MISSING_TEXT + "» گزارش شود. برای معیارهایی که به داده‌ی "
+                "بریده‌شده نیاز دارند وضعیت «فاقد داده کافی» بگذار، نه انحراف.",
             ]
         )
 
-    return "\n".join(header_lines) + "\n\n# داده‌ی استخراج‌شده از اسناد\n\n" + data_block
+    return "\n".join(header_lines) + "\n\n# داده‌ی استخراج‌شده از اسناد\n\n" + data.text
 
 
 def build_messages(

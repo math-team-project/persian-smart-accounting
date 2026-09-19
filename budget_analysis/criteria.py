@@ -15,6 +15,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional, Sequence
 
+from budget_analysis import NOT_COMPUTABLE_TEXT
+
 __all__ = [
     "CriterionDefinition",
     "DEFAULT_CRITERIA",
@@ -182,7 +184,10 @@ DEFAULT_CRITERIA: tuple[CriterionDefinition, ...] = (
         data_requirements=("هزینه پرسنلی", "تعداد کارکنان غیر هیأت علمی (فرم ۶)"),
         calculation="سرانه = هزینه پرسنلی ÷ تعداد کارکنان غیر هیأت علمی",
         threshold=None,
-        severity_rule="در نبود یکی از دو ورودی → «قابل محاسبه نیست ـ داده موردنیاز در اسناد موجود نیست».",
+        severity_rule=(
+            "در نبود یکی از دو ورودی → وضعیت «فاقد داده کافی» و در فیلد نتیجه ثبت متن "
+            "«" + NOT_COMPUTABLE_TEXT + "»."
+        ),
     ),
     # ------------------------------------------------------------------ محور ۵
     CriterionDefinition(
@@ -274,8 +279,24 @@ def criteria_prompt_block(extra: Sequence[CriterionDefinition] = ()) -> str:
 
     این تابع تنها جایی است که فهرست محورها به متن تبدیل می‌شود؛ افزودن معیار جدید
     هیچ تغییر دیگری لازم ندارد.
+
+    نکته‌ی قرارداد (مطابق بخش «وضعیت و اهمیت» پرامپت مرجع که واژگان مجاز را در
+    بخشی *جدا* از قواعد هر معیار می‌آورد): متن ``severity_rule`` زبان *ارزیابی*
+    است و اغلب عبارتی توصیفی مثل «رشد غیرعادی و نیازمند اقدام/بررسی» یا
+    «ریسک پایداری منابع» دارد. اگر این متن با برچسب «قاعده ثبت وضعیت» به مدل داده
+    شود، مدل همان عبارت توصیفی را عیناً داخل فیلد ``status`` می‌گذارد و خروجی از
+    اعتبارسنجی رد می‌شود. بنابراین اینجا «قاعده ارزیابی» نامیده می‌شود و در ابتدای
+    فهرست صریحاً گفته می‌شود که مقدار نهایی وضعیت/اهمیت باید از واژگان مجاز
+    انتخاب شود.
     """
-    lines: list[str] = []
+    lines: list[str] = [
+        "توجه: عبارت‌های توصیفی داخل «قاعده ارزیابی» (مانند «رشد غیرعادی و نیازمند "
+        "اقدام/بررسی» یا «ریسک پایداری منابع») زبان ارزیابی‌اند، نه مقدار فیلد وضعیت. "
+        "مقدار نهایی فیلدهای «وضعیت» و «اهمیت» در همه‌ی بخش‌های خروجی فقط باید عیناً "
+        "یکی از رشته‌های فهرست واژگان مجاز پیام system باشد (مثال: رشد غیرعادی با "
+        "عبور از سقف ۴۰٪ ⇒ وضعیت «هشدار مدیریتی» یا «نیازمند بررسی»، نه «رشد غیرعادی»).",
+        "",
+    ]
     for axis, criteria in criteria_by_axis().items():
         lines.append(f"### محور: {axis}")
         for criterion in criteria:
@@ -290,7 +311,7 @@ def criteria_prompt_block(extra: Sequence[CriterionDefinition] = ()) -> str:
             if criterion.exceptions:
                 lines.append("  - استثناها: " + "؛ ".join(criterion.exceptions))
             if criterion.severity_rule:
-                lines.append(f"  - قاعده ثبت وضعیت: {criterion.severity_rule}")
+                lines.append(f"  - قاعده ارزیابی: {criterion.severity_rule}")
         lines.append("")
     for criterion in extra:
         lines.append(f"- معیار اضافی: {criterion.name} ({criterion.criterion_id}) -- {criterion.description}")

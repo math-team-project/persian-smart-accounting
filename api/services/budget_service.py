@@ -123,7 +123,9 @@ def test_connection(settings: Any) -> str:
 
     پارامتر ورودی یک ``AISettings`` حل‌شده است (همان چیزی که رجیستری کارگاه‌ها
     به تابع تست پاس می‌دهد). سهمیه‌ی توکن و مهلت زمانی برای این تست کوچک نگه
-    داشته می‌شوند تا دکمه‌ی «تست اتصال» سریع و کم‌هزینه باشد.
+    داشته می‌شوند تا دکمه‌ی «تست اتصال» سریع و کم‌هزینه باشد -- اما نه آن‌قدر
+    کوچک که خودِ تست بشکند: در مدل‌های استدلالی، توکن‌های استدلال هم داخل همین
+    سقف حساب می‌شوند و یک پاسخ «ok» ساده هم می‌تواند چند ده توکن استدلال ببرد.
 
     Raises:
         budget_analysis.llm.BudgetLLMError: با پیام فارسی قابل‌نمایش به کاربر.
@@ -132,7 +134,7 @@ def test_connection(settings: Any) -> str:
     probe = replace(
         llm_settings,
         temperature=0.0,
-        max_output_tokens=64,
+        max_output_tokens=512,
         request_timeout=45.0,
         max_retries=1,
     )
