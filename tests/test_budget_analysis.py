@@ -541,6 +541,14 @@ def test_job_lifecycle_removes_temp_workdir_and_intermediate_files(tmp_path):
 
     assert job["status"] == "done", job.get("error")
     assert job["result"]["docx_bytes"][:2] == b"PK"
+
+    # حذف پوشه در ``finally`` همان ترد کارگر انجام می‌شود، یعنی *پس از* ثبت
+    # وضعیت ``done``. بنابراین این‌جا باید با مهلت منتظر ماند، نه بلافاصله
+    # بررسی کرد: روی ویندوز ممکن است چند صد میلی‌ثانیه طول بکشد تا
+    # ``shutil.rmtree`` برگردد و یک بررسی فوری، تست را به‌صورت تصادفی می‌شکست.
+    cleanup_deadline = time.time() + 10
+    while workdir.exists() and time.time() < cleanup_deadline:
+        time.sleep(0.05)
     assert not workdir.exists(), "پوشهٔ کار موقت باید پس از پایان پردازش حذف شود"
 
 

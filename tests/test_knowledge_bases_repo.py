@@ -171,3 +171,52 @@ def test_list_stale_beyond_retention_empty_when_within_limit(db_session, project
 
     stale = kb_repo.list_stale_beyond_retention(db_session, project.id, keep_count=3)
     assert stale == []
+
+
+def test_list_stale_beyond_retention_never_lists_the_current_latest_kb(db_session, project, user):
+    """اشاره‌گر پروژه حتی وقتی جدیدترینِ ``created_at`` نیست هم محافظت می‌شود.
+
+    ترتیب «آماده‌شدن» می‌تواند با ترتیب «ساخته‌شدن» یکی نباشد (دو اجرای
+    هم‌زمان). این تست همان حالت را می‌سازد: KB قدیمی‌ترِ ساخت، دیرتر آماده شده و
+    بنابراین ``latest_ready_kb_id`` است. پرس‌وجو باید آن را کنار بگذارد حتی با
+    ``keep_count=1``.
+    """
+    now = datetime.now(timezone.utc)
+    older_by_creation = _make_kb(db_session, project_id=project.id, user_id=user.id, status="ready")
+    older_by_creation.created_at = now - timedelta(minutes=10)
+    newer_by_creation = _make_kb(db_session, project_id=project.id, user_id=user.id, status="ready")
+    newer_by_creation.created_at = now
+    db_session.commit()
+
+    # ابتدا جدیدترینِ ساخت آماده می‌شود، سپس قدیمی‌ترِ ساخت -- پس اشاره‌گر روی دومی می‌ماند.
+    kb_repo.mark_ready_and_update_project_pointer(db_session, newer_by_creation.id)
+    kb_repo.mark_ready_and_update_project_pointer(db_session, older_by_creation.id)
+
+    stale = kb_repo.list_stale_beyond_retention(db_session, project.id, keep_count=1)
+
+    # هیچ‌چیز زائد نیست: جدیدترین نگه داشته می‌شود و اشاره‌گر فعلی هم محافظت شده است.
+    assert stale == []
+
+    # اما وقتی اشاره‌گر جابه‌جا شود، همان KB دیگر واقعاً زائد است (و حذف می‌شود).
+    kb_repo.mark_ready_and_update_project_pointer(db_session, newer_by_creation.id)
+    stale = kb_repo.list_stale_beyond_retention(db_session, project.id, keep_count=1)
+    assert [kb.id for kb in stale] == [older_by_creation.id]
+
+
+def test_list_stale_beyond_retention_still_honours_keep_count_without_a_pointer(
+    db_session, project, user
+):
+    """وقتی اشاره‌گر پروژه خالی است، همه‌ی ردیف‌ها مثل قبل شمرده می‌شوند (NOT NULL درست)."""
+    now = datetime.now(timezone.utc)
+    kbs = []
+    for index in range(4):
+        kb = _make_kb(db_session, project_id=project.id, user_id=user.id, status="ready")
+        kb.created_at = now - timedelta(days=4 - index)
+        kbs.append(kb)
+    db_session.commit()
+    assert project.latest_ready_kb_id is None
+
+    stale = kb_repo.list_stale_beyond_retention(db_session, project.id, keep_count=2)
+
+    # دو ردیفِ قدیمی‌تر زائدند -- یعنی خالی‌بودن اشاره‌گر هیچ ردیفی را از دست نمی‌دهد.
+    assert [kb.id for kb in stale] == [kbs[0].id, kbs[1].id]

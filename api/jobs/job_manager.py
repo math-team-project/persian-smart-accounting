@@ -25,6 +25,11 @@ from typing import Any, Callable, Optional
 
 logger = logging.getLogger(__name__)
 
+# وضعیت‌های «ناتمام» یک job -- همان واژگانی که لایه‌ی API در همه‌جا استفاده
+# می‌کند (``api/schemas/common.py::JobStatus``). یک job در این وضعیت‌ها هنوز
+# دارد می‌نویسد، بنابراین هر عملیات حذفی باید کنارش بایستد.
+ACTIVE_JOB_STATUSES = ("pending", "running")
+
 
 class JobManager:
     """رجیستری سبک و در-حافظه (in-memory) برای job های پس‌زمینه.
@@ -105,6 +110,23 @@ class JobManager:
         """همه‌ی job های یک پروژه (مناسب برای پنل «کارهای در جریان»)."""
         with self._lock:
             return [job for job in self._jobs.values() if job.get("_project_id") == project_id]
+
+    def has_active_job_for_project(self, project_id: int) -> bool:
+        """آیا این پروژه همین حالا یک job ناتمام (``pending``/``running``) دارد؟
+
+        برای عملیات‌هایی که با یک اجرای در جریان نمی‌توانند هم‌زیستی کنند لازم
+        است -- مشخصاً حذف کامل پروژه: اگر یک ایندکس‌سازی/تحلیل همین حالا روی
+        فایل‌های این پروژه در حال نوشتن باشد، حذف هم‌زمان می‌تواند داده‌ای را
+        نیمه‌پاک کند یا ردیف/فایل یتیم باقی بگذارد. بنابراین حذف باید تا پایان
+        آن اجرا *رد* شود، نه اینکه با آن مسابقه دهد.
+
+        مقایسه با ``ACTIVE_JOB_STATUSES`` انجام می‌شود، نه با نبودِ ``done``:
+        یک job در وضعیت ``error`` تمام‌شده است و جلوی حذف را نمی‌گیرد.
+        """
+        return any(
+            job.get("status") in ACTIVE_JOB_STATUSES
+            for job in self.list_for_project(project_id)
+        )
 
     def delete(self, job_id: str) -> None:
         with self._lock:

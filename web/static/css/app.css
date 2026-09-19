@@ -2513,6 +2513,16 @@ details.psa-result-item[open] .psa-chevron {
   color: var(--color-text);
 }
 
+/* جهت هر پاراگراف پاسخ از «اولین نویسه‌ی قوی» خودش تعیین می‌شود، نه از
+   ``dir="rtl"`` صفحه. پاسخ مدل می‌تواند پاراگرافی کاملاً فارسی، کاملاً لاتین
+   (مثلاً یک نام فایل یا یک شناسه) یا جدولی با ارقام باشد؛ بدون این خط، پاراگراف
+   یا سلولی که با متن لاتین شروع می‌شود در قالب راست‌به‌چپ جابه‌جا و بدخوان
+   نمایش داده می‌شد. ``plaintext`` همان رفتاری است که پیام‌رسان‌ها برای متن
+   دوجهته به کار می‌برند و فقط روی بلوک‌هایی اثر دارد که با لاتین شروع می‌شوند. */
+.psa-chat-answer {
+  unicode-bidi: plaintext;
+}
+
 .psa-chat-answer > :first-child {
   margin-top: 0;
 }
@@ -2527,7 +2537,10 @@ details.psa-result-item[open] .psa-chevron {
   border-radius: 0.35rem;
   padding: 0.05rem 0.3rem;
   font-size: 0.82em;
+  /* جهت صریح LTR باید معتبر بماند: بدون ``unicode-bidi``، مقدار ارث‌برده‌ی
+     ``plaintext`` والد می‌توانست این تصمیم را نادیده بگیرد. */
   direction: ltr;
+  unicode-bidi: isolate;
   display: inline-block;
 }
 
@@ -2538,6 +2551,7 @@ details.psa-result-item[open] .psa-chevron {
   padding: 0.65rem 0.8rem;
   overflow-x: auto;
   direction: ltr;
+  unicode-bidi: isolate;
   text-align: left;
 }
 
@@ -2601,6 +2615,9 @@ details.psa-result-item[open] .psa-chevron {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  /* محتوای این چیپ ترکیبی است: یک شناسه‌ی لاتین (کلید فایل) + نام شیت فارسی.
+     بدون جداسازی، الگوریتم دوجهته می‌تواند جداکننده‌ی «—» را به سر اشتباه ببرد. */
+  unicode-bidi: isolate;
 }
 
 .psa-chat-notice {

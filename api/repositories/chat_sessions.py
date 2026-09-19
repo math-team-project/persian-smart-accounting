@@ -106,3 +106,34 @@ def delete_by_id(session: Session, session_id: int, *, user_id: int, project_id:
 def count_by_project(session: Session, project_id: int, *, user_id: int) -> int:
     """تعداد گفتگوهای یک پروژه -- برای برچسب‌های شمارشی در UI."""
     return len(list_by_project(session, project_id, user_id=user_id))
+
+
+# ---------------------------------------------------------------------------
+# حذف در مقیاس «کل پروژه» -- فقط از مسیر حذف پروژه صدا زده می‌شود
+# ---------------------------------------------------------------------------
+def delete_all_chat_sessions_for_project(
+    session: Session, project_id: int, user_id: int
+) -> int:
+    """**همه‌ی** گفتگوهای یک پروژه (و یک کاربر) را حذف می‌کند و تعدادشان را برمی‌گرداند.
+
+    این تابع دقیقاً مثل ``delete_by_id`` یک حذف سخت است، اما دامنه‌اش کل پروژه
+    است، نه یک ردیف. نام‌گذاری عمداً همین را می‌رساند (``all_..._for_project``):
+    با یک نگاه به نام تابع باید روشن باشد که این‌جا «همه‌ی یک پروژه» حذف می‌شود و
+    نه «یک ردیف». **تنها فراخواننده‌ی مجاز، ``api/services/project_service.py``
+    (حذف پروژه) است** -- این تابع هیچ‌گاه به‌عنوان یک endpoint در معرض HTTP قرار
+    نمی‌گیرد؛ حذف یک گفتگوی تکی کار ``delete_by_id`` است.
+
+    جفت ``(project_id, user_id)`` هر دو در پرس‌وجو فیلتر می‌شوند (نه فقط
+    ``project_id``) -- همان الگوی جداسازی بقیه‌ی این ماژول، تا حتی در صورت یک
+    فراخوانی اشتباه هم هیچ ردیفی بیرون از این دامنه پاک نشود.
+
+    چون این جدول فقط متادیتا نگه می‌دارد (هیچ متن پیامی هیچ‌جا ذخیره نمی‌شود)
+    هیچ چیز دیگری -- نه روی دیسک و نه در پایگاه‌داده -- برای پاک‌کردن وجود ندارد.
+    """
+    deleted = (
+        session.query(ChatSession)
+        .filter(ChatSession.project_id == project_id, ChatSession.user_id == user_id)
+        .delete(synchronize_session=False)
+    )
+    session.commit()
+    return int(deleted)

@@ -1,8 +1,11 @@
 """محل واحد تصمیم‌گیری درباره‌ی «فایل‌های Chroma هر پایگاه‌دانش کجای دیسک هستند».
 
 هیچ ماژول دیگری نباید مسیر یک پایگاه‌دانش را حدس بزند یا دستی بسازد -- همه از
-همین دو تابع (``path_for`` و ``delete_kb_directory``) عبور می‌کنند، دقیقاً همان
-الگویی که ``api/storage.py`` برای فایل‌های نتیجه به کار می‌برد.
+همین چند تابع (``path_for``، ``delete_kb_directory`` و
+``delete_vector_store_directories_for_project``) عبور می‌کنند، دقیقاً همان
+الگویی که ``api/storage.py`` برای فایل‌های نتیجه به کار می‌برد. دو تابع حذف
+عمداً دو دامنه‌ی متفاوت دارند و نامشان همین را می‌گوید: یکی *یک* پایگاه‌دانش،
+دیگری *کل یک پروژه*.
 
 ساختار دیسک::
 
@@ -136,6 +139,117 @@ def delete_kb_directory(user_id: int | str, project_id: int | str, kb_id: str) -
             project_id,
             kb_id,
         )
+
+
+def delete_vector_store_directories_for_project(
+    user_id: int | str, project_id: int | str
+) -> int:
+    """کل فضای روی-دیسکِ یک پروژه را پاک می‌کند و تعداد پایگاه‌دانش‌های هدف‌گرفته‌شده را برمی‌گرداند.
+
+    خروجی: تعداد پوشه‌های پایگاه‌دانشی که برای حذف هدف‌گذاری شده‌اند.
+
+    ⚠️ نام‌گذاری: این تابع **کل یک پروژه** را هدف می‌گیرد، نه یک پایگاه‌دانش.
+    پایگاه‌دانشِ تکی همیشه با ``delete_kb_directory`` (بالاتر در همین فایل) پاک
+    می‌شود. **تنها فراخواننده‌ی مجاز، ``api/services/project_service.py`` است** و
+    هیچ endpoint ای این را در معرض HTTP نمی‌گذارد.
+
+    ترتیب کار (عمدی، برای ایمنی):
+
+    ۱) **فهرست دقیق** شناسه‌های پایگاه‌دانش این پروژه از پایگاه‌داده خوانده
+       می‌شود -- پرس‌وجوی محدود به ``project_id``، و سپس فیلتر ``user_id`` روی
+       همان ردیف‌ها. حذف **هرگز** با glob/الگوی مسیر روی دیسک انجام نمی‌شود؛ فقط
+       دقیقاً همان پوشه‌هایی پاک می‌شوند که یک ردیف پایگاه‌داده‌ی متعلق به همین
+       ``(user_id, project_id)`` نام‌شان را می‌دهد.
+    ۲) برای هر شناسه، همان پریمی‌تیو ایمن ``delete_kb_directory`` صدا زده می‌شود
+       (نه یک روتین جدید و گسترده‌تر) -- بنابراین تضمین‌های ضد path-traversal و
+       idempotent آن عیناً این‌جا هم برقرار است. این تابع هرگز استثنا پرتاب
+       نمی‌کند، پس مثل پاک‌سازی فایل‌های نتیجه، «پوشه از قبل نیست» یعنی موفقیت.
+    ۳) پوشه‌ی والد ``{root}/{user_id}/{project_id}/`` در پایان **فقط اگر خالی
+       باشد** حذف می‌شود. اگر چیزی غیرمنتظره داخلش مانده باشد، فقط یک هشدار لاگ
+       می‌شود و پوشه سر جایش می‌ماند: حذف بی‌سروصدای محتوای ناشناخته دقیقاً همان
+       خطری است که این فاز از آن پرهیز می‌کند.
+    """
+    try:
+        user_segment = _segment(user_id)
+        project_segment = _segment(project_id)
+    except UnsafePathSegmentError:
+        logger.warning(
+            "refusing to delete vector store directories with unsafe identifiers: user=%r project=%r",
+            user_id,
+            project_id,
+        )
+        return 0
+
+    # ایمپورت‌های تنبل (مثل ``read_chunks``): این ماژول در زمان ایمپورت نباید به
+    # لایه‌ی پایگاه‌داده/مخزن وابسته شود -- بقیه‌ی توابعش فقط مسیر می‌سازند.
+    from api.db.base import SessionLocal
+    from api.repositories import knowledge_bases as kb_repo
+
+    with SessionLocal() as session:
+        rows = kb_repo.list_by_project(session, int(project_segment))
+        kb_ids = [kb.id for kb in rows if str(kb.user_id) == str(user_segment)]
+
+    if len(kb_ids) != len(rows):
+        # نباید پیش بیاید (هر پایگاه‌دانش یک پروژه دقیقاً یک مالک دارد)، اما یک
+        # بررسی دفاعی ارزان است: ردیف‌های ناهمخوان هرگز پاک نمی‌شوند.
+        logger.warning(
+            "vector store cleanup: skipping %d knowledge base(s) not owned by user=%s (project=%s)",
+            len(rows) - len(kb_ids),
+            user_id,
+            project_id,
+        )
+
+    for kb_id in kb_ids:
+        delete_kb_directory(user_segment, project_segment, kb_id)
+
+    _remove_empty_vector_store_project_directory(user_segment, project_segment)
+    return len(kb_ids)
+
+
+def _remove_empty_vector_store_project_directory(
+    user_id: int | str, project_id: int | str
+) -> bool:
+    """پوشه‌ی ``{root}/{user}/{project}/`` را **فقط اگر خالی باشد** حذف می‌کند.
+
+    خروجی ``True`` یعنی پوشه حذف شد (یا اصلاً وجود نداشت). اگر چیزی داخلش مانده
+    باشد، پوشه دست‌نخورده می‌ماند و یک هشدار ثبت می‌شود -- این یعنی فرض‌های این
+    فاز چیزی را پیش‌بینی نکرده و بی‌سروصدا پاک‌کردنش خطرناک است.
+    """
+    try:
+        candidate = (
+            vector_store_root() / _segment(user_id) / _segment(project_id)
+        )
+    except UnsafePathSegmentError:
+        return False
+
+    resolved = _resolve_within_root(candidate)
+    if resolved is None or not resolved.is_dir():
+        return True
+
+    try:
+        remaining = list(resolved.iterdir())
+    except OSError:
+        logger.warning("could not inspect vector store directory %s", resolved, exc_info=True)
+        return False
+
+    if remaining:
+        logger.warning(
+            "vector store project directory still holds %d unexpected entr(ies); leaving it in place: %s",
+            len(remaining),
+            resolved,
+        )
+        return False
+
+    try:
+        resolved.rmdir()
+    except OSError:
+        logger.warning("could not remove empty vector store directory %s", resolved, exc_info=True)
+        return False
+
+    logger.info(
+        "empty vector store project directory removed (user=%s, project=%s)", user_id, project_id
+    )
+    return True
 
 
 def write_manifest(

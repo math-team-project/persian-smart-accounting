@@ -8,6 +8,7 @@
 """
 from __future__ import annotations
 
+import sys
 import types
 
 import pytest
@@ -137,6 +138,42 @@ def test_resolve_embedding_device_returns_cpu_when_cuda_is_unavailable(monkeypat
 def test_resolve_embedding_device_returns_cuda_when_available(monkeypatch):
     monkeypatch.setattr(rag_ai_adapter, "_torch_cuda_available", lambda: True)
     assert rag_ai_adapter.resolve_embedding_device() == "cuda"
+
+
+def test_torch_cuda_available_falls_back_to_cpu_on_a_cpu_only_host(monkeypatch):
+    """روی میزبان بدون GPU (``torch.cuda.is_available()`` = ``False``) دستگاه CPU است.
+
+    این تست عمداً یک ماژول ``torch`` جعلی را در ``sys.modules`` می‌نشاند تا خودِ
+    منطق ``_torch_cuda_available`` (نه یک جایگزین آن) اجرا شود -- همان مسیری که
+    در استقرار واقعیِ بدون CUDA طی می‌شود. با این کار، «تشخیص CPU» بدون نیاز به
+    نصب/بارگذاری torch واقعی هم پوشش داده می‌شود و رشته‌ی نهایی ``"cpu"`` است.
+    """
+    fake_torch = types.SimpleNamespace(
+        cuda=types.SimpleNamespace(is_available=lambda: False)
+    )
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
+
+    assert rag_ai_adapter._torch_cuda_available() is False
+    assert rag_ai_adapter.resolve_embedding_device() == "cpu"
+
+
+def test_build_embedder_runs_on_cpu_when_cuda_is_unavailable(isolated_vector_root, monkeypatch):
+    """کل زنجیره‌ی ``build_embedder`` روی یک میزبان بدون CUDA: دستگاه ``"cpu"`` است.
+
+    این مهم‌ترین تضمین «محیط CPU» است: بدون پاس‌دادن ``device`` صریح، خودِ
+    ``build_embedder`` باید با تشخیص واقعی (که این‌جا CUDA=False است) دستگاه را
+    ``"cpu"`` انتخاب کند و همان را در خروجی (که در ``knowledge_bases.embedding_device``
+    و ``manifest.json`` ذخیره می‌شود) برگرداند.
+    """
+    fake_torch = types.SimpleNamespace(
+        cuda=types.SimpleNamespace(is_available=lambda: False)
+    )
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
+
+    embedder, device = rag_ai_adapter.build_embedder(embedder_cls=_FakeEmbedder)
+
+    assert device == "cpu"
+    assert embedder.device == "cpu"
 
 
 def test_build_vector_store_factory_builds_a_deterministic_collection_name_and_path(

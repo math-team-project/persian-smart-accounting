@@ -106,17 +106,25 @@ async def delete_project(
     confirm: str = Form(""),
     session: Session = Depends(get_session),
 ):
-    """حذف کامل پروژه (پایگاه‌داده + فایل‌های نتیجه) -- بازگشت‌پذیر نیست.
+    """حذف کامل پروژه (پایگاه‌داده + فایل‌های نتیجه + پایگاه‌دانش + گفتگوها) -- بازگشت‌پذیر نیست.
 
     فیلد ``confirm`` از فرم تأیید می‌آید؛ بدون آن درخواست رد می‌شود تا یک ارسال
     تصادفی/ناقص هرگز داده‌ای را پاک نکند.
+
+    اگر همین پروژه یک پردازش در جریان داشته باشد، حذف با ۴۰۹ و یک پیام فارسی
+    رد می‌شود (نه اینکه با آن پردازش مسابقه دهد).
     """
     if confirm != "delete":
         raise HTTPException(status_code=400, detail=CONFIRM_REQUIRED)
 
     # شناسه پیش از حذف نگه داشته می‌شود (پس از حذف، شیء ORM دیگر معتبر نیست).
     project_id = project.id
-    summary = project_service.delete_project(session, project)
+    try:
+        summary = project_service.delete_project(session, project)
+    except project_service.ProjectDeletionBlockedError as exc:
+        # پیام خودِ سرویس عیناً به کاربر می‌رود (۴۰۹ در ``api/main.py`` یک عنوان
+        # فارسی آماده دارد و متن فارسی روتر بر پیام پیش‌فرض مقدم می‌شود).
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     logger.info("project %s deleted via dashboard (%s)", project_id, summary)
     return RedirectResponse("/", status_code=303)
 

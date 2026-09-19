@@ -156,13 +156,20 @@ async def delete_chat_session(
 # API: پرسش
 # ---------------------------------------------------------------------------
 @router.post("/sessions/{session_id}/ask", response_model=ChatAskOut)
-async def ask_in_session(
+def ask_in_session(
     session_id: int,
     payload: ChatAskRequest,
     project: Project = Depends(require_api_project),
     session: Session = Depends(get_session),
 ) -> ChatAskOut:
     """پرسش از پایگاه‌دانش پروژه، در زمینه‌ی همین گفتگو.
+
+    این مسیر عمداً ``def`` است و نه ``async def`` (برخلاف بقیه‌ی مسیرهای این فایل):
+    فراخوانی مدل زبانی چند ثانیه تا چند دقیقه طول می‌کشد و یک تابع ``async def``
+    در FastAPI روی حلقه‌ی رویداد اجرا می‌شود، یعنی همان یک پرسش، *همه‌ی* درخواست‌های
+    دیگر سرور (از جمله polling وضعیت کارهای در حال اجرای بقیه‌ی کارگاه‌ها) را متوقف
+    می‌کرد. تابع همگام در threadpool اجرا می‌شود و حلقه‌ی رویداد آزاد می‌ماند؛
+    ``api/routers/settings.py::test_workshop_connection`` هم به همین دلیل ``def`` است.
 
     نکته‌ی مهم (بی‌حالتی سرور): ``recent_history`` فقط از همین بدنه‌ی درخواست
     خوانده می‌شود. سرور هیچ حالتی از گفتگو نگه نمی‌دارد، بنابراین دو پرسش هم‌زمان

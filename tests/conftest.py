@@ -31,6 +31,11 @@ if str(ROOT_DIR) not in sys.path:
 TEST_DATA_DIR = Path(tempfile.mkdtemp(prefix="psa-tests-"))
 os.environ["PSA_DB_URL"] = f"sqlite:///{(TEST_DATA_DIR / 'test.db').as_posix()}"
 os.environ["PSA_RESULTS_DIR"] = str(TEST_DATA_DIR / "results")
+# ریشه‌ی فایل‌های روی-دیسک پایگاه‌دانش (Chroma/manifest/chunks.jsonl) هم به پوشه‌ی
+# موقت هدایت می‌شود. بدون این خط، هر تستی که مسیر یک پایگاه‌دانش را می‌سازد یا
+# پاک می‌کند روی ``data/vector_stores`` واقعیِ پروژه کار می‌کرد -- دقیقاً همان
+# چیزی که این فایل قصد دارد مانعش شود.
+os.environ["PSA_VECTOR_STORE_ROOT"] = str(TEST_DATA_DIR / "vector_stores")
 os.environ["PSA_SECRET_KEY"] = "test-secret-key"
 os.environ["PSA_MAX_UPLOAD_MB"] = "5"
 
@@ -88,11 +93,21 @@ def _fresh_state():
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     shutil.rmtree(storage.results_root(), ignore_errors=True)
+    # پایگاه‌دانش‌های روی-دیسک هم بین تست‌ها پاک می‌شوند تا یک تست نتواند روی
+    # نتیجه‌ی تست دیگری اثر بگذارد (همه زیر همان پوشه‌ی موقت‌اند).
+    shutil.rmtree(_vector_store_root(), ignore_errors=True)
     with job_manager._lock:  # noqa: SLF001 -- فقط برای پاک‌سازی state در تست
         job_manager._jobs.clear()
     yield
     for path in _workdir_snapshot() - created_before:
         shutil.rmtree(path, ignore_errors=True)
+
+
+def _vector_store_root() -> Path:
+    """ریشه‌ی پوشه‌ی موقت پایگاه‌دانش‌های تست (از همان تنظیمات اپ خوانده می‌شود)."""
+    from api.config import get_settings
+
+    return Path(get_settings().vector_store_root)
 
 
 def _workdir_snapshot() -> set[str]:

@@ -47,8 +47,12 @@ projects (one per organization / fiscal period), and runs any registered
 **workshop** inside a project. Several workshops can run **concurrently** in the
 same project without their state colliding, and every finished run is kept in
 that project's **history** (result file + run metadata only — uploaded inputs are
-still deleted after each run). Deleting a project removes all of its data
-(database rows *and* result files).
+still deleted after each run). Deleting a project removes **all** of its data:
+database rows (runs, encrypted settings, knowledge-base and chat-session rows),
+result files on disk, and every on-disk vector store the project's knowledge bases
+built (`data/vector_stores/{user}/{project}/`). A project cannot be deleted while
+one of its workshops still has a job running — the request is refused with a
+Persian message until that job finishes.
 
 1. **Financial audit checklist** — Upload the budget/financial-statement
    Excel (or PDF/legacy `.xls`) files of an organization for a given fiscal
@@ -176,6 +180,20 @@ projects does not leak). Database access is a **per-request session**
 open their own short-lived session, so no session is shared between requests or
 threads.
 
+**Project deletion is a project-scoped cascade.** `project_service.delete_project`
+is the single entry point (there is no HTTP route that reaches the per-scope
+deletion helpers directly). It first refuses if the project still has an active
+job, then removes, in a safety-driven order: in-memory jobs, chat-session rows
+(`delete_all_chat_sessions_for_project`), the on-disk vector-store directories
+(`delete_vector_store_directories_for_project` — driven by the exact
+project-scoped `knowledge_bases` rows, never by filesystem globbing), the
+`knowledge_bases`/`kb_files` rows (`delete_all_knowledge_bases_for_project`,
+which first clears `projects.latest_ready_kb_id` to satisfy the FK), and finally
+the project row and its result files. Every one of these helpers takes an
+explicit `project_id` (and `user_id` where a path is built) and is
+isolation-checked, so deleting project A can never touch project B or another
+user's data.
+
 **Workshop registry** (`api/workshops/registry.py`): "which workshops exist" is
 data, not something hardcoded in routers/templates. The dashboard's workshop
 cards, the navigation links, the FastAPI route registration and the workshop page
@@ -229,7 +247,8 @@ persian-smart-accounting/
 ├── data/                         # Local dashboard data (gitignored): psa.db (SQLite) + results/project-N/*.docx
 │                                 #   + vector_stores/{user}/{project}/{kb}/ (Chroma index, manifest.json, chunks.jsonl)
 ├── tests/                        # API-layer tests (FastAPI TestClient), see "Testing"
-├── conftest.py                   # pytest bootstrap: puts the project root on sys.path (no pytest.ini/pyproject)
+├── conftest.py                   # pytest bootstrap: puts the project root on sys.path (tests/ has no __init__.py)
+├── pyproject.toml                # Metadata/deps + [tool.pytest.ini_options] (testpaths = tests), ruff/black config
 │
 ├── legacy_streamlit/             # Original Streamlit UI (app.py/icons.py/styles.py), reference only
 ├── pipeline.py                   # Checklist workshop: orchestrates extraction + audit checklist + report
@@ -962,12 +981,40 @@ under the hood). They cover:
 - **formatting**: Jalali date conversion and Persian digit/number rendering;
 - **knowledge-base infrastructure**: `knowledge_bases` repository (creation always
   gets a fresh UUID row, per-user/per-project isolation, atomic
-  `mark_ready_and_update_project_pointer`, retention-policy listing), `kb_storage`
-  path safety/idempotent deletion and its `chunks.jsonl` sidecar round-trip, and
-  `rag_ai_adapter` building its objects from resolved AI settings -- all with
+  `mark_ready_and_update_project_pointer`, retention-policy listing that never
+  lists the current `latest_ready_kb_id` even when it is not the newest by
+  creation time), `kb_storage` path safety/idempotent deletion and its
+  `chunks.jsonl` sidecar round-trip, and `rag_ai_adapter` building its objects
+  from resolved AI settings (including the CPU fallback when
+  `torch.cuda.is_available()` is `False`) -- all with
   `OpenAIClient`/`SentenceTransformerEmbedder`/`ChromaVectorStore` stubbed out, so
   these tests need no GPU, network access, or the real `rag_chat_module` package
-  either.
+  either;
+- **project-deletion cascade** (`tests/test_projects.py`): deleting a project
+  removes its knowledge-base rows, `kb_files`, on-disk vector-store directories
+  and empty parent, and chat sessions; the **single most important** case asserts
+  deleting project A leaves project B's rows, pointer and on-disk directories
+  fully intact; plus cross-user attempts, a partially-inconsistent state (a
+  missing KB directory is tolerated), an unexpectedly non-empty directory being
+  preserved rather than blindly removed, the active-job guard returning 409 with
+  the Persian message (and nothing deleted) then succeeding once the job is done,
+  and a check that the three per-scope deletion helpers are unreachable from any
+  HTTP route (`app.openapi()` path scan);
+- **RAG concurrency/isolation** (`tests/test_checklist_kb_service.py`): two
+  checklist runs in one project get independent knowledge bases and never share
+  files, directories or chunk text; a checklist run in project A and an `ask` in
+  project B (same user) never cross-contaminate; and, under a `threading.Barrier`
+  race, the retention policy never deletes the knowledge base a concurrent `ask`
+  is using (with a second phase that moves the pointer to prove the delete path is
+  still live);
+- **end-to-end smoke test** (`tests/test_rag_feature_end_to_end.py`): one
+  continuous flow — upload → checklist job → KB indexed → resolver join point →
+  the report reflecting the *resolved* (not raw) FALSE items → the checklist-results
+  chunk landing in the KB → KB `ready` and `latest_ready_kb_id` updated → the
+  chatbot page ungating → a session created → an `ask` returning a well-formed,
+  correctly-sourced answer → a second run pruning the older KB via retention →
+  deleting the project removing every row, file and directory — stubbing only the
+  LLM/embedder/vector-store boundary, not the orchestration around it.
 
 They never run the real extraction/checklist/LLM pipelines:
 `pipeline.start_checklist_job`, `audit_pipeline.start_audit_summary_job` and
@@ -976,8 +1023,10 @@ heavy background thread — are monkeypatched with a synchronous or gated
 stand-in, so the tests run in a few seconds and need no
 Tesseract/LibreOffice/LLM API access. `tests/conftest.py` also makes the test
 environment independent of your `.env` (it removes the LLM key variables and
-disables `load_dotenv` before importing the app), and points the database and
-results directory at a temporary folder — so `data/` is never touched.
+disables `load_dotenv` before importing the app), and points the database, results
+directory *and* the on-disk vector-store root (`PSA_VECTOR_STORE_ROOT`) at a
+temporary folder that is wiped between tests — so `data/` (including
+`data/vector_stores/`) is never touched.
 
 ```bash
 # from the project root: the API suite + the standalone summarizer suite
