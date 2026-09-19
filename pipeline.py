@@ -80,6 +80,20 @@ CHECKLIST_HANDLER_PATH = (
     ROOT_DIR / "extraction_script" / "data" / "Checklist_Question_extracted_handler.json"
 )
 
+# Mapping from the "file" key used inside
+# Checklist_Question_extracted_handler.json to the corresponding upload-slot
+# key in FILE_SLOTS / file_paths. Used to decide whether a checklist question
+# can be evaluated given the user's uploads.
+CHECKLIST_FILE_KEY_TO_SLOT: dict[str, str] = {
+    "taraz": "balance_sheet",
+    "financial_statements": "financial_statements",
+    "budget": "revised_budget",
+    "taidiyeh": "credit_approvals",
+    "eblagh": "budget_law",
+    # "daramad" was only used as a note in the budget form and has no slot;
+    # it is intentionally omitted.
+}
+
 # تعریف اسلات‌های آپلود فایل مورد استفاده در رابط کاربری
 # مقدار "icon" نام یک آیکون در icons.py است (نه ایموجی).
 FILE_SLOTS: dict[str, dict[str, Any]] = {
@@ -382,13 +396,59 @@ def _set_stage(job: Optional[dict[str, Any]], message: str) -> None:
     job["stage"] = message
     job.setdefault("logs", []).append(message)
 
+def get_available_checklist_files(
+    file_paths: dict[str, Optional[Path]],
+) -> set[str]:
+    """
+    Return the set of JSON "file" keys (as used inside the checklist JSON)
+    whose underlying upload slot was actually provided by the user.
+    Optional slots that were not uploaded are simply absent from the set.
+    """
+    available: set[str] = set()
+    for json_key, slot_key in CHECKLIST_FILE_KEY_TO_SLOT.items():
+        if file_paths.get(slot_key):
+            available.add(json_key)
+    return available
 
+
+def _question_file_dependencies(question: dict[str, Any]) -> set[str]:
+    """
+    Return the set of JSON "file" keys referenced by the data points of a
+    single checklist question. Used to skip questions whose dependencies
+    (optional files) were not uploaded by the user.
+    """
+    deps: set[str] = set()
+    for dp in question.get("data_points_to_extract", []) or []:
+        f = dp.get("file")
+        if f:
+            deps.add(f)
+    return deps
+
+    
 def run_checklist(
     imported_sheets: dict[str, Any],
+    file_paths: Optional[dict[str, Optional[Path]]] = None,
     job: Optional[dict[str, Any]] = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    
     """اجرای تمام سوالات چک‌لیست و بازگرداندن (نتایج کامل، موارد عدم تطابق FALSE)."""
     questions = load_checklist_definitions()
+
+    # Skip any checklist question whose data points depend on an optional
+    # file (e.g. credit_approvals / budget_law) that the user did not upload.
+    available_files = get_available_checklist_files(file_paths or {})
+    original_count = len(questions)
+    questions = [
+        q for q in questions
+        if _question_file_dependencies(q).issubset(available_files)
+    ]
+    skipped_count = original_count - len(questions)
+    if skipped_count > 0:
+        _set_stage(
+            job,
+            f"{skipped_count} سوال به دلیل عدم بارگذاری فایل‌های اختیاری مرتبط، از ارزیابی حذف شد.",
+        )
+            
     loaded_sheets = load_excels_to_ram(imported_sheets)
     #TODO: load_excels_to_ram changed in process
 
@@ -628,7 +688,11 @@ def run_full_pipeline(
     for w in processed_inputs.warnings:
         _set_stage(job, f"هشدار: {w}")
 
-    checklist_results, false_questions = run_checklist(processed_inputs.imported_sheets, job=job)
+    checklist_results, false_questions = run_checklist(
+        processed_inputs.imported_sheets,
+        file_paths=file_paths,
+        job=job,
+    )
     summary = summarize_checklist(checklist_results)
 
     committee_report = generate_committee_report_output(
