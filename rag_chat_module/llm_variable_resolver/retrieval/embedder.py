@@ -68,7 +68,7 @@ def resolve_device(requested: str | None) -> str:
       - anything else  : passed through unchanged (sentence-transformers
                          will raise if it is invalid)
     """
-    return "cuda"
+    
     requested_raw = (requested or "auto").strip().lower()
     avail = _torch_availability()
 
