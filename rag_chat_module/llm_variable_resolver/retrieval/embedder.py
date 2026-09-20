@@ -33,6 +33,7 @@ def _torch_availability() -> dict:
     Imports torch lazily: if it is missing, everything is False and
     callers fall back to CPU.
     """
+    
     info = {"torch": False, "cuda": False, "mps": False, "cuda_count": 0}
     try:
         import torch
@@ -67,6 +68,7 @@ def resolve_device(requested: str | None) -> str:
       - anything else  : passed through unchanged (sentence-transformers
                          will raise if it is invalid)
     """
+    return "cuda"
     requested_raw = (requested or "auto").strip().lower()
     avail = _torch_availability()
 
