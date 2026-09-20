@@ -1,0 +1,649 @@
+/*
+  ============================================================================
+  توکن‌های طراحی (Design Tokens) — «داشبورد هوشمند حسابرسی»
+  ============================================================================
+
+  این فایل **تنها منبع حقیقت** برای رنگ، تایپوگرافی، فاصله‌گذاری، شعاع، سایه و
+  حرکت است. هیچ قاعدهٔ کامپوننتی این‌جا نوشته نمی‌شود؛ ظاهر کامپوننت‌ها همچنان
+  در ``app.css`` می‌ماند (قاعدهٔ طلایی توضیح‌داده‌شده در سربرگ آن فایل).
+
+  چرا این فایل جدا شده است:
+    * Tailwind از CDN می‌آید و مرحلهٔ build وجود ندارد؛ بنابراین «پیکربندی
+      Tailwind» (در ``components/tailwind_config.html``) و «توکن‌های CSS» باید
+      یک منبع داشته باشند. آن منبع همین فایل است: پیکربندی Tailwind مقادیر را
+      با ``var(--psa-*)`` ارجاع می‌دهد، نه با هگز تکراری.
+    * پیش از این، ۲۸ اندازهٔ فونت پراکنده و ۵ پدینگ مختلف برای کارت وجود داشت
+      بدون هیچ توکنی برای تایپوگرافی و فاصله‌گذاری.
+
+  نام‌گذاری:
+    ``--psa-*``      توکن‌های کانونی (این فایل) — برای کد جدید.
+    ``--color-*``    نام‌های قدیمی که در انتهای همین فایل به توکن‌های کانونی
+                     «پل» زده شده‌اند تا ``app.css`` بدون تغییر بشکند.
+                     این نام‌ها پشتیبانی می‌شوند اما برای کد جدید استفاده نشوند.
+
+  پوستهٔ تیره:
+    در بلوک ``[data-theme="dark"]`` **فقط توکن‌ها** بازنویسی می‌شوند؛ هیچ
+    سلکتوری به کامپوننت‌ها اشاره نمی‌کند. این قاعده در تست
+    ``tests/test_design_tokens.py`` پاس داشته می‌شود.
+
+  جهت (RTL):
+    این سامانه تک‌زبانه و راست‌به‌چپ است (``<html dir="rtl" lang="fa">``).
+    راهنمای «RTL» در مجموعهٔ دادهٔ مهارت وجود نداشت (جست‌وجو نتیجهٔ خالی داد)،
+    بنابراین قواعد جهت در بخش «۱۰) جهت و راست‌به‌چپ» بر پایهٔ استانداردهای CSS
+    و WCAG نوشته شده‌اند، نه نقل‌قول از آن مجموعه.
+  ============================================================================
+*/
+
+:root {
+  color-scheme: light;
+
+  /* ---------------------------------------------------------------------------
+     ۱) پالت پایه (Primitives)
+     این‌ها «خام» هستند و معنای کاربردی ندارند؛ در بخش ۲ و ۳ به توکن‌های
+     معنایی تبدیل می‌شوند. مقادیر عیناً همان پالت فعلی پروژه‌اند، więc این
+     لایه هیچ تغییر بصری ایجاد نمی‌کند.
+     --------------------------------------------------------------------------- */
+
+  /* نیوی — رنگ اعتماد مالی و سطوح تیره */
+  --psa-navy-50: #f8fafc;
+  --psa-navy-100: #f1f5f9;
+  --psa-navy-200: #e2e8f0;
+  --psa-navy-300: #cbd5e1;
+  --psa-navy-400: #94a3b8;
+  --psa-navy-500: #64748b;
+  --psa-navy-600: #475569;
+  --psa-navy-700: #334155;
+  --psa-navy-800: #1e293b;
+  --psa-navy-850: #111827;
+  --psa-navy-900: #0f172a;
+  --psa-navy-950: #0b1120;
+
+  /* تیل — لهجهٔ فناوری/AI */
+  --psa-teal-100: #ccfbf1;
+  --psa-teal-300: #5eead4;
+  --psa-teal-500: #14b8a6;
+  --psa-teal-600: #0f766e;
+  --psa-teal-650: #0d7f76; /* ابتدای گرادیان دکمه/تراشهٔ فعال */
+  --psa-teal-700: #0d5f59;
+
+  /* زمرد — تأیید و تطابق */
+  --psa-emerald-500: #10b981;
+  --psa-emerald-700: #047857;
+  --psa-emerald-800: #065f46;
+
+  /* طلایی — لهجهٔ مالی و «نیازمند توجه» */
+  --psa-gold-300: #fcd34d;
+  --psa-gold-400: #fbbf24;
+  --psa-gold-500: #f59e0b;
+  --psa-gold-600: #b45309;
+  --psa-gold-700: #d97706;
+  --psa-gold-ink: #412402; /* متن روی دکمهٔ طلایی پرشده — ۶.۵۹:۱ روی #f59e0b */
+
+  /* دو ایستگاه گرادیان نشان برند.
+     این دو «نیویِ آبی»‌اند و بخشی از گرادیان ثابت نشان‌اند، نه متن روی زمینهٔ
+     روشن؛ بنابراین عمداً توکن ثابت (بدون جفت تیره) هستند. */
+  --psa-brand-mark-mid: #14304a;
+  --psa-brand-tile-mid: #16324c;
+
+  /* قرمز — عدم تطابق و خطا */
+  --psa-red-400: #f87171;
+  --psa-red-500: #ef4444;
+  --psa-red-600: #dc2626;
+  --psa-red-700: #b91c1c;
+  --psa-red-800: #7f1d1d;
+
+  /* آبی روشن — اطلاع‌رسانی */
+  --psa-sky-500: #0ea5e9;
+  --psa-sky-700: #0369a1;
+  --psa-sky-900: #0c4a6e;
+
+  /* کهربایی — هشدار متنی */
+  --psa-amber-900: #78350f;
+
+  /* ---------------------------------------------------------------------------
+     ۲) سطوح، حاشیه و متن (توکن‌های معنایی)
+     --------------------------------------------------------------------------- */
+
+  /* سطوح */
+  --psa-surface: #ffffff;
+  --psa-background: #f8fafc;
+  --psa-surface-muted: #f8fafc;
+  --psa-surface-subtle: #f1f5f9;
+  --psa-track: #eef2f6; /* ریل نوار پیشرفت/متر */
+  --psa-stat-fade: #ffffff; /* پایان گرادیان کارت‌های آماری رنگی */
+
+  /* متن — از تیره به روشن.
+     ``--psa-text-faint`` آگاهانه «فقط تزئینی» است: نسبت کنتراست آن روی سفید
+     ۲.۵۶:۱ است و برای متن معنادار یا آیکون حامل معنا کافی نیست. متن راهنما و
+     placeholder از ``--psa-text-muted`` (۴.۷۶:۱) استفاده می‌کنند. */
+  --psa-text-heading: #0f172a;
+  --psa-text: #0f172a;
+  --psa-text-strong: #334155;
+  --psa-text-soft: #475569;
+  --psa-text-muted: #64748b;
+  --psa-text-faint: #94a3b8;
+  --psa-text-on-accent: #ffffff;
+
+  /* حاشیه و خط مؤی */
+  --psa-border: #e2e8f0;
+  --psa-border-strong: #cbd5e1;
+  --psa-hairline: rgba(226, 232, 240, 0.9);
+  --psa-table-row-border: rgba(226, 232, 240, 0.75);
+
+  /* حاشیهٔ کنترل‌های ورودی.
+     ``--psa-border-strong`` (#cbd5e1) روی سفید فقط ۱.۵۵:۱ می‌دهد و
+     ``#94a3b8`` هم ۲.۵۶:۱ — هر دو زیر آستانهٔ ۳:۱ معیار ۱.۴.۱۱ (عناصر غیرمتنی).
+     مرزِ یک ورودی همان چیزی است که «قابل‌شناسایی بودن» آن را می‌سازد، بنابراین
+     یک توکن جدا با کنتراست کافی لازم است: #8592a6 روی سفید ۳.۱۶:۱. */
+  --psa-border-control: #8592a6;
+
+  /* سربرگ/پابرگ شیشه‌ای و گرادیان پابرگ */
+  --psa-header-bg: rgba(255, 255, 255, 0.82);
+  --psa-header-solid: rgba(255, 255, 255, 0.96);
+  --psa-footer-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.75), var(--psa-surface-muted));
+
+  /* لایه‌های جوهر (هاور/راه‌راه) و شبکهٔ پس‌زمینه */
+  --psa-overlay-faint: rgba(15, 23, 42, 0.04);
+  --psa-overlay: rgba(15, 23, 42, 0.045);
+  --psa-overlay-strong: rgba(15, 23, 42, 0.06);
+  --psa-bg-glow: rgba(15, 23, 42, 0.07);
+  --psa-bg-grid: rgba(15, 23, 42, 0.045);
+  --psa-dialog-scrim: rgba(15, 23, 42, 0.55);
+
+  /* ---------------------------------------------------------------------------
+     ۳) وضعیت‌های معنایی (Semantic States)
+     ---------------------------------------------------------------------------
+
+     این بخش مهم‌ترین قسمت این فایل برای یک ابزار حسابرسی است. قاعده (بر پایهٔ
+     راهنمای «Color Only» با شدت High): **هیچ وضعیتی فقط با رنگ بیان نمی‌شود.**
+     هر وضعیت سه‌گانه است: رنگ + آیکون + برچسب متنی. بنابراین برای هر خانواده
+     یک ``-fg`` (متن) و در صورت نیاز ``-bar`` (نوار کناری، عنصر غیرمتنی) داریم؛
+     این تفکیک عمدی است چون آستانهٔ کنتراست متن ۴.۵:۱ و عنصر غیرمتنی ۳:۱ است.
+
+     خانواده‌ها:
+       conform      تطابق دارد            (سبز)
+       nonconform   عدم تطابق            (قرمز) — پررنگ‌ترین وضعیت محصول
+       review       نیازمند بررسی دستی   (خاکستری/خنثی)
+       processing   خطای پردازش          (طلایی)
+       neutral      الزامی/بی‌طرف        (خنثی) — «الزامی» عمداً این‌جاست
+       info         اطلاع‌رسانی           (آبی روشن)
+     --------------------------------------------------------------------------- */
+
+  /* — تطابق دارد — */
+  --psa-state-conform-fg: var(--psa-emerald-700); /* ۶.۴۷:۱ روی سفید */
+  --psa-state-conform-bg: rgba(16, 185, 129, 0.12);
+  --psa-state-conform-border: rgba(16, 185, 129, 0.24);
+  --psa-state-conform-bar: var(--psa-emerald-500);
+  --psa-state-conform-tint: rgba(16, 185, 129, 0.07);
+  --psa-state-conform-solid: var(--psa-emerald-500);
+
+  /* — عدم تطابق — پررنگ‌ترین وضعیت رابط: این «یافتهٔ حسابرسی» است.
+     ``-fg`` برای متن: ۷#b91c1c = ۶.۴۷:۱ روی سفید و ۹.۰۸:۱ روی سطح تیره.
+     ``-bar``/``-solid`` فقط عنصر غیرمتنی‌اند (#dc2626 = ۴.۸۳:۱ روی سفید،
+     آستانهٔ لازم ۳:۱) پس می‌توانند اشباع‌تر باشند. */
+  --psa-state-nonconform-fg: var(--psa-red-700);
+  --psa-state-nonconform-bg: rgba(220, 38, 38, 0.11);
+  --psa-state-nonconform-border: rgba(220, 38, 38, 0.3);
+  --psa-state-nonconform-bar: var(--psa-red-600);
+  --psa-state-nonconform-tint: rgba(220, 38, 38, 0.045);
+  --psa-state-nonconform-solid: var(--psa-red-600);
+  --psa-state-nonconform-on-solid: #ffffff; /* ۴.۸۳:۱ روی #dc2626 */
+
+  /* — نیازمند بررسی دستی — */
+  --psa-state-review-fg: var(--psa-text-soft);
+  --psa-state-review-bg: rgba(100, 116, 139, 0.11);
+  --psa-state-review-border: rgba(100, 116, 139, 0.2);
+  --psa-state-review-bar: var(--psa-navy-400);
+  --psa-state-review-tint: rgba(100, 116, 139, 0.06);
+  --psa-state-review-solid: var(--psa-navy-500);
+
+  /* — خطای پردازش / نیازمند توجه — */
+  --psa-state-processing-fg: var(--psa-gold-600);
+  --psa-state-processing-bg: rgba(245, 158, 11, 0.13);
+  --psa-state-processing-border: rgba(245, 158, 11, 0.28);
+  --psa-state-processing-bar: var(--psa-gold-500);
+  --psa-state-processing-tint: rgba(245, 158, 11, 0.06);
+  --psa-state-processing-solid: var(--psa-gold-600);
+
+  /* — خنثی: «الزامی»، شمارنده‌ها، برچسب‌های تکمیلی.
+     عمداً قرمز نیست تا قرمز تنها معنای «عدم تطابق» را داشته باشد. — */
+  --psa-state-neutral-fg: var(--psa-text-soft);
+  --psa-state-neutral-bg: rgba(100, 116, 139, 0.11);
+  --psa-state-neutral-border: rgba(100, 116, 139, 0.2);
+  --psa-state-neutral-bar: var(--psa-navy-300);
+
+  /* — اطلاع‌رسانی — */
+  --psa-state-info-fg: var(--psa-sky-700);
+  --psa-state-info-bg: rgba(14, 165, 233, 0.12);
+  --psa-state-info-border: rgba(14, 165, 233, 0.24);
+  --psa-state-info-bar: var(--psa-sky-500);
+  --psa-state-info-tint: rgba(14, 165, 233, 0.06);
+  --psa-state-info-solid: var(--psa-sky-500);
+
+  /* رنگ متن روی متنِ هشدار/خطای «کم‌رنگ» (نسخهٔ عمیق‌تر برای خوانایی) */
+  --psa-state-warning-text: var(--psa-amber-900);
+  --psa-state-danger-text: var(--psa-red-800);
+  --psa-state-info-text: var(--psa-sky-900);
+  --psa-state-success-text: var(--psa-emerald-800);
+
+  /* متنِ تیل و طلایی.
+     این دو عمداً از ``--psa-teal-700``/``--psa-gold-600`` جدا هستند: آن‌ها
+     توکن «سطح»‌اند (پس‌زمینهٔ گرادیان دکمه و تراشهٔ فعال) و در پوستهٔ تیره
+     ثابت می‌مانند، در حالی که همین رنگ وقتی *متن* است باید روشن شود. اگر یک
+     توکن مشترک بود، یا متن روی زمینهٔ تیره ناخوانا می‌شد یا دکمهٔ تیل روشن. */
+  --psa-teal-text: var(--psa-teal-700);
+  --psa-gold-text: var(--psa-gold-600);
+
+  /* ---------------------------------------------------------------------------
+     ۴) تایپوگرافی
+     ---------------------------------------------------------------------------
+
+     مقیاس هفت‌پله‌ای، جایگزین ۲۸ اندازهٔ پراکندهٔ قبلی. کف مقیاس ۱۲px است
+     (پیش‌تر تا ۱۰.۲px می‌رسید) و اندازهٔ پایه ۱۶px است — بر پایهٔ راهنمای
+     سبک «Accessible & Ethical» مهارت که برای محصولات دولتی/حقوقی
+     ``--font-size-min: 16px`` را تعیین می‌کند و کاربران این سامانه حسابرسان و
+     اعضای هیئت‌مدیره‌اند، نه کاربران فنی.
+
+     نکتهٔ شناخته‌شده: وزن ۸۰۰ فقط در دو جای CSS استفاده شده اما فایل وزنی ۸۰
+     از Vazirmatn در ``web/static/fonts/`` موجود نیست (فقط 400/500/600/700).
+     مرورگر آن را از ۷۰۰ جعل می‌کند؛ اگر دقت بصری مهم است از ۷۰۰ استفاده کنید.
+     --------------------------------------------------------------------------- */
+
+  --psa-font-sans: "Vazirmatn", "Tahoma", system-ui, sans-serif;
+  --psa-font-mono: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+
+  --psa-text-2xs: 0.75rem; /* ۱۲.۰px — برچسب، متادیتا، تراشه */
+  --psa-text-xs: 0.8125rem; /* ۱۳.۰px — متن راهنما، زیرنویس */
+  --psa-text-sm: 0.875rem; /* ۱۴.۰px — متن ثانویه */
+  --psa-text-base: 1rem; /* ۱۶.۰px — متن اصلی */
+  --psa-text-lg: 1.125rem; /* ۱۸.۰px — عنوان کارت */
+  --psa-text-xl: 1.375rem; /* ۲۲.۰px — عنوان بخش */
+  --psa-text-2xl: clamp(1.5rem, 1.1rem + 1.6vw, 2.15rem); /* عنوان صفحه */
+
+  --psa-leading-tight: 1.5;
+  --psa-leading-normal: 1.7;
+  --psa-leading-loose: 1.9; /* ارتفاع خط مناسب متن فارسی */
+  --psa-leading-relaxed: 2;
+
+  --psa-weight-normal: 400;
+  --psa-weight-medium: 500;
+  --psa-weight-semibold: 600;
+  --psa-weight-bold: 700;
+  --psa-weight-extrabold: 800; /* فایل وزنی ندارد — نگاه کنید به نکتهٔ بالا */
+
+  --psa-tracking-tight: -0.01em;
+  --psa-measure: 46rem; /* حداکثر عرض متن بلند برای خوانایی */
+
+  /* ---------------------------------------------------------------------------
+     ۵) فاصله‌گذاری
+     ---------------------------------------------------------------------------
+
+     ریتم ۴ پیکسلی. تقسیم کار:
+       * چیدمان صفحه‌ها همچنان با یوتیلیتی‌های عددی Tailwind انجام می‌شود
+         (``p-5``، ``gap-3``، ``space-y-2``) — آن‌ها مقیاس سطح قالب‌اند و
+         دست‌نخورده مانده‌اند چون بیش از ۱۵۰ مورد در قالب‌ها استفاده می‌شوند.
+       * این توکن‌ها برای **داخل کامپوننت‌ها** هستند تا پدینگ کارت و فاصلهٔ
+         کنترل‌ها یک‌دست شود (پیش‌تر کارت‌ها پنج پدینگ مختلف ۱۶/۲۰/۲۴/۳۲/۴۰
+         داشتند).
+     --------------------------------------------------------------------------- */
+
+  --psa-space-0: 0;
+  --psa-space-1: 0.25rem; /* ۴px */
+  --psa-space-2: 0.5rem; /* ۸px */
+  --psa-space-3: 0.75rem; /* ۱۲px */
+  --psa-space-4: 1rem; /* ۱۶px */
+  --psa-space-5: 1.25rem; /* ۲۰px */
+  --psa-space-6: 1.5rem; /* ۲۴px */
+  --psa-space-8: 2rem; /* ۳۲px */
+  --psa-space-10: 2.5rem; /* ۴۰px */
+  --psa-space-12: 3rem; /* ۴۸px */
+  --psa-space-16: 4rem; /* ۶۴px */
+
+  /* نام‌های معنایی */
+  --psa-pad-card: var(--psa-space-6);
+  --psa-pad-card-sm: var(--psa-space-4);
+  --psa-pad-control-y: var(--psa-space-3);
+  --psa-pad-control-x: var(--psa-space-4);
+  --psa-stack-section: var(--psa-space-8);
+  --psa-gap-inline: var(--psa-space-2);
+  --psa-gap-stack: var(--psa-space-3);
+
+  /* ---------------------------------------------------------------------------
+     ۶) شعاع گوشه، سایه و فوکوس
+     --------------------------------------------------------------------------- */
+
+  --psa-radius-xs: 8px;
+  --psa-radius-sm: 10px;
+  --psa-radius-md: 12px;
+  --psa-radius-lg: 16px;
+  --psa-radius-xl: 20px;
+  --psa-radius-pill: 999px;
+
+  --psa-radius-control: var(--psa-radius-md);
+  --psa-radius-card: var(--psa-radius-xl);
+  --psa-radius-chip: var(--psa-radius-pill);
+
+  --psa-shadow-1: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06);
+  --psa-shadow-2: 0 4px 14px -4px rgba(15, 23, 42, 0.1), 0 2px 6px -2px rgba(15, 23, 42, 0.05);
+  --psa-shadow-3: 0 22px 44px -18px rgba(15, 23, 42, 0.24), 0 8px 20px -12px rgba(15, 23, 42, 0.12);
+  --psa-shadow-teal: 0 10px 24px -12px rgba(15, 118, 110, 0.55);
+  --psa-shadow-gold: 0 10px 24px -12px rgba(180, 83, 9, 0.45);
+  --psa-shadow-glow: 0 0 0 1px rgba(20, 184, 166, 0.28), 0 14px 30px -18px rgba(15, 118, 110, 0.6);
+
+  /* --- فوکوس ---
+     راهنمای «Focus States» (شدت High): حذف outline بدون جانشین ممنوع.
+     مشکل قبلی: ``.psa-btn:focus-visible`` بیرون‌خط را حذف و فقط
+     ``--ring`` (تیل با آلفای ۲۴٪) می‌گذاشت — روی دکمهٔ تیل، تیل روی تیل و
+     عملاً نامرئی بود.
+     راه‌حل: حلقهٔ دولایه. لایهٔ داخلی به رنگ سطح (جداکننده) و لایهٔ بیرونی
+     به رنگ فوکوس. به این ترتیب روی هر پس‌زمینه‌ای — از جمله دکمهٔ پرشدهٔ تیل
+     یا طلایی — دیده می‌شود. ضخامت کل ۴px، مطابق راهنمای ۳-۴px. */
+  --psa-focus: var(--psa-teal-600);
+  --psa-focus-halo: var(--psa-surface);
+  --psa-shadow-focus: 0 0 0 2px var(--psa-focus-halo), 0 0 0 4px var(--psa-focus);
+  --psa-shadow-focus-error: 0 0 0 2px var(--psa-focus-halo),
+    0 0 0 4px var(--psa-state-nonconform-solid);
+
+  /* حلقهٔ ملایم داخل ورودی‌ها (حالت :focus، نه :focus-visible) */
+  --psa-ring: 0 0 0 3px rgba(20, 184, 166, 0.24);
+  --psa-ring-error: 0 0 0 3px rgba(239, 68, 68, 0.2);
+
+  /* ---------------------------------------------------------------------------
+     ۷) حرکت (Motion)
+     راهنمای «Duration Timing»: یک مدت‌زمان واحد برای همهٔ ترنزیشن‌ها کپی
+     نکنیم. این‌ها توکن‌های مشترک‌اند و بر پایهٔ فاصله/پیچیدگی انتخاب می‌شوند.
+     --------------------------------------------------------------------------- */
+
+  --psa-duration-fast: 0.12s; /* بازخورد فشردن */
+  --psa-duration: 0.2s; /* پیش‌فرض: رنگ، حاشیه */
+  --psa-duration-slow: 0.3s; /* جابه‌جایی، سایه */
+  --psa-duration-slowest: 0.45s; /* عرض نوار پیشرفت */
+  --psa-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --psa-ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --psa-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  /* ---------------------------------------------------------------------------
+     ۸) چیدمان: عرض، ارتفاع لمسی و لایه‌بندی
+     راهنمای سبک «Accessible & Ethical»: هدف لمسی ۴۴×۴۴px.
+     --------------------------------------------------------------------------- */
+
+  --psa-container: 72rem; /* معادل max-w-6xl */
+  --psa-container-wide: 90rem; /* برای جدول‌های عریض انحرافات بودجه */
+  --psa-touch-target: 2.75rem; /* ۴۴px */
+  --psa-control-height: 2.75rem;
+
+  --psa-z-header: 40;
+  --psa-z-overlay: 50;
+  --psa-z-toast: 60;
+
+  /* ---------------------------------------------------------------------------
+     ۹) گرادیان‌ها
+     ---------------------------------------------------------------------------
+
+     قاعدهٔ جهت: هر گرادیانی که **معنای جهت‌دار** دارد (پیشرفت، جریان،
+     زیرخط ناوبری) باید در یک توکن باشد و زاویه‌اش ``to left`` تعریف شود.
+     دلیل: ``90deg`` در CSS همیشه چپ→راست است و به ``direction`` احترام
+     نمی‌گذارد؛ در حالی که نوار پیشرفت در RTL از راست پر می‌شود. نتیجهٔ قبلی:
+     نوار از انتهای گرادیان رنگ می‌گرفت و پر شدنش برعکس خوانده می‌شد.
+     (CSS برای گرادیان، جهت منطقی — inline-start/inline-end — ندارد؛ بنابراین
+     ``to left`` صریح، راه صحیح در یک برنامهٔ تک‌جهتهٔ RTL است.)
+
+     گرادیان‌های متقارن (مثل ``--psa-gradient-divider``) جهت‌دار نیستند و
+     زاویهٔ ``90deg`` آن‌ها درست است.
+     --------------------------------------------------------------------------- */
+
+  --psa-gradient-progress: linear-gradient(to left, var(--psa-teal-600) 0%, var(--psa-teal-500) 100%);
+  --psa-gradient-meter: linear-gradient(to left, var(--psa-teal-600), var(--psa-emerald-500));
+  --psa-gradient-connector: linear-gradient(to left, rgba(16, 185, 129, 0.5), var(--psa-emerald-500));
+  --psa-gradient-control: linear-gradient(180deg, var(--psa-teal-650) 0%, var(--psa-teal-600) 100%);
+  --psa-gradient-control-hover: linear-gradient(180deg, var(--psa-teal-600) 0%, var(--psa-teal-700) 100%);
+  --psa-gradient-gold: linear-gradient(180deg, var(--psa-gold-400) 0%, var(--psa-gold-500) 100%);
+  --psa-gradient-gold-hover: linear-gradient(180deg, var(--psa-gold-500) 0%, var(--psa-gold-700) 100%);
+  --psa-gradient-brand-mark: linear-gradient(
+    145deg,
+    var(--psa-navy-900) 0%,
+    var(--psa-brand-mark-mid) 55%,
+    var(--psa-teal-600) 100%
+  );
+  --psa-gradient-brand-tile: linear-gradient(
+    160deg,
+    var(--psa-navy-900) 0%,
+    var(--psa-brand-tile-mid) 60%,
+    var(--psa-teal-600) 140%
+  );
+  --psa-gradient-card-topline: linear-gradient(
+    to left,
+    var(--psa-teal-600),
+    var(--psa-teal-500) 45%,
+    rgba(20, 184, 166, 0)
+  );
+  --psa-gradient-header-line: linear-gradient(
+    90deg,
+    transparent,
+    rgba(20, 184, 166, 0.35),
+    transparent
+  );
+  --psa-gradient-divider: linear-gradient(90deg, transparent, var(--psa-border), transparent);
+}
+
+/* ---------------------------------------------------------------------------
+   ۱۰) جهت و راست‌به‌چپ — قواعد پایه
+   ---------------------------------------------------------------------------
+
+   این بخش هیچ توکنی تعریف نمی‌کند؛ «قاعده» است و در
+   ``tests/test_design_tokens.py`` پاس داشته می‌شود:
+
+     ۱. جهت پیش‌فرض سند ``rtl`` است (``<html dir="rtl" lang="fa">``) و در همان
+        تست بررسی می‌شود.
+     ۲. در CSS فقط ویژگی‌های منطقی به‌کار رود: ``margin-inline``،
+        ``padding-inline``، ``inset-inline``، ``border-inline``،
+        ``text-align: start|end``.
+        ``left``/``right``/``margin-left``/``text-align: left`` ممنوع‌اند، مگر
+        برای جداسازی صریح متن لاتین (شناسهٔ پرسش، بلوک کد، URL). در آن حالت هم
+        راه درست ``direction: ltr`` + ``unicode-bidi: isolate`` +
+        ``text-align: start`` است: چون خودِ عنصر ``direction: ltr`` دارد،
+        ``start`` دقیقاً همان چپ می‌شود و دیگر نیازی به ویژگی فیزیکی نیست
+        (نمونه: ``.psa-chat-code``).
+     ۳. آیکون‌های جهت‌دار (شِورون، فِلش، «ارسال») **آینه نمی‌شوند بلکه انتخاب
+        می‌شوند**: آیکون باید از ابتدا برای RTL برگزیده شود
+        (``chevron-left`` = «جلو» در RTL). آینه‌کردن خودکار ``scaleX(-1)``
+        ممنوع است، چون زاویهٔ چرخش حالت باز/بسته به جهت خود آیکون گره خورده
+        است (نگاه کنید به ``checklist.js``: شِورونِ رو‌به‌راست با
+        ``rotate(90deg)`` باز می‌شود؛ آینه‌کردن آن نتیجه را وارونه می‌کند).
+     ۴. ارقام فارسی: هر عددی که به کاربر نشان داده می‌شود با فیلتر
+        ``fa_digits``/``fa_number`` یا یک نگاشت صریح در جاوااسکریپت رندر شود.
+        به ``toLocaleString("fa-IR")`` تکیه نکنید: در برخی موتورها ارقام لاتین
+        برمی‌گرداند.
+     ۵. جداسازی دوجهته: هر رشتهٔ لاتین درون متن فارسی باید
+        ``unicode-bidi: isolate`` بگیرد تا ترتیب نمایش خراب نشود.
+   --------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
+   پوستهٔ تیره
+   ---------------------------------------------------------------------------
+   فقط توکن‌ها بازنویسی می‌شوند. هر کلاس ``psa-*`` که با توکن رنگ شده باشد
+   بدون هیچ تغییر دیگری در پوستهٔ تیره درست دیده می‌شود.
+   ویژگی روی ``<html>`` قرار می‌گیرد و پیش از اولین رنگ‌آمیزی توسط اسکریپت
+   کوچک سربرگ ``base.html`` ست می‌شود (بدون پرش روشن→تیره).
+   --------------------------------------------------------------------------- */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* سطوح */
+  --psa-background: #0b1120;
+  --psa-surface: #121b2c;
+  --psa-surface-muted: #0f1728;
+  --psa-surface-subtle: #1a2437;
+  --psa-track: #1e293b;
+  --psa-stat-fade: #121b2c;
+
+  --psa-header-bg: rgba(11, 17, 32, 0.82);
+  --psa-header-solid: rgba(11, 17, 32, 0.97);
+  --psa-hairline: rgba(36, 49, 74, 0.9);
+  --psa-table-row-border: rgba(36, 49, 74, 0.75);
+  --psa-border: #24314a;
+  --psa-border-strong: #33415c;
+  --psa-footer-gradient: linear-gradient(
+    180deg,
+    rgba(18, 27, 44, 0.85),
+    rgba(11, 17, 32, 0.95)
+  );
+  --psa-dialog-scrim: rgba(2, 6, 23, 0.7);
+
+  /* متن */
+  --psa-text-heading: #f3f6fb;
+  --psa-text: #e6ecf5;
+  --psa-text-strong: #cfd9e8;
+  --psa-text-soft: #b6c2d6;
+  --psa-text-muted: #94a3b8;
+  --psa-text-faint: #7c8aa3;
+
+  /* لایه‌های جوهر: در پوستهٔ تیره جوهر روشن است، نه تیره */
+  --psa-overlay-faint: rgba(255, 255, 255, 0.05);
+  --psa-overlay: rgba(255, 255, 255, 0.06);
+  --psa-overlay-strong: rgba(255, 255, 255, 0.09);
+  --psa-bg-glow: rgba(148, 163, 184, 0.12);
+  --psa-bg-grid: rgba(148, 163, 184, 0.09);
+
+  /* وضعیت‌ها: نسخهٔ روشن‌تر برای خوانایی روی زمینهٔ تیره.
+     هر ``-fg`` این‌جا بازنویسی می‌شود؛ نبودِ هرکدام در تست شکست می‌دهد. */
+  --psa-state-conform-fg: #6ee7b7;
+  --psa-state-conform-bg: rgba(16, 185, 129, 0.16);
+  --psa-state-conform-border: rgba(16, 185, 129, 0.32);
+  --psa-state-conform-tint: rgba(16, 185, 129, 0.1);
+
+  --psa-state-nonconform-fg: #fca5a5; /* ۹.۰۸:۱ روی #121b2c */
+  --psa-state-nonconform-bg: rgba(248, 113, 113, 0.14);
+  --psa-state-nonconform-border: rgba(248, 113, 113, 0.36);
+  --psa-state-nonconform-bar: var(--psa-red-400);
+  --psa-state-nonconform-tint: rgba(248, 113, 113, 0.08);
+
+  --psa-state-review-fg: #b6c2d6;
+  --psa-state-review-bg: rgba(148, 163, 184, 0.16);
+  --psa-state-review-border: rgba(148, 163, 184, 0.3);
+  --psa-state-review-bar: #7c8aa3;
+  --psa-state-review-tint: rgba(148, 163, 184, 0.08);
+
+  --psa-state-processing-fg: var(--psa-gold-300);
+  --psa-state-processing-bg: rgba(245, 158, 11, 0.16);
+  --psa-state-processing-border: rgba(245, 158, 11, 0.34);
+  --psa-state-processing-tint: rgba(245, 158, 11, 0.09);
+
+  --psa-state-neutral-fg: #b6c2d6;
+  --psa-state-neutral-bg: rgba(148, 163, 184, 0.16);
+  --psa-state-neutral-border: rgba(148, 163, 184, 0.3);
+  --psa-state-neutral-bar: #475569;
+
+  --psa-state-info-fg: #7dd3fc;
+  --psa-state-info-bg: rgba(14, 165, 233, 0.16);
+  --psa-state-info-border: rgba(14, 165, 233, 0.32);
+  --psa-state-info-tint: rgba(14, 165, 233, 0.1);
+
+  --psa-state-warning-text: var(--psa-gold-300);
+  --psa-state-danger-text: #fecaca;
+  --psa-state-info-text: #bae6fd;
+  --psa-state-success-text: #a7f3d0;
+
+  --psa-teal-text: var(--psa-teal-300);
+  --psa-gold-text: var(--psa-gold-300);
+
+  /* سایه‌ها روی سطح تیره باید سنگین‌تر باشند تا عمق دیده شود */
+  --psa-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.35);
+  --psa-shadow-2: 0 4px 14px -4px rgba(0, 0, 0, 0.6), 0 2px 6px -2px rgba(0, 0, 0, 0.4);
+  --psa-shadow-3: 0 24px 48px -18px rgba(0, 0, 0, 0.75), 0 8px 20px -12px rgba(0, 0, 0, 0.55);
+  --psa-shadow-glow: 0 0 0 1px rgba(45, 212, 191, 0.35), 0 14px 30px -18px rgba(0, 0, 0, 0.7);
+
+  /* فوکوس: لایهٔ جداکننده هم‌رنگ سطح تیره، حلقهٔ بیرونی تیل روشن */
+  --psa-focus: #2dd4bf;
+  --psa-focus-halo: var(--psa-surface);
+  --psa-ring: 0 0 0 3px rgba(45, 212, 191, 0.3);
+  --psa-ring-error: 0 0 0 3px rgba(248, 113, 113, 0.28);
+
+  /* انتخاب متن خواناتر روی زمینهٔ تیره */
+  --psa-selection-bg: rgba(45, 212, 191, 0.28);
+}
+
+/* ============================================================================
+   پل سازگاری با نام‌های قدیمی
+   ============================================================================
+   ``app.css`` نزدیک به ۲۰۰ بار به نام‌های ``--color-*`` ارجاع می‌دهد.
+   تغییر یک‌جای همهٔ آن‌ها پرخطر است: اگر نامی اشتباه نوشته شود،
+   ``var(--نام‌ناشناخته)`` بدون مقدار جایگزین، خودِ ویژگی را بی‌اعتبار می‌کند و
+   خطا هم دیده نمی‌شود. بنابراین هر نام قدیمی این‌جا به توکن کانونی «پل» زده
+   می‌شود: یک منبع حقیقت، بدون شکستن چیزی، و مهاجرت تدریجی.
+
+   این نام‌ها پشتیبانی می‌شوند اما برای کد جدید استفاده نکنید.
+   نام‌های بدون مصرف (``--color-primary-dark``، ``--color-surface-dark``،
+   ``--color-teal-soft``، ``--color-info``، ``--color-success``) حذف شدند.
+   ============================================================================ */
+:root {
+  /* سطح و برند */
+  --color-primary: var(--psa-navy-900);
+  --color-teal: var(--psa-teal-600);
+  --color-teal-deep: var(--psa-teal-700);
+  --color-teal-accent: var(--psa-teal-500);
+  --color-emerald: var(--psa-emerald-500);
+  --color-gold: var(--psa-gold-500);
+
+  /* متن */
+  --color-heading: var(--psa-text-heading);
+  --color-text: var(--psa-text);
+  --color-text-strong: var(--psa-text-strong);
+  --color-text-soft: var(--psa-text-soft);
+  --color-muted: var(--psa-text-muted);
+  --color-faint: var(--psa-text-faint);
+  --color-on-accent: var(--psa-text-on-accent);
+  --color-teal-ink: var(--psa-teal-text);
+  --color-gold-deep: var(--psa-gold-text);
+  --color-danger-ink: var(--psa-state-nonconform-fg);
+  --color-danger-deep-ink: var(--psa-state-danger-text);
+  --color-success-ink: var(--psa-state-conform-fg);
+  --color-emerald-ink: var(--psa-state-success-text);
+  --color-warning-ink: var(--psa-state-warning-text);
+  --color-info-ink: var(--psa-state-info-fg);
+  --color-info-deep-ink: var(--psa-state-info-text);
+
+  /* سطوح */
+  --color-surface: var(--psa-surface);
+  --color-background: var(--psa-background);
+  --color-surface-muted: var(--psa-surface-muted);
+  --color-surface-subtle: var(--psa-surface-subtle);
+  --color-track: var(--psa-track);
+  --color-border: var(--psa-border);
+  --color-border-strong: var(--psa-border-strong);
+  --color-hairline: var(--psa-hairline);
+  --color-header-bg: var(--psa-header-bg);
+  --color-header-solid: var(--psa-header-solid);
+  --stat-fade: var(--psa-stat-fade);
+  --gradient-footer: var(--psa-footer-gradient);
+
+  /* لایه‌ها */
+  --overlay-ink-faint: var(--psa-overlay-faint);
+  --overlay-ink: var(--psa-overlay);
+  --overlay-ink-strong: var(--psa-overlay-strong);
+  --bg-glow-ink: var(--psa-bg-glow);
+  --bg-grid-ink: var(--psa-bg-grid);
+
+  /* وضعیت‌های پایه — عیناً همان مقادیر پیشین در پوستهٔ روشن، تا ظاهر تغییر
+     نکند. این دو (به‌خلاف ``*-ink``ها) در پوستهٔ تیره هم رنگ می‌شوند تا حاشیهٔ
+     ورودی نامعتبر و نوار کارت خطا روی زمینهٔ تیره خوانا بمانند. */
+  --color-error: var(--psa-red-500);
+  --color-warning: var(--psa-gold-500);
+
+  /* شعاع، سایه، حرکت */
+  --radius-xs: var(--psa-radius-xs);
+  --radius-sm: var(--psa-radius-sm);
+  --radius-md: var(--psa-radius-md);
+  --radius-lg: var(--psa-radius-lg);
+  --radius-xl: var(--psa-radius-xl);
+  --shadow-1: var(--psa-shadow-1);
+  --shadow-2: var(--psa-shadow-2);
+  --shadow-3: var(--psa-shadow-3);
+  --shadow-teal: var(--psa-shadow-teal);
+  --shadow-gold: var(--psa-shadow-gold);
+  --shadow-glow: var(--psa-shadow-glow);
+  --ring: var(--psa-ring);
+  --ring-error: var(--psa-ring-error);
+  --ease: var(--psa-ease);
+  --duration: var(--psa-duration);
+}

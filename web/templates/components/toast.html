@@ -10,55 +10,112 @@
   قراردادهای پایدار: ``psa-toast-root``، کلاس ``psa-toast``، توابع سراسری
   ``psaShowToast`` / ``psaHideToast``. وضعیت هر سطح با کلاس‌های معنایی
   ``is-error`` / ``is-warning`` / ``is-info`` / ``is-success`` بیان می‌شود.
+
+  دسترس‌پذیری — دو ناحیهٔ زندهٔ *از پیش موجود*:
+    یک ناحیهٔ زنده فقط وقتی اعلان می‌شود که پیش از درج محتوا در DOM بوده و
+    معنای زنده‌اش ثبت شده باشد. اگر ``aria-live`` را هم‌زمان با درج محتوا ست
+    کنیم، بعضی صفحه‌خوان‌ها آن را از دست می‌دهند. بنابراین دو ناحیهٔ ثابت
+    داریم و محتوا فقط داخل یکی از آن‌ها می‌نشیند.
+
+    چرا دو ناحیه: پیش‌تر کل ظرف ``role="alert"`` با ``aria-live="assertive"``
+    بود، یعنی هر پیام موفقیت هم موتور صفحه‌خوان را قطع می‌کرد. حالا فقط «خطا»
+    assertive است (``role="alert"``) و بقیه polite (``role="status"``).
+
+  زمان‌بندی: راهنمای «Toast auto-dismiss» مدت ۳ تا ۵ ثانیه را تعیین می‌کند؛
+  پیام‌های غیرخطا پس از ۵ ثانیه بسته می‌شوند. خطا پایدار می‌ماند تا کاربر
+  واقعاً آن را ببیند. تایمر با هاور یا فوکوس متوقف و با رفتن ماوس/فوکوس
+  دوباره از سر گرفته می‌شود، و Escape هم اعلان را می‌بندد.
 #}
 <div
   id="psa-toast-root"
   class="fixed inset-x-0 top-4 z-50 mx-auto hidden w-full max-w-lg px-4"
-  role="alert"
-  aria-live="assertive"
-></div>
+>
+  <div id="psa-toast-polite" role="status" aria-live="polite"></div>
+  <div id="psa-toast-assertive" role="alert" aria-live="assertive"></div>
+</div>
 
 <script>
   (function () {
+    /* ``assertive`` فقط برای خطا: قطع کردن اعلامِ صفحه‌خوان برای یک پیام
+       موفقیت، رفتار خصمانه‌ای است. */
     var LEVELS = {
       error: {
         cls: "is-error",
         title: "خطا",
+        assertive: true,
         icon: '{{ icon("alert-circle", 17) | safe }}'
       },
       warning: {
         cls: "is-warning",
         title: "هشدار",
+        assertive: false,
         icon: '{{ icon("alert-triangle", 17) | safe }}'
       },
       info: {
         cls: "is-info",
         title: "اطلاع‌رسانی",
+        assertive: false,
         icon: '{{ icon("info", 17) | safe }}'
       },
       success: {
         cls: "is-success",
         title: "انجام شد",
+        assertive: false,
         icon: '{{ icon("check-circle", 17) | safe }}'
       }
     };
+
+    var AUTO_DISMISS_MS = 5000;
     var hideTimer = null;
+    var currentLevel = null;
 
     function escapeHtml(value) {
       return String(value).replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
+    function root() {
+      return document.getElementById("psa-toast-root");
+    }
+
+    function cancelHide() {
+      if (hideTimer) {
+        window.clearTimeout(hideTimer);
+        hideTimer = null;
+      }
+    }
+
+    function scheduleHide() {
+      cancelHide();
+      if (currentLevel === "error") return; // خطا پایدار می‌ماند
+      hideTimer = window.setTimeout(window.psaHideToast, AUTO_DISMISS_MS);
+    }
+
     /** نمایش اعلان؛ level پیش‌فرض "error" است. */
     window.psaShowToast = function (message, level) {
       var meta = LEVELS[level] || LEVELS.error;
-      var root = document.getElementById("psa-toast-root");
-      if (!root) {
+      var container = root();
+      if (!container) {
         // اگر به هر دلیل کامپوننت toast در صفحه نباشد، حداقل خطا پنهان نشود.
         window.alert(message);
         return;
       }
 
-      root.innerHTML =
+      var target = document.getElementById(
+        meta.assertive ? "psa-toast-assertive" : "psa-toast-polite"
+      );
+      var other = document.getElementById(
+        meta.assertive ? "psa-toast-polite" : "psa-toast-assertive"
+      );
+      if (!target || !other) return;
+
+      // ناحیهٔ مقابل پاک می‌شود تا هر بار فقط یک اعلان در صفحه باشد.
+      other.innerHTML = "";
+
+      /* ترتیب مهم است: ابتدا ظرف از حالت ``hidden`` خارج می‌شود و بعد محتوا
+         درج می‌گردد. اگر محتوا در حالی درج شود که ظرف ``display: none``
+         دارد، ناحیهٔ زنده چیزی اعلام نمی‌کند. */
+      container.classList.remove("hidden");
+      target.innerHTML =
         '<div class="psa-toast ' + meta.cls + '">' +
         '<span class="psa-toast-icon" aria-hidden="true">' + meta.icon + "</span>" +
         '<div class="flex-1 min-w-0">' +
@@ -66,19 +123,50 @@
         '<p class="break-words">' + escapeHtml(message) + "</p>" +
         "</div>" +
         '<button type="button" class="psa-toast-close" aria-label="بستن اعلان" ' +
-        'onclick="window.psaHideToast()">✕</button>' +
+        'onclick="window.psaHideToast()">' +
+        '{{ icon("x", 16, 2.2) | safe }}' +
+        "</button>" +
         "</div>";
 
-      root.classList.remove("hidden");
-      if (hideTimer) window.clearTimeout(hideTimer);
-      if (level !== "error") {
-        hideTimer = window.setTimeout(window.psaHideToast, 6000);
-      }
+      currentLevel = meta.cls === "is-error" ? "error" : level;
+      scheduleHide();
+
+      /* عمداً فوکوس را به دکمهٔ بستن منتقل نمی‌کنیم:
+         الف) جابه‌جایی خودکار فوکوس، تایپ کاربر را قطع می‌کند؛
+         ب) همان فوکوس باعث ``focusin`` روی ظرف و در نتیجه توقف تایمر می‌شد و
+            اعلان‌های غیرخطا هرگز خودکار بسته نمی‌شدند.
+         اعلام به صفحه‌خوان کار ناحیهٔ زنده است و دکمهٔ بستن با Tab در دسترس
+         است. */
     };
 
     window.psaHideToast = function () {
-      var root = document.getElementById("psa-toast-root");
-      if (root) root.classList.add("hidden");
+      cancelHide();
+      currentLevel = null;
+      var container = root();
+      if (!container) return;
+      var polite = document.getElementById("psa-toast-polite");
+      var assertive = document.getElementById("psa-toast-assertive");
+      if (polite) polite.innerHTML = "";
+      if (assertive) assertive.innerHTML = "";
+      container.classList.add("hidden");
     };
+
+    // توقف شمارش هنگام هاور/فوکوس تا کاربر فرصت خواندن داشته باشد.
+    var container = root();
+    if (container) {
+      container.addEventListener("mouseenter", cancelHide);
+      container.addEventListener("mouseleave", function () {
+        if (currentLevel !== null) scheduleHide();
+      });
+      container.addEventListener("focusin", cancelHide);
+      container.addEventListener("focusout", function (event) {
+        // اگر فوکوس فقط داخل خود اعلان جابه‌جا شده باشد، تایمر را از سر نگیر.
+        if (container.contains(event.relatedTarget)) return;
+        if (currentLevel !== null) scheduleHide();
+      });
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && currentLevel !== null) window.psaHideToast();
+      });
+    }
   })();
 </script>

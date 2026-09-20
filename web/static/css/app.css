@@ -18,175 +18,36 @@
       صفحات به کلاس‌های ظاهری Tailwind وابسته نباشند.
 
   فهرست بخش‌ها:
-    ۱) توکن‌های طراحی           ۶) کارت و آمار           ۱۱) جدول داده
-    ۲) پایه و تایپوگرافی        ۷) نشان/برچسب           ۱۲) حالت‌های بارگذاری
-    ۳) پس‌زمینهٔ صفحه           ۸) فرم و ورودی‌ها        ۱۳) نتیجهٔ چک‌لیست
+    (بخش «توکن‌های طراحی» به ``tokens.css`` منتقل شد.)
+    ۲) پایه و تایپوگرافی        ۷) نشان/برچسب            ۱۲) حالت‌های بارگذاری
+    ۳) پس‌زمینهٔ صفحه           ۸) فرم و ورودی‌ها         ۱۳) نتیجهٔ چک‌لیست
     ۴) سربرگ و ناوبری          ۹) منطقهٔ آپلود           ۱۴) متن خلاصهٔ AI
-    ۵) دکمه‌ها                 ۱۰) نشان‌دهندهٔ مراحل      ۱۵) پابرگ و دسترس‌پذیری
-    ۱۶) کارگاه «چت‌بات مالی» (چیدمان چت، حباب پیام، منابع)
+    ۵) دکمه‌ها                 ۱۰) نشان‌دهندهٔ مراحل       ۱۵) پابرگ و دسترس‌پذیری
+    ۶) کارت و آمار             ۱۱) جدول داده             ۱۶) لایهٔ پروژه‌ها
+    ۱۷) نگاشت یوتیلیتی‌های رنگی Tailwind به توکن‌های پوسته
+    ۱۸) کارگاه «چت‌بات مالی» (چیدمان چت، حباب پیام، منابع)
   ============================================================================
 */
 
 /* ---------------------------------------------------------------------------
-   ۱) توکن‌های طراحی
+   ۱) توکن‌های طراحی → به ``tokens.css`` منتقل شد
+   ---------------------------------------------------------------------------
+   پیش‌تر این فایل هم توکن‌ها را در ``:root`` و ``[data-theme="dark"]``
+   نگه می‌داشت و هم پیکربندی Tailwind در ``base.html`` همان پالت را دوباره با
+   هگز تعریف می‌کرد: دو منبع حقیقت که ناگزیر از هم دور می‌شدند.
+
+   حالا:
+     * ``web/static/css/tokens.css`` تنها منبع حقیقت است و **پیش از** این فایل
+       بارگذاری می‌شود.
+     * نام‌های قدیمی ``--color-*`` همچنان کار می‌کنند، چون ``tokens.css`` آن‌ها
+       را با ``var()`` به توکن‌های کانونی ``--psa-*`` پل زده است. کد جدید باید
+       ``--psa-*`` بنویسد.
+     * ``web/templates/components/tailwind_config.html`` هم همان توکن‌ها را به
+       Tailwind می‌دهد، پس رنگ و اندازه در سراسر سامانه یک منبع دارد.
+
+   قاعدهٔ این فایل («``psa-*`` ظاهر را می‌سازد، یوتیلیتی Tailwind چیدمان را»)
+   دست‌نخورده است؛ فقط مقادیر رنگ از توکن خوانده می‌شوند.
    --------------------------------------------------------------------------- */
-:root {
-  /* برند و سطوح تیره (Navy) -- این مقادیر در هر دو پوسته ثابت می‌مانند، چون
-     «سطح برند»‌اند (کاشی آیکون، نشان، دکمهٔ اصلی) نه متن روی زمینهٔ روشن. */
-  --color-primary: #0f172a;
-  --color-primary-dark: #0b1120;
-  --color-surface-dark: #111827;
-
-  /* رنگ‌های فناوری (Teal / Emerald) */
-  --color-teal: #0f766e;
-  --color-teal-deep: #0d5f59;
-  --color-teal-accent: #14b8a6;
-  --color-teal-soft: #ccfbf1;
-  --color-emerald: #10b981;
-
-  /* لهجهٔ مالی (طلایی) */
-  --color-gold: #f59e0b;
-  --color-gold-deep: #b45309;
-
-  /* ------------------------------------------------------------------
-     توکن‌های «رنگ متن» -- عمداً از توکن‌های «سطح» جدا شده‌اند.
-     دلیل: ``--color-primary`` هم به‌عنوان متن عنوان و هم به‌عنوان سطح تیرهٔ
-     نشان برند به‌کار می‌رود. اگر یک توکن مشترک بود، در پوستهٔ تیره یا متن
-     تیره می‌ماند یا نشان برند روشن می‌شد. پس دو خانواده داریم:
-       * ``*-ink``  -> فقط متن (در پوستهٔ تیره روشن می‌شود)
-       * سطح‌ها     -> فقط پس‌زمینه/حاشیه (در پوستهٔ تیره تیره می‌مانند)
-     ------------------------------------------------------------------ */
-  --color-heading: #0f172a;
-  --color-text: #0f172a;
-  --color-text-strong: #334155;
-  --color-text-soft: #475569;
-  --color-muted: #64748b;
-  --color-faint: #94a3b8;
-  --color-teal-ink: #0d5f59;
-  --color-danger-ink: #b91c1c;
-  --color-danger-deep-ink: #7f1d1d;
-  --color-success-ink: #047857;
-  --color-emerald-ink: #065f46;
-  --color-warning-ink: #78350f;
-  --color-info-ink: #0369a1;
-  --color-info-deep-ink: #0c4a6e;
-  --color-on-accent: #ffffff; /* متن روی دکمه/نشان رنگی */
-
-  /* توکن‌های «سطح» (پس‌زمینه) */
-  --color-surface: #ffffff;
-  --color-background: #f8fafc;
-  --color-surface-muted: #f8fafc;
-  --color-surface-subtle: #f1f5f9;
-  --color-track: #eef2f6;
-  --stat-fade: #ffffff; /* پایان گرادیان کارت‌های آماری رنگی */
-  --gradient-footer: linear-gradient(180deg, rgba(255, 255, 255, 0.75), var(--color-surface-muted));
-
-  /* سربرگ/پابرگ شیشه‌ای و خط مؤی */
-  --color-header-bg: rgba(255, 255, 255, 0.82);
-  --color-header-solid: rgba(255, 255, 255, 0.96);
-  --color-hairline: rgba(226, 232, 240, 0.9);
-
-  /* لایه‌های جوهر (هاور/راه‌راه) و شبکهٔ پس‌زمینه */
-  --overlay-ink-faint: rgba(15, 23, 42, 0.04);
-  --overlay-ink: rgba(15, 23, 42, 0.045);
-  --overlay-ink-strong: rgba(15, 23, 42, 0.06);
-  --bg-glow-ink: rgba(15, 23, 42, 0.07);
-  --bg-grid-ink: rgba(15, 23, 42, 0.045);
-
-  /* حاشیه */
-  --color-border: #e2e8f0;
-  --color-border-strong: #cbd5e1;
-
-  --color-error: #ef4444;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-info: #0ea5e9;
-
-  /* شعاع گوشه‌ها */
-  --radius-xs: 8px;
-  --radius-sm: 10px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-
-  /* سایه‌های ملایم و لایه‌ای */
-  --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06);
-  --shadow-2: 0 4px 14px -4px rgba(15, 23, 42, 0.1), 0 2px 6px -2px rgba(15, 23, 42, 0.05);
-  --shadow-3: 0 22px 44px -18px rgba(15, 23, 42, 0.24), 0 8px 20px -12px rgba(15, 23, 42, 0.12);
-  --shadow-teal: 0 10px 24px -12px rgba(15, 118, 110, 0.55);
-  --shadow-gold: 0 10px 24px -12px rgba(180, 83, 9, 0.45);
-  --shadow-glow: 0 0 0 1px rgba(20, 184, 166, 0.28), 0 14px 30px -18px rgba(15, 118, 110, 0.6);
-  --ring: 0 0 0 3px rgba(20, 184, 166, 0.24);
-  --ring-error: 0 0 0 3px rgba(239, 68, 68, 0.2);
-
-  /* حرکت */
-  --ease: cubic-bezier(0.4, 0, 0.2, 1);
-  --duration: 0.2s;
-
-  /* رنگ نوار مرورگر (موبایل) -- با پوسته عوض می‌شود */
-  color-scheme: light;
-}
-
-/* ---------------------------------------------------------------------------
-   ۱-ب) پوستهٔ تیره
-   فقط توکن‌ها بازنویسی می‌شوند؛ هیچ قاعدهٔ کامپوننتی تکرار نمی‌شود. یعنی هر
-   کلاس ``psa-*`` که با توکن رنگ شده باشد، بی‌هیچ تغییر دیگری در پوستهٔ تیره هم
-   درست دیده می‌شود. ویژگی روی ``<html>`` قرار می‌گیرد (``data-theme="dark"``)
-   و پیش از اولین رنگ‌آمیزی توسط اسکریپت کوچک سربرگ ست می‌شود (بدون پرش رنگ).
-   --------------------------------------------------------------------------- */
-[data-theme="dark"] {
-  color-scheme: dark;
-
-  /* سطوح: آبی-سرمه‌ای تیره به‌جای سفید/خاکستری روشن */
-  --color-background: #0b1120;
-  --color-surface: #121b2c;
-  --color-surface-muted: #0f1728;
-  --color-surface-subtle: #1a2437;
-  --color-track: #1e293b;
-  --stat-fade: #121b2c;
-  --gradient-footer: linear-gradient(180deg, rgba(18, 27, 44, 0.85), rgba(11, 17, 32, 0.95));
-
-  --color-header-bg: rgba(11, 17, 32, 0.82);
-  --color-header-solid: rgba(11, 17, 32, 0.97);
-  --color-hairline: rgba(36, 49, 74, 0.9);
-
-  --color-border: #24314a;
-  --color-border-strong: #33415c;
-
-  /* متن: از تیره به روشن */
-  --color-heading: #f3f6fb;
-  --color-text: #e6ecf5;
-  --color-text-strong: #cfd9e8;
-  --color-text-soft: #b6c2d6;
-  --color-muted: #94a3b8;
-  --color-faint: #7c8aa3;
-
-  /* رنگ‌های معنایی متن: نسخهٔ روشن‌تر برای خوانایی روی زمینهٔ تیره */
-  --color-teal-ink: #5eead4;
-  --color-danger-ink: #fca5a5;
-  --color-danger-deep-ink: #fecaca;
-  --color-success-ink: #6ee7b7;
-  --color-emerald-ink: #a7f3d0;
-  --color-warning-ink: #fcd34d;
-  --color-gold-deep: #fcd34d; /* فقط برای متن استفاده می‌شود */
-  --color-info-ink: #7dd3fc;
-  --color-info-deep-ink: #bae6fd;
-
-  /* لایه‌های جوهر: در پوستهٔ تیره جوهر روشن است، نه تیره */
-  --overlay-ink-faint: rgba(255, 255, 255, 0.05);
-  --overlay-ink: rgba(255, 255, 255, 0.06);
-  --overlay-ink-strong: rgba(255, 255, 255, 0.09);
-  --bg-glow-ink: rgba(148, 163, 184, 0.12);
-  --bg-grid-ink: rgba(148, 163, 184, 0.09);
-
-  /* سایه‌ها روی سطح تیره باید سنگین‌تر باشند تا عمق دیده شود */
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.35);
-  --shadow-2: 0 4px 14px -4px rgba(0, 0, 0, 0.6), 0 2px 6px -2px rgba(0, 0, 0, 0.4);
-  --shadow-3: 0 24px 48px -18px rgba(0, 0, 0, 0.75), 0 8px 20px -12px rgba(0, 0, 0, 0.55);
-  --ring: 0 0 0 3px rgba(45, 212, 191, 0.3);
-  --ring-error: 0 0 0 3px rgba(248, 113, 113, 0.28);
-  --shadow-glow: 0 0 0 1px rgba(45, 212, 191, 0.35), 0 14px 30px -18px rgba(0, 0, 0, 0.7);
-}
 
 /* ---------------------------------------------------------------------------
    ۲) پایه و تایپوگرافی
@@ -228,8 +89,8 @@ body {
 body {
   color: var(--color-text);
   background-color: var(--color-background);
-  font-size: 15px;
-  line-height: 1.9; /* ارتفاع خط مناسب متن فارسی */
+  font-size: var(--psa-text-base);
+  line-height: var(--psa-leading-loose); /* ۱.۹ -- مناسب متن فارسی */
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -246,13 +107,13 @@ body {
   border-radius: 999px;
   background: linear-gradient(180deg, rgba(20, 184, 166, 0.1), rgba(20, 184, 166, 0.04));
   color: var(--color-teal-ink);
-  font-size: 0.72rem;
+  font-size: var(--psa-text-2xs);
   font-weight: 600;
   line-height: 1.6;
 }
 
 .psa-page-title {
-  font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.15rem);
+  font-size: var(--psa-text-2xl);
   font-weight: 800;
   line-height: 1.5;
   letter-spacing: -0.01em;
@@ -263,7 +124,7 @@ body {
   margin-top: 0.6rem;
   max-width: 46rem;
   color: var(--color-muted);
-  font-size: 0.94rem;
+  font-size: var(--psa-text-base);
   line-height: 2;
 }
 
@@ -271,13 +132,13 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.95rem;
+  font-size: var(--psa-text-base);
   font-weight: 700;
   color: var(--color-heading);
 }
 
 .psa-section-hint {
-  font-size: 0.78rem;
+  font-size: var(--psa-text-xs);
   color: var(--color-muted);
 }
 
@@ -285,7 +146,7 @@ body {
 .psa-divider {
   height: 1px;
   border: 0;
-  background: linear-gradient(90deg, transparent, var(--color-border), transparent);
+  background: var(--psa-gradient-divider);
 }
 
 /* اعداد و مقادیر داده‌ای: هم‌عرض و خوانا */
@@ -311,7 +172,9 @@ body {
   border-radius: 999px;
 }
 .psa-scroll::-webkit-scrollbar-thumb:hover {
-  background-color: #94a3b8;
+  /* ``--color-muted`` و نه ``--color-faint``: بندانگشتی نوار اسکرول یک عنصر
+     غیرمتنی است و باید آستانهٔ ۳:۱ را رد کند؛ ``faint`` روی سفید ۲.۵۶:۱ است. */
+  background-color: var(--color-muted);
 }
 
 .psa-icon {
@@ -402,7 +265,7 @@ body {
   inset-inline: 0;
   bottom: -1px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.35), transparent);
+  background: var(--psa-gradient-header-line);
 }
 
 .psa-brand {
@@ -420,18 +283,18 @@ body {
   height: 40px;
   border-radius: var(--radius-md);
   color: var(--color-on-accent);
-  background: linear-gradient(145deg, var(--color-primary) 0%, #14304a 55%, var(--color-teal) 100%);
+  background: var(--psa-gradient-brand-mark);
   box-shadow: var(--shadow-teal), inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
 .psa-brand-name {
-  font-size: 0.98rem;
+  font-size: var(--psa-text-base);
   font-weight: 700;
   line-height: 1.4;
 }
 
 .psa-brand-tagline {
-  font-size: 0.68rem;
+  font-size: var(--psa-text-2xs);
   font-weight: 500;
   color: var(--color-muted);
   line-height: 1.4;
@@ -451,7 +314,7 @@ body {
   padding: 0.5rem 0.85rem;
   border-radius: var(--radius-sm);
   color: var(--color-text-soft);
-  font-size: 0.85rem;
+  font-size: var(--psa-text-sm);
   font-weight: 600;
   text-decoration: none;
   transition: background-color var(--duration) var(--ease), color var(--duration) var(--ease);
@@ -475,7 +338,7 @@ body {
   bottom: 0.18rem;
   height: 2px;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--color-teal), var(--color-teal-accent));
+  background: var(--psa-gradient-progress);
 }
 
 /* تراشهٔ «کارگاه جاری» در سربرگ */
@@ -488,7 +351,7 @@ body {
   border-radius: 999px;
   background: var(--color-surface-muted);
   color: var(--color-text-strong);
-  font-size: 0.76rem;
+  font-size: var(--psa-text-2xs);
   font-weight: 600;
 }
 
@@ -534,7 +397,7 @@ body {
   padding: 0.75rem 0.9rem;
   border-radius: var(--radius-sm);
   color: var(--color-text-strong);
-  font-size: 0.9rem;
+  font-size: var(--psa-text-base);
   font-weight: 600;
   text-decoration: none;
 }
@@ -549,7 +412,7 @@ body {
 /* عنوان بخش داخل منوی موبایل («کارگاه‌ها») */
 .psa-mobile-nav-title {
   padding: 0.6rem 0.9rem 0.15rem;
-  font-size: 0.7rem;
+  font-size: var(--psa-text-2xs);
   font-weight: 700;
   color: var(--color-muted);
 }
@@ -599,7 +462,7 @@ body {
 
 .psa-dropdown-caption {
   padding: 0.45rem 0.6rem 0.3rem;
-  font-size: 0.72rem;
+  font-size: var(--psa-text-2xs);
   font-weight: 600;
   color: var(--color-muted);
 }
@@ -620,7 +483,7 @@ body {
 }
 .psa-dropdown-item:focus-visible {
   outline: none;
-  box-shadow: var(--ring);
+  box-shadow: var(--psa-shadow-focus);
 }
 .psa-dropdown-item.is-active {
   background: rgba(20, 184, 166, 0.12);
@@ -633,12 +496,12 @@ body {
   min-width: 0;
 }
 .psa-dropdown-item-name {
-  font-size: 0.84rem;
+  font-size: var(--psa-text-sm);
   font-weight: 600;
   line-height: 1.7;
 }
 .psa-dropdown-item-badge {
-  font-size: 0.7rem;
+  font-size: var(--psa-text-2xs);
   color: var(--color-muted);
   line-height: 1.6;
 }
@@ -671,7 +534,7 @@ body {
 }
 .psa-theme-btn:focus-visible {
   outline: none;
-  box-shadow: var(--ring);
+  box-shadow: var(--psa-shadow-focus);
 }
 .psa-theme-icon {
   display: inline-flex;
@@ -689,7 +552,7 @@ body {
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   font-family: inherit;
-  font-size: 0.875rem;
+  font-size: var(--psa-text-sm);
   font-weight: 600;
   line-height: 1.5;
   text-decoration: none;
@@ -699,9 +562,14 @@ body {
     color var(--duration) var(--ease), box-shadow var(--duration) var(--ease), transform var(--duration) var(--ease);
 }
 
+/* حلقهٔ فوکوس دولایه.
+   پیش‌تر ``box-shadow: var(--ring)`` یعنی تیل با آلفای ۲۴٪؛ روی خود دکمهٔ
+   تیل‌رنگ عملاً «تیل روی تیل» و نامرئی بود. حالا لایهٔ داخلی هم‌رنگ سطح
+   (جداکننده) و لایهٔ بیرونی رنگ فوکوس است، پس روی هر پس‌زمینه‌ای -- از جمله
+   دکمهٔ پرشدهٔ تیل یا طلایی -- دیده می‌شود. ضخامت کل ۴px (راهنما: ۳-۴px). */
 .psa-btn:focus-visible {
   outline: none;
-  box-shadow: var(--ring);
+  box-shadow: var(--psa-shadow-focus);
 }
 
 .psa-btn:disabled,
@@ -714,12 +582,12 @@ body {
 
 /* اصلی: تیل عمیق */
 .psa-btn-primary {
-  background: linear-gradient(180deg, #0d7f76 0%, var(--color-teal) 100%);
+  background: var(--psa-gradient-control);
   color: var(--color-on-accent);
   box-shadow: var(--shadow-teal), inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 .psa-btn-primary:hover:not(:disabled) {
-  background: linear-gradient(180deg, var(--color-teal) 0%, var(--color-teal-deep) 100%);
+  background: var(--psa-gradient-control-hover);
   transform: translateY(-1px);
   box-shadow: 0 14px 28px -14px rgba(15, 118, 110, 0.7);
 }
@@ -743,12 +611,12 @@ body {
 
 /* لهجهٔ ممتاز: طلایی (کم و هدفمند) */
 .psa-btn-gold {
-  background: linear-gradient(180deg, #fbbf24 0%, var(--color-gold) 100%);
-  color: #412402;
+  background: var(--psa-gradient-gold);
+  color: var(--psa-gold-ink);
   box-shadow: var(--shadow-gold), inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 .psa-btn-gold:hover:not(:disabled) {
-  background: linear-gradient(180deg, var(--color-gold) 0%, #d97706 100%);
+  background: var(--psa-gradient-gold-hover);
   transform: translateY(-1px);
 }
 
@@ -764,28 +632,47 @@ body {
 
 /* خطر */
 .psa-btn-danger {
-  background: var(--color-error);
+  background: var(--psa-state-nonconform-solid);
   color: var(--color-on-accent);
 }
 .psa-btn-danger:hover:not(:disabled) {
-  background: #dc2626;
+  background: var(--psa-state-nonconform-fg);
   transform: translateY(-1px);
 }
 
 .psa-btn-sm {
   padding: 0.4rem 0.75rem;
-  font-size: 0.78rem;
+  font-size: var(--psa-text-xs);
   border-radius: var(--radius-sm);
 }
 
 .psa-btn-lg {
   padding: 0.85rem 1.6rem;
-  font-size: 0.95rem;
+  font-size: var(--psa-text-base);
   border-radius: var(--radius-lg);
 }
 
 .psa-btn-block {
   width: 100%;
+}
+
+/* دکمهٔ وارونه: پیل تیره در پوستهٔ روشن، پیل روشن در پوستهٔ تیره.
+   برای «مشاهده سورس کد در گیت‌هاب» در پابرگ. پیش‌تر ``bg-gray-900``
+   (= #111827) بود که در پوستهٔ تیره بازنویسی نمی‌شد و فاصلهٔ رنگی‌اش با
+   سطح تیره (#121b2c) کمتر از ۳٪ است -- یعنی دکمه محو می‌شد. این کلاس بدون
+   هیچ توکن تازه‌ای، همان جفت وارونهٔ متن/سطح را به‌کار می‌برد. */
+.psa-invert-btn {
+  background: var(--psa-text-heading);
+  color: var(--psa-background);
+  border: 1px solid transparent;
+  box-shadow: var(--shadow-2);
+  transition: background-color var(--duration) var(--ease), transform var(--duration) var(--ease),
+    box-shadow var(--duration) var(--ease);
+}
+.psa-invert-btn:hover {
+  background: var(--psa-text-strong);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-3);
 }
 
 /* ---------------------------------------------------------------------------
@@ -814,7 +701,7 @@ body {
   inset-inline: 0;
   top: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--color-teal), var(--color-teal-accent) 45%, rgba(20, 184, 166, 0));
+  background: var(--psa-gradient-card-topline);
 }
 
 /* کارت تعاملی (کارت‌های کارگاه در صفحهٔ اصلی و کارت‌های نتیجه) */
@@ -828,7 +715,7 @@ body {
 }
 .psa-card-interactive:focus-visible {
   outline: none;
-  box-shadow: var(--ring), var(--shadow-3);
+  box-shadow: var(--psa-shadow-focus), var(--shadow-3);
 }
 
 .psa-card-hover-soft {
@@ -868,8 +755,8 @@ body {
   border: 1px solid rgba(20, 184, 166, 0.22);
 }
 .psa-icon-tile.is-navy {
-  color: #e2e8f0;
-  background: linear-gradient(160deg, var(--color-primary) 0%, #16324c 60%, var(--color-teal) 140%);
+  color: var(--psa-navy-200);
+  background: var(--psa-gradient-brand-tile);
   border: 1px solid rgba(15, 23, 42, 0.35);
   box-shadow: var(--shadow-teal);
 }
@@ -925,14 +812,14 @@ body {
 }
 
 .psa-stat-label {
-  font-size: 0.74rem;
+  font-size: var(--psa-text-2xs);
   font-weight: 600;
   color: var(--color-muted);
 }
 
 .psa-stat-value {
   margin-top: 0.2rem;
-  font-size: 1.28rem;
+  font-size: var(--psa-text-xl);
   font-weight: 800;
   line-height: 1.5;
   color: var(--color-heading);
@@ -940,7 +827,7 @@ body {
 
 .psa-stat-caption {
   margin-top: 0.15rem;
-  font-size: 0.72rem;
+  font-size: var(--psa-text-2xs);
   color: var(--color-muted);
 }
 
@@ -978,7 +865,7 @@ body {
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--color-teal), var(--color-emerald));
+  background: var(--psa-gradient-meter);
 }
 
 /* ---------------------------------------------------------------------------
@@ -992,7 +879,7 @@ body {
   padding: 0.22rem 0.62rem;
   border: 1px solid transparent;
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: var(--psa-text-2xs);
   font-weight: 600;
   line-height: 1.7;
   white-space: nowrap;
@@ -1044,7 +931,7 @@ body {
   border-radius: var(--radius-xs);
   background: var(--color-surface-subtle);
   color: var(--color-text-strong);
-  font-size: 0.7rem;
+  font-size: var(--psa-text-2xs);
   font-weight: 700;
   line-height: 1.9;
   font-variant-numeric: tabular-nums;
@@ -1070,7 +957,7 @@ body {
 .psa-label {
   display: block;
   margin-bottom: 0.4rem;
-  font-size: 0.82rem;
+  font-size: var(--psa-text-xs);
   font-weight: 600;
   color: var(--color-text-strong);
 }
@@ -1083,47 +970,47 @@ body {
 .psa-input {
   width: 100%;
   padding: 0.62rem 0.85rem;
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid var(--psa-border-control);
   border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-text);
   font-family: inherit;
-  font-size: 0.88rem;
+  font-size: var(--psa-text-sm);
   line-height: 1.9;
   transition: border-color var(--duration) var(--ease), box-shadow var(--duration) var(--ease),
     background-color var(--duration) var(--ease);
 }
 
 .psa-input::placeholder {
-  color: var(--color-faint);
+  color: var(--color-muted);
 }
 
 .psa-input:hover {
-  border-color: #94a3b8;
+  border-color: var(--color-faint);
 }
 
 .psa-input:focus {
   outline: none;
   border-color: var(--color-teal-accent);
-  box-shadow: var(--ring);
+  box-shadow: var(--psa-shadow-focus);
 }
 
 .psa-input.is-invalid {
   border-color: var(--color-error);
 }
 .psa-input.is-invalid:focus {
-  box-shadow: var(--ring-error);
+  box-shadow: var(--psa-shadow-focus-error);
 }
 
 .psa-help {
   margin-top: 0.35rem;
-  font-size: 0.75rem;
+  font-size: var(--psa-text-2xs);
   color: var(--color-muted);
 }
 
 .psa-field-error {
   margin-top: 0.35rem;
-  font-size: 0.78rem;
+  font-size: var(--psa-text-xs);
   font-weight: 600;
   color: var(--color-danger-ink);
 }
@@ -1140,7 +1027,7 @@ body {
   border: 1px solid rgba(14, 165, 233, 0.22);
   background: rgba(14, 165, 233, 0.06);
   color: var(--color-info-deep-ink);
-  font-size: 0.8rem;
+  font-size: var(--psa-text-xs);
   line-height: 1.9;
 }
 .psa-note.is-warning {
@@ -1207,21 +1094,21 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.87rem;
+  font-size: var(--psa-text-sm);
   font-weight: 700;
   color: var(--color-heading);
 }
 
 .psa-dropzone-desc {
   margin-top: 0.35rem;
-  font-size: 0.76rem;
+  font-size: var(--psa-text-2xs);
   line-height: 1.85;
   color: var(--color-muted);
 }
 
 .psa-dropzone-types {
   margin-top: 0.3rem;
-  font-size: 0.7rem;
+  font-size: var(--psa-text-2xs);
   color: var(--color-muted);
 }
 
@@ -1254,7 +1141,7 @@ body {
 /* کادر فوکوس روی برچسب، وقتی ورودی فایل (که sr-only است) فوکوس بگیرد */
 .psa-dropzone-label:has(.psa-dropzone-input:focus-visible) {
   border-color: var(--color-teal-accent);
-  box-shadow: var(--ring);
+  box-shadow: var(--psa-shadow-focus);
 }
 
 .psa-dropzone-cta {
@@ -1262,7 +1149,7 @@ body {
   align-items: center;
   gap: 0.35rem;
   flex-shrink: 0;
-  font-size: 0.74rem;
+  font-size: var(--psa-text-2xs);
   font-weight: 700;
   color: var(--color-teal-ink);
 }
@@ -1271,7 +1158,7 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.76rem;
+  font-size: var(--psa-text-2xs);
   font-weight: 500;
   color: var(--color-muted);
 }
@@ -1287,7 +1174,7 @@ body {
   align-items: center;
   gap: 0.35rem;
   margin-top: 0.6rem;
-  font-size: 0.74rem;
+  font-size: var(--psa-text-2xs);
   font-weight: 700;
   color: var(--color-success-ink);
 }
@@ -1314,7 +1201,7 @@ body {
   border-radius: 999px;
   background: var(--color-surface);
   color: var(--color-muted);
-  font-size: 0.85rem;
+  font-size: var(--psa-text-sm);
   font-weight: 700;
   transition: background-color 0.25s var(--ease), color 0.25s var(--ease), border-color 0.25s var(--ease),
     box-shadow 0.25s var(--ease), transform 0.25s var(--ease);
@@ -1322,7 +1209,7 @@ body {
 
 .psa-step-circle.is-active {
   border-color: var(--color-teal);
-  background: linear-gradient(180deg, #0d7f76, var(--color-teal));
+  background: var(--psa-gradient-control);
   color: var(--color-on-accent);
   box-shadow: 0 0 0 5px rgba(15, 118, 110, 0.12);
   transform: scale(1.04);
@@ -1335,7 +1222,7 @@ body {
 }
 
 .psa-step-label {
-  font-size: 0.75rem;
+  font-size: var(--psa-text-2xs);
   font-weight: 500;
   color: var(--color-muted);
   transition: color var(--duration) var(--ease), font-weight var(--duration) var(--ease);
@@ -1359,19 +1246,27 @@ body {
 }
 
 .psa-step-connector.is-done {
-  background: linear-gradient(90deg, rgba(16, 185, 129, 0.5), var(--color-emerald));
+  background: var(--psa-gradient-connector);
 }
 
 /* ---------------------------------------------------------------------------
    ۱۱) جدول داده
    ناحیهٔ اسکرول افقی روی موبایل عمدی و قابل‌قبول است (فقط برای جدول داده).
    --------------------------------------------------------------------------- */
+/* جدول‌های عریض (ماتریس انحرافات بودجه، یافته‌های بااهمیت، ریسک‌ها) روی
+   موبایل باید اسکرول افقی بگیرند. پیش‌تر ``overflow: hidden`` بود و
+   ``.psa-table { min-width: 32rem }`` یعنی ستون‌های فراتر از ۵۱۲px کاملاً
+   از دید خارج می‌شدند -- بدون هیچ راهی برای دیدنشان. توجه: جدول‌ها خودشان
+   این کلاس را می‌گیرند و ``.psa-table-scroll`` هیچ قالبی استفاده نمی‌شود. */
 .psa-table-wrap {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
+/* برای جدول‌هایی که روزی داخل یک والدِ خوداسکرول قرار بگیرند نگه داشته شده؛
+   فعلاً در هیچ قالبی به‌کار نمی‌رود. */
 .psa-table-scroll {
   overflow-x: auto;
 }
@@ -1380,7 +1275,7 @@ body {
   width: 100%;
   min-width: 32rem;
   border-collapse: collapse;
-  font-size: 0.82rem;
+  font-size: var(--psa-text-xs);
 }
 
 .psa-table thead th {
@@ -1391,7 +1286,7 @@ body {
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface-muted);
   color: var(--color-text-soft);
-  font-size: 0.74rem;
+  font-size: var(--psa-text-2xs);
   font-weight: 700;
   text-align: start;
   white-space: nowrap;
@@ -1399,7 +1294,7 @@ body {
 
 .psa-table tbody td {
   padding: 0.55rem 0.85rem;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.75);
+  border-bottom: 1px solid var(--psa-table-row-border);
   color: var(--color-text-strong);
   vertical-align: top;
 }
@@ -1430,7 +1325,7 @@ body {
 .psa-table-inline {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.76rem;
+  font-size: var(--psa-text-2xs);
 }
 .psa-table-inline td {
   padding: 0.3rem 0.15rem;
@@ -1469,7 +1364,7 @@ body {
   height: 100%;
   width: 0;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--color-teal) 0%, var(--color-teal-accent) 100%);
+  background: var(--psa-gradient-progress);
   transition: width 0.45s var(--ease);
 }
 
@@ -1499,7 +1394,7 @@ body {
 }
 
 .psa-progress-log {
-  font-size: 0.74rem;
+  font-size: var(--psa-text-2xs);
   line-height: 2;
   color: var(--color-muted);
 }
@@ -1532,7 +1427,7 @@ body {
 }
 .psa-spinner.is-on-dark {
   border-color: rgba(255, 255, 255, 0.35);
-  border-top-color: #fff;
+  border-top-color: var(--color-on-accent);
 }
 
 /* نبض ملایم برای نشانگرهای «در حال اجرا» */
@@ -1560,7 +1455,7 @@ body {
   background: var(--color-surface-muted);
   text-align: center;
   color: var(--color-muted);
-  font-size: 0.82rem;
+  font-size: var(--psa-text-xs);
 }
 
 /* ردیف وضعیت dropzone نیز ممکن است با کلاس hidden پنهان شود */
@@ -1649,7 +1544,7 @@ body {
 
 /* بررسی دستی */
 .psa-result-item.is-manual::before {
-  background: #94a3b8;
+  background: var(--psa-state-review-bar);
 }
 
 details.psa-result-item[open] .psa-chevron {
@@ -1661,7 +1556,7 @@ details.psa-result-item[open] .psa-chevron {
   display: flex;
   align-items: flex-start;
   gap: 0.45rem;
-  font-size: 0.78rem;
+  font-size: var(--psa-text-xs);
   line-height: 1.95;
   color: var(--color-text-soft);
 }
@@ -1673,7 +1568,7 @@ details.psa-result-item[open] .psa-chevron {
   color: var(--color-success-ink);
 }
 .psa-condition.is-failed .psa-condition-mark {
-  color: #dc2626;
+  color: var(--color-danger-ink);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1682,7 +1577,7 @@ details.psa-result-item[open] .psa-chevron {
    این‌جا فقط ظاهر آن با سلکتورهای فرزند بهبود داده می‌شود (بدون تغییر بک‌اند).
    --------------------------------------------------------------------------- */
 .psa-prose {
-  font-size: 0.92rem;
+  font-size: var(--psa-text-base);
   line-height: 2.15;
   color: var(--color-text-strong);
 }
@@ -1698,24 +1593,24 @@ details.psa-result-item[open] .psa-chevron {
 }
 
 .psa-prose h1 {
-  font-size: 1.2rem;
+  font-size: var(--psa-text-lg);
   padding-inline-start: 0.7rem;
   border-inline-start: 3px solid var(--color-teal-accent);
 }
 
 .psa-prose h2 {
-  font-size: 1.06rem;
+  font-size: var(--psa-text-lg);
   padding-inline-start: 0.7rem;
   border-inline-start: 3px solid rgba(20, 184, 166, 0.55);
 }
 
 .psa-prose h3 {
-  font-size: 0.96rem;
+  font-size: var(--psa-text-base);
   color: var(--color-teal-ink);
 }
 
 .psa-prose h4 {
-  font-size: 0.88rem;
+  font-size: var(--psa-text-sm);
 }
 
 .psa-prose h1:first-child,
@@ -1726,7 +1621,7 @@ details.psa-result-item[open] .psa-chevron {
 
 .psa-prose p {
   margin: 0 0 0.7rem;
-  font-size: 0.92rem;
+  font-size: var(--psa-text-base);
   line-height: 2.15;
   color: var(--color-text-strong);
 }
@@ -1763,7 +1658,7 @@ details.psa-result-item[open] .psa-chevron {
   margin: 1.25rem 0;
   border: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--color-border), transparent);
+  background: var(--psa-gradient-divider);
 }
 
 .psa-prose blockquote {
@@ -1787,7 +1682,7 @@ details.psa-result-item[open] .psa-chevron {
   border-radius: var(--radius-lg);
   background: var(--color-surface);
   box-shadow: var(--shadow-3);
-  font-size: 0.85rem;
+  font-size: var(--psa-text-sm);
   line-height: 1.9;
   animation: psa-toast-in 0.24s var(--ease);
 }
@@ -1830,7 +1725,7 @@ details.psa-result-item[open] .psa-chevron {
   color: currentColor;
   opacity: 0.55;
   cursor: pointer;
-  font-size: 0.95rem;
+  font-size: var(--psa-text-base);
   line-height: 1;
   padding: 0.15rem;
   border-radius: var(--radius-xs);
@@ -1848,20 +1743,20 @@ details.psa-result-item[open] .psa-chevron {
 }
 
 .psa-footer-title {
-  font-size: 0.9rem;
+  font-size: var(--psa-text-base);
   font-weight: 700;
   color: var(--color-heading);
 }
 
 .psa-footer-text {
-  font-size: 0.78rem;
+  font-size: var(--psa-text-xs);
   line-height: 2;
   color: var(--color-muted);
 }
 
 .psa-footer-link {
   color: var(--color-text-soft);
-  font-size: 0.8rem;
+  font-size: var(--psa-text-xs);
   font-weight: 600;
   text-decoration: none;
   transition: color var(--duration) var(--ease);
@@ -1880,7 +1775,7 @@ details.psa-result-item[open] .psa-chevron {
   border-radius: 999px;
   background: rgba(20, 184, 166, 0.07);
   color: var(--color-teal-ink);
-  font-size: 0.7rem;
+  font-size: var(--psa-text-2xs);
   font-weight: 600;
 }
 
@@ -1894,7 +1789,7 @@ details.psa-result-item[open] .psa-chevron {
   border-radius: var(--radius-sm);
   background: var(--color-primary);
   color: var(--color-on-accent);
-  font-size: 0.8rem;
+  font-size: var(--psa-text-xs);
   font-weight: 600;
   text-decoration: none;
 }
@@ -1903,15 +1798,25 @@ details.psa-result-item[open] .psa-chevron {
 }
 
 /* کادر فوکوس یکنواخت برای عناصر تعاملی */
+/* کادر فوکوس سراسری.
+   پیش‌تر ``rgba(15, 118, 110, 0.6)`` با ضخامت ۲px بود؛ آلفای ۶۰٪ روی سطح
+   روشن به یک حلقهٔ کم‌رنگ تبدیل می‌شد. حالا رنگ تمام‌رنگ توکن فوکوس است
+   (در پوستهٔ تیره روشن می‌شود) و ضخامت به ۳px رسید تا با راهنمای ۳-۴px
+   بخواند. توجه: ``:where()`` ویژگی صفر دارد، پس قواعد ``.psa-*`` که
+   ``outline`` را حذف می‌کنند جانشین ``box-shadow`` خودشان را دارند. */
 :where(a, button, summary, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid rgba(15, 118, 110, 0.6);
+  outline: 3px solid var(--psa-focus);
   outline-offset: 2px;
 }
 
-.psa-btn:focus-visible,
-.psa-card-interactive:focus-visible {
-  outline: none;
-}
+/* توجه: این‌جا پیش‌تر یک قاعدهٔ ترکیبی
+   ``.psa-btn:focus-visible, .psa-card-interactive:focus-visible { outline: none }``
+   بود. حذف شد چون **اضافی** بود: هر دو سلکتور در قاعدهٔ خودشان ``outline:
+   none`` را همراه با جانشین ``box-shadow`` اعلام می‌کنند و ویژگی‌شان
+   (۰,۲,۰) از ``:where(...):focus-visible`` بالا (۰,۱,۰) بیشتر است. نگه‌داشتن
+   آن یعنی یک «حذف outline بدون جانشین» در فایل که هر بازبینی دسترس‌پذیری را
+   بی‌دلیل متوقف می‌کند. اگر روزی سلکتور سومی لازم شد، جانشینش را در قاعدهٔ
+   خودش بنویسید. */
 
 /* نوار ابزار نتایج (جست‌وجو + فیلترها) */
 .psa-toolbar {
@@ -1934,7 +1839,7 @@ details.psa-result-item[open] .psa-chevron {
   border-radius: 999px;
   background: var(--color-surface);
   color: var(--color-text-soft);
-  font-size: 0.76rem;
+  font-size: var(--psa-text-2xs);
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -1949,7 +1854,7 @@ details.psa-result-item[open] .psa-chevron {
 
 .psa-chip.is-active {
   border-color: var(--color-teal);
-  background: linear-gradient(180deg, #0d7f76, var(--color-teal));
+  background: var(--psa-gradient-control);
   color: var(--color-on-accent);
   box-shadow: var(--shadow-teal);
 }
@@ -1965,7 +1870,7 @@ details.psa-result-item[open] .psa-chevron {
   inset-inline-start: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--color-faint);
+  color: var(--color-muted);
   pointer-events: none;
 }
 
@@ -1979,7 +1884,7 @@ details.psa-result-item[open] .psa-chevron {
   align-items: center;
   gap: 0.35rem;
   color: var(--color-muted);
-  font-size: 0.74rem;
+  font-size: var(--psa-text-2xs);
 }
 
 /* فهرست ویژگی‌های کارت (با آیکون تأیید) */
@@ -1987,7 +1892,7 @@ details.psa-result-item[open] .psa-chevron {
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
-  font-size: 0.82rem;
+  font-size: var(--psa-text-xs);
   line-height: 1.95;
   color: var(--color-text-soft);
 }
@@ -2109,10 +2014,11 @@ details.psa-result-item[open] .psa-chevron {
   }
 }
 
+/* کف اندازهٔ متن عمداً در موبایل هم حفظ می‌شود.
+   پیش‌تر این‌جا ``body { font-size: 14px }`` بود: کوچک‌ترین متن‌های سامانه
+   (تا ۱۰.۸۸px) روی موبایل باز هم کوچک‌تر می‌شدند، در حالی که همین کاربران
+   (حسابرسان و اعضای هیئت‌مدیره) کمترین تحمل خوانایی را دارند. */
 @media (max-width: 480px) {
-  body {
-    font-size: 14px;
-  }
   .psa-brand-tagline {
     display: none;
   }
@@ -2122,6 +2028,26 @@ details.psa-result-item[open] .psa-chevron {
   .psa-btn-sm,
   .psa-chip {
     width: auto;
+  }
+}
+
+/* هدف لمسی.
+   راهنمای «Accessible & Ethical» هدف ۴۴×۴۴px را تعیین می‌کند. تراشه‌ها و
+   دکمه‌های ریز (``psa-btn-sm`` پدینگ عمودی ~۶px، ``psa-chip`` ~۵px) و دکمهٔ
+   ۴۰×۴۰ تغییر پوسته، روی صفحهٔ لمسی هدف انگشت را از دست می‌دادند. عمداً فقط
+   زیر ``pointer: coarse`` اعمال می‌شود تا چگالی نسخهٔ دسکتاپ دست‌نخورده بماند. */
+@media (pointer: coarse) {
+  .psa-btn-sm,
+  .psa-chip,
+  .psa-theme-btn {
+    min-height: 2.75rem;
+  }
+  .psa-theme-btn {
+    min-width: 2.75rem;
+  }
+  .psa-toast-close {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
   }
 }
 
@@ -2228,7 +2154,7 @@ details.psa-result-item[open] .psa-chevron {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.78rem;
+  font-size: var(--psa-text-xs);
   color: var(--color-muted);
   cursor: pointer;
 }
@@ -2241,7 +2167,7 @@ details.psa-result-item[open] .psa-chevron {
 }
 
 .psa-check input:focus-visible {
-  outline: 2px solid var(--color-teal);
+  outline: 3px solid var(--psa-focus);
   outline-offset: 2px;
 }
 
@@ -2263,7 +2189,7 @@ details.psa-result-item[open] .psa-chevron {
 }
 
 /* ---------------------------------------------------------------------------
-   ۱۸) نگاشت یوتیلیتی‌های رنگی Tailwind به توکن‌های پوسته
+   ۱۷) نگاشت یوتیلیتی‌های رنگی Tailwind به توکن‌های پوسته
    ---------------------------------------------------------------------------
    این پروژه مرحلهٔ build ندارد (Tailwind از CDN می‌آید) و یوتیلیتی‌های رنگ در
    قالب‌ها *بدون* پیشوند ``dark:`` نوشته شده‌اند؛ بنابراین پوستهٔ تیره باید همان
@@ -2272,7 +2198,7 @@ details.psa-result-item[open] .psa-chevron {
    چرا این‌جا و نه با ``dark:`` در قالب‌ها:
      * فهرست کوچک و بسته است (زیر ۱۰ کلاس) و همین‌جا یک‌جا دیده می‌شود،
      * اگر روزی کلاسی از این فهرست جا بیفتد، در پوستهٔ تیره «عنصر روشن» می‌ماند؛
-       تست ``tests/test_dark_theme.py`` دقیقاً همین را می‌پاید.
+       تست ``tests/test_design_tokens.py`` دقیقاً همین را می‌پاید.
 
    نکتهٔ ویژگی (specificity): ``[data-theme="dark"] .text-slate-900`` یک کلاس
    بیشتر از ``.text-slate-900`` دارد، پس مستقل از ترتیب تزریق استایل Tailwind
@@ -2296,7 +2222,7 @@ details.psa-result-item[open] .psa-chevron {
   color: var(--color-muted);
 }
 [data-theme="dark"] .text-slate-400 {
-  color: var(--color-faint);
+  color: var(--color-muted);
 }
 /* متن معنایی (کارت آماری «موارد دارای انحراف») */
 [data-theme="dark"] .text-rose-700 {
@@ -2324,7 +2250,7 @@ details.psa-result-item[open] .psa-chevron {
 }
 
 /* ---------------------------------------------------------------------------
-   ۱۶) کارگاه «چت‌بات مالی» (چیدمان چت + حباب پیام + منابع)
+   ۱۸) کارگاه «چت‌بات مالی» (چیدمان چت + حباب پیام + منابع)
 
    همه‌ی مقادیر رنگی از توکن‌های بالا می‌آیند، بنابراین این بخش خودکار با هر
    دو پوستهٔ روشن/تیره کار می‌کند (هیچ رنگ ثابتی این‌جا هاردکد نشده است).
@@ -2402,7 +2328,7 @@ details.psa-result-item[open] .psa-chevron {
 }
 
 .psa-chat-item-title {
-  font-size: 0.82rem;
+  font-size: var(--psa-text-xs);
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
@@ -2410,7 +2336,7 @@ details.psa-result-item[open] .psa-chevron {
 }
 
 .psa-chat-item-date {
-  font-size: 0.7rem;
+  font-size: var(--psa-text-2xs);
   color: var(--color-text-strong);
 }
 
@@ -2421,7 +2347,7 @@ details.psa-result-item[open] .psa-chevron {
   background: none;
   cursor: pointer;
   color: var(--color-text-strong);
-  font-size: 0.8rem;
+  font-size: var(--psa-text-xs);
 }
 
 .psa-chat-item-delete:hover {
@@ -2441,7 +2367,7 @@ details.psa-result-item[open] .psa-chevron {
 }
 
 .psa-chat-title {
-  font-size: 0.92rem;
+  font-size: var(--psa-text-base);
   font-weight: 700;
   color: var(--color-heading);
   white-space: nowrap;
@@ -2492,6 +2418,17 @@ details.psa-result-item[open] .psa-chevron {
   border: 1px solid var(--color-border-strong);
 }
 
+/* آواتار گفت‌وگو.
+   پیش‌تر پس‌زمینه‌اش ``--color-primary`` (#0f172a) بود که در پوستهٔ تیره
+   بازنویسی نمی‌شد؛ #0f172a روی سطح #121b2c یعنی ۱.۰۶:۱ و آواتار عملاً
+   ناپدید می‌شد. حالا از جفتِ وارونهٔ «رنگ متن / رنگ سطح» استفاده می‌شود که
+   خودبه‌خود در هر دو پوسته معکوس می‌شود: روشن #0f172a روی #f8fafc (۱۸:۱)،
+   تیره #f3f6fb روی #0b1120 (۱۷.۶:۱). در پوستهٔ روشن ظاهر عیناً قبلی است.
+
+   برای آواتار ربات هم پیش‌تر ``--color-gold-deep`` پس‌زمینه بود؛ در پوستهٔ
+   تیره همان توکن به #fcd34d (زرد روشن) بدل می‌شد و متن سفید روی آن ۱.۴۴:۱
+   می‌داد -- یعنی ناخوانا. حالا رنگ وضعیت «خطای پردازش» که جفت روشن/تیره
+   دارد و متنِ روی آن هم وارونهٔ سطح است. */
 .psa-chat-avatar {
   flex: 0 0 auto;
   display: inline-flex;
@@ -2500,12 +2437,12 @@ details.psa-result-item[open] .psa-chevron {
   width: 1.85rem;
   height: 1.85rem;
   border-radius: 999px;
-  color: #ffffff;
-  background: var(--color-primary);
+  color: var(--psa-background);
+  background: var(--psa-text-heading);
 }
 
 .psa-chat-avatar.is-bot {
-  background: var(--color-gold-deep);
+  background: var(--psa-state-processing-fg);
 }
 
 .psa-chat-bubble {
@@ -2513,7 +2450,7 @@ details.psa-result-item[open] .psa-chevron {
   max-width: 46rem;
   border-radius: 0.9rem;
   padding: 0.7rem 0.9rem;
-  font-size: 0.86rem;
+  font-size: var(--psa-text-sm);
   line-height: 1.9;
   color: var(--color-text);
 }
@@ -2557,7 +2494,10 @@ details.psa-result-item[open] .psa-chevron {
   overflow-x: auto;
   direction: ltr;
   unicode-bidi: isolate;
-  text-align: left;
+  /* ``start`` و نه ``left``: این عنصر خودش ``direction: ltr`` دارد، پس ``start``
+     دقیقاً همان چپ می‌شود -- اما دیگر یک ویژگی فیزیکی در فایل نمی‌ماند که
+     قاعدهٔ RTL را بی‌دلیل نقض کند. */
+  text-align: start;
 }
 
 .psa-chat-code code {
@@ -2580,7 +2520,7 @@ details.psa-result-item[open] .psa-chevron {
 
 .psa-chat-table th,
 .psa-chat-table td {
-  font-size: 0.8rem;
+  font-size: var(--psa-text-xs);
 }
 
 .psa-chat-meta {
@@ -2592,7 +2532,7 @@ details.psa-result-item[open] .psa-chevron {
 }
 
 .psa-chat-hint {
-  font-size: 0.7rem;
+  font-size: var(--psa-text-2xs);
   color: var(--color-text-strong);
 }
 
@@ -2615,7 +2555,7 @@ details.psa-result-item[open] .psa-chevron {
   border-radius: 999px;
   border: 1px solid var(--color-border-strong);
   background: var(--color-surface);
-  font-size: 0.72rem;
+  font-size: var(--psa-text-2xs);
   color: var(--color-text-strong);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2626,7 +2566,7 @@ details.psa-result-item[open] .psa-chevron {
 }
 
 .psa-chat-notice {
-  font-size: 0.82rem;
+  font-size: var(--psa-text-xs);
   color: var(--color-text-strong);
 }
 
@@ -2682,7 +2622,7 @@ details.psa-result-item[open] .psa-chevron {
 .psa-chat-input {
   resize: vertical;
   min-height: 3.2rem;
-  font-size: 0.88rem;
+  font-size: var(--psa-text-sm);
   line-height: 1.9;
 }
 

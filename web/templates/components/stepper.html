@@ -8,12 +8,20 @@
   ``window.psaSetStep(index)`` (اندیس از ۰) کنترل می‌شود -- این کامپوننت خودش
   هیچ منطق گردش‌کاری‌ای ندارد.
 
-  قراردادهای پایدار: شناسهٔ ``psa-stepper``، ویژگی ``data-step-count``،
-  کلاس‌های ``psa-step-circle`` / ``psa-step-label`` / ``psa-step-connector`` و
-  ویژگی‌های ``data-step-index`` / ``data-connector-index``.
+  قراردادهای پایدار (نباید تغییر کنند): شناسهٔ ``psa-stepper``، ویژگی
+  ``data-step-count``، کلاس‌های ``psa-step-circle`` / ``psa-step-label`` /
+  ``psa-step-connector`` و ویژگی‌های ``data-step-index`` /
+  ``data-connector-index``.
 
   وضعیت‌ها با کلاس‌های معنایی ``is-active`` و ``is-done`` بیان می‌شوند تا ظاهر
   کامپوننت کاملاً در app.css متمرکز بماند.
+
+  دسترس‌پذیری:
+    * دایرهٔ شماره ``aria-hidden`` است (صرفاً تزئینی) و وضعیت واقعی روی برچسب
+      هر مرحله با ``aria-current="step"`` اعلام می‌شود.
+    * یک ناحیهٔ زندهٔ پنهان (``role="status"``) هنگام تغییر مرحله یک جملهٔ کامل
+      می‌گوید: «مرحلهٔ ۲ از ۳: پردازش». پیش‌تر هیچ اعلامی وجود نداشت و کاربر
+      صفحه‌خوان متوجهٔ عبور از مرحله نمی‌شد.
 #}
 <div class="mb-8" id="psa-stepper" data-step-count="{{ steps | length }}">
   <ol class="flex items-start" role="list">
@@ -25,7 +33,9 @@
           data-step-index="{{ loop.index0 }}"
           aria-hidden="true"
         >
-          {{ loop.index }}
+          {# ارقام باید فارسی باشند تا با فهرست زیرین و بقیهٔ رابط یک‌دست بمانند؛
+             پیش‌تر این‌جا تنها عدد لاتین رابط بود. #}
+          {{ loop.index | fa_digits }}
         </div>
         <span class="psa-step-label" data-step-index="{{ loop.index0 }}">{{ step_label }}</span>
       </div>
@@ -35,6 +45,8 @@
     </li>
     {% endfor %}
   </ol>
+
+  <p class="sr-only" data-step-announce role="status"></p>
 </div>
 
 <script>
@@ -44,10 +56,24 @@
       'fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" ' +
       'stroke-linejoin="round" style="vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg>';
 
+    var FA_DIGITS = "۰۱۲۳۴۵۶۷۸۹";
+
+    /* ارقام لاتین به فارسی. عمداً محلی است و به یک ابزار مشترک وابسته نیست:
+       هر صفحهٔ کارگاه نسخهٔ خودش را دارد و این کامپوننت باید مستقل بماند.
+       ``toLocaleString("fa-IR")`` در برخی موتورها/پیکربندی‌ها هم ارقام لاتین
+       برمی‌گرداند، بنابراین روی آن تکیه نمی‌کنیم. */
+    function toFaDigits(value) {
+      return String(value).replace(/[0-9]/g, function (d) {
+        return FA_DIGITS.charAt(Number(d));
+      });
+    }
+
     /** به‌روزرسانی ظاهر مراحل: اندیس مرحلهٔ جاری (از صفر) */
     window.psaSetStep = function (activeIndex) {
       var stepper = document.getElementById("psa-stepper");
       if (!stepper) return;
+
+      var total = parseInt(stepper.dataset.stepCount, 10) || 0;
 
       stepper.querySelectorAll(".psa-step-circle").forEach(function (el) {
         var idx = parseInt(el.dataset.stepIndex, 10);
@@ -55,7 +81,7 @@
         var active = idx === activeIndex;
         el.classList.toggle("is-done", done);
         el.classList.toggle("is-active", active);
-        el.innerHTML = done ? CHECK_SVG : String(idx + 1);
+        el.innerHTML = done ? CHECK_SVG : toFaDigits(idx + 1);
       });
 
       // وضعیت «مرحلهٔ جاری» برای صفحه‌خوان‌ها روی برچسب متنی اعلام می‌شود
@@ -75,6 +101,22 @@
         var idx = parseInt(el.dataset.connectorIndex, 10);
         el.classList.toggle("is-done", idx < activeIndex);
       });
+
+      /* اعلام یک‌باره به صفحه‌خوان. فقط وقتی متن واقعاً عوض شود بازنویسی می‌کنیم؛
+         نوشتن مقدار یکسان، اعلام تکراری تولید می‌کند. */
+      var announcer = stepper.querySelector("[data-step-announce]");
+      if (announcer && total) {
+        var labelEl = stepper.querySelector(
+          '.psa-step-label[data-step-index="' + activeIndex + '"]'
+        );
+        var message =
+          "مرحلهٔ " +
+          toFaDigits(activeIndex + 1) +
+          " از " +
+          toFaDigits(total) +
+          (labelEl ? ": " + labelEl.textContent.trim() : "");
+        if (announcer.textContent !== message) announcer.textContent = message;
+      }
     };
   })();
 </script>

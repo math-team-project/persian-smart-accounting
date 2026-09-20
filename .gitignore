@@ -38,3 +38,6 @@ extraction_script/data/~$*.pdf
 extraction_script/data/~$*.doc
 extraction_script/data/~$*.docx
 extraction_script/scripts/models_cache/
+
+#اسکیل های غیر ضروری
+.agents

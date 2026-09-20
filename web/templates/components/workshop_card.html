@@ -1,0 +1,109 @@
+{#
+  کامپوننت عمومی «کارت کارگاه» -- یک قالب برای هر دو جایی که کارت کارگاه
+  نمایش داده می‌شود، تا این دو از هم دور نشوند.
+
+  پارامترها (متغیرهای Jinja):
+    workshop_item  -- یک ``WorkshopDefinition`` از رجیستری (تنها منبع حقیقت).
+    variant        -- "full" (پیش‌فرض) یا "compact".
+                      full    → کارت صفحهٔ پروژه: لینک‌دار، با نشان، فهرست
+                                ویژگی‌ها و دکمهٔ ورود.
+                      compact → کارت فهرست کارگاه‌ها در داشبورد: ساده و بدون
+                                لینک (در داشبورد پروژه‌ای در جریان نیست).
+    project        -- پروژهٔ جاری (برای ساخت آدرس). فقط در variant="full" لازم
+                      است؛ اگر نباشد کارت بدون لینک رندر می‌شود.
+
+  چرا این کامپوننت ساخته شد:
+    پیش‌تر دو نسخهٔ دست‌نویس از این کارت وجود داشت -- ``project.html`` و
+    ``dashboard.html`` -- که در ۸ چیز با هم فرق داشتند (اندازهٔ کاشی آیکون،
+    اندازهٔ متن عنوان، فاصلهٔ خط توضیح، وجود نشان، فهرست ویژگی‌ها، دکمهٔ ورود،
+    و ``psa-cta-shift`` که فقط در یکی بود). هر کارگاه جدید باید هر دو را
+    به‌روز می‌کرد.
+
+  وضعیت اتصال: این جزئی ساخته شده اما **هنوز به قالب‌های صفحه وصل نشده است**؛
+  ``project.html`` و ``dashboard.html`` فعلاً نسخهٔ خودشان را دارند. اتصال
+  گام بعدی است و به‌عمد از این تغییر جدا نگه داشته شد تا قالب‌های صفحه دست
+  نخورند.
+#}
+{% set card_variant = variant | default('full') %}
+{% set card_link = card_variant == 'full' and project is defined and project %}
+
+{% if card_variant == 'compact' %}
+{# ---------- نسخهٔ فشرده: فهرست کارگاه‌ها در داشبورد ---------- #}
+<div class="psa-card flex items-start gap-3 p-4">
+  <span class="psa-icon-tile psa-icon-tile-md is-{{ workshop_item.accent }}">
+    {{ icon(workshop_item.icon, 19) | safe }}
+  </span>
+  <div class="min-w-0">
+    <h3 class="text-xs font-bold text-slate-900">{{ workshop_item.display_name_fa }}</h3>
+    <p class="mt-1 text-xs leading-6 text-slate-500">{{ workshop_item.description_fa }}</p>
+  </div>
+</div>
+
+{% elif card_link %}
+{# ---------- نسخهٔ کامل: کارت کارگاه در صفحهٔ پروژه ---------- #}
+<a
+  href="{{ workshop_item.page_url(project.id) }}"
+  class="psa-card psa-card-interactive psa-card-topline group flex flex-col p-6"
+  aria-label="ورود به کارگاه {{ workshop_item.display_name_fa }}"
+>
+  <div class="flex items-start justify-between gap-3">
+    <span class="psa-icon-tile psa-icon-tile-lg is-{{ workshop_item.accent }}">
+      {{ icon(workshop_item.icon, 26) | safe }}
+    </span>
+    {% if workshop_item.badge_fa %}
+    <span class="psa-badge psa-badge-info">{{ workshop_item.badge_fa }}</span>
+    {% endif %}
+  </div>
+
+  <h3 class="mt-4 text-lg font-bold text-slate-900">{{ workshop_item.display_name_fa }}</h3>
+  <p class="mt-2 text-sm leading-8 text-slate-500">{{ workshop_item.description_fa }}</p>
+
+  {% if workshop_item.highlights_fa %}
+  <ul class="mt-4 space-y-2">
+    {% for highlight in workshop_item.highlights_fa %}
+    <li class="psa-feature">
+      <span class="psa-feature-mark">{{ icon('check', 11, 3) | safe }}</span>
+      <span>{{ highlight }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <div class="mt-auto flex items-center justify-end pt-6">
+    <span class="psa-btn psa-btn-primary psa-btn-sm">
+      ورود به کارگاه
+      {{ icon('chevron-left', 15, 1.8, 'psa-cta-shift') | safe }}
+    </span>
+  </div>
+</a>
+
+{% else %}
+{# ---------- نسخهٔ کامل بدون لینک: وقتی پروژه‌ای در دست نیست ----------
+   ساختار عیناً همان نسخهٔ کامل است، اما با ``div`` تا کارتِ بی‌مقصد ساخته
+   نشود. این حالت پیش‌تر وجود نداشت و به‌خاطر آن اضافه شد که «کارت لینک‌دار
+   بدون پروژه» یک مقصد نامعتبر تولید می‌کرد. #}
+<div class="psa-card psa-card-topline flex flex-col p-6">
+  <div class="flex items-start justify-between gap-3">
+    <span class="psa-icon-tile psa-icon-tile-lg is-{{ workshop_item.accent }}">
+      {{ icon(workshop_item.icon, 26) | safe }}
+    </span>
+    {% if workshop_item.badge_fa %}
+    <span class="psa-badge psa-badge-info">{{ workshop_item.badge_fa }}</span>
+    {% endif %}
+  </div>
+
+  <h3 class="mt-4 text-lg font-bold text-slate-900">{{ workshop_item.display_name_fa }}</h3>
+  <p class="mt-2 text-sm leading-8 text-slate-500">{{ workshop_item.description_fa }}</p>
+
+  {% if workshop_item.highlights_fa %}
+  <ul class="mt-4 space-y-2">
+    {% for highlight in workshop_item.highlights_fa %}
+    <li class="psa-feature">
+      <span class="psa-feature-mark">{{ icon('check', 11, 3) | safe }}</span>
+      <span>{{ highlight }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</div>
+{% endif %}

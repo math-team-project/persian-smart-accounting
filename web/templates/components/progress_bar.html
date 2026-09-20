@@ -7,6 +7,19 @@
 
   قراردادهای پایدار: شناسه‌های ``psa-progress``، ``psa-progress-stage``،
   ``psa-progress-percent``، ``psa-progress-fill``، ``psa-progress-log``.
+
+  جهت (RTL): پر شدن نوار با توکن ``--psa-gradient-progress`` رنگ می‌گیرد که
+  زاویه‌اش ``to left`` است. پیش‌تر ``linear-gradient(90deg, …)`` بود و
+  ``90deg`` در CSS همیشه چپ→راست است و به ``direction`` احترام نمی‌گذارد؛ یعنی
+  نوار از انتهای گرادیان (رنگ روشن) پر می‌شد و جهت پر شدن برعکس خوانده می‌شد.
+  عرض خود نوار با ``width`` مقدار می‌گیرد که در RTL از سمت راست رشد می‌کند.
+
+  دسترس‌پذیری:
+    * عنصر ``role="progressbar"`` با ``aria-valuenow`` به‌روزرسانی می‌شود.
+    * متن مرحله ``aria-live="polite"`` دارد تا تغییر مرحله اعلام شود.
+    * فهرست ``psa-progress-log`` عمداً زنده **نیست**: چند خط در هر به‌روزرسانی
+      اضافه می‌شود و زنده‌کردن آن، صفحه‌خوان را زیر بار اعلان‌های پیوسته
+      می‌برد.
 #}
 <div id="psa-progress" class="psa-card psa-card-elevated psa-progress-card p-5 sm:p-6">
   <div class="flex flex-wrap items-start justify-between gap-3">
@@ -16,7 +29,7 @@
       </span>
       <div>
         <p class="psa-section-title">
-          <span id="psa-progress-stage">در حال آماده‌سازی…</span>
+          <span id="psa-progress-stage" aria-live="polite">در حال آماده‌سازی…</span>
         </p>
         <p class="psa-section-hint mt-0.5">
           پردازش در سرور ادامه دارد؛ وضعیت این صفحه به‌صورت خودکار به‌روزرسانی می‌شود.
@@ -54,26 +67,39 @@
 </div>
 
 <script>
-  window.psaSetProgress = function (percent, stageText, logs) {
-    var fill = document.getElementById("psa-progress-fill");
-    var percentLabel = document.getElementById("psa-progress-percent");
-    var stageLabel = document.getElementById("psa-progress-stage");
-    var logList = document.getElementById("psa-progress-log");
-    var track = fill ? fill.parentElement : null;
-    var clamped = Math.max(0, Math.min(100, percent || 0));
+  (function () {
+    var FA_DIGITS = "۰۱۲۳۴۵۶۷۸۹";
 
-    if (fill) fill.style.width = clamped + "%";
-    if (percentLabel) percentLabel.textContent = clamped.toLocaleString("fa-IR") + "٪";
-    if (stageLabel && stageText) stageLabel.textContent = stageText;
-    if (track) track.setAttribute("aria-valuenow", String(Math.round(clamped)));
-
-    if (logList && Array.isArray(logs)) {
-      logList.innerHTML = logs
-        .map(function (line) {
-          return "<li><span>" + String(line).replace(/</g, "&lt;") + "</span></li>";
-        })
-        .join("");
-      logList.scrollTop = logList.scrollHeight;
+    /* ``toLocaleString("fa-IR")`` در برخی موتورها و پیکربندی‌های محلی، ارقام
+       لاتین برمی‌گرداند (رفتارش تضمینی نیست). بنابراین خروجی آن را با یک
+       نگاشت صریح جایگزین می‌کنیم تا درصد همیشه فارسی باشد. */
+    function toFaDigits(value) {
+      return String(value).replace(/[0-9]/g, function (d) {
+        return FA_DIGITS.charAt(Number(d));
+      });
     }
-  };
+
+    window.psaSetProgress = function (percent, stageText, logs) {
+      var fill = document.getElementById("psa-progress-fill");
+      var percentLabel = document.getElementById("psa-progress-percent");
+      var stageLabel = document.getElementById("psa-progress-stage");
+      var logList = document.getElementById("psa-progress-log");
+      var track = fill ? fill.parentElement : null;
+      var clamped = Math.max(0, Math.min(100, percent || 0));
+
+      if (fill) fill.style.width = clamped + "%";
+      if (percentLabel) percentLabel.textContent = toFaDigits(Math.round(clamped)) + "٪";
+      if (stageLabel && stageText) stageLabel.textContent = stageText;
+      if (track) track.setAttribute("aria-valuenow", String(Math.round(clamped)));
+
+      if (logList && Array.isArray(logs)) {
+        logList.innerHTML = logs
+          .map(function (line) {
+            return "<li><span>" + String(line).replace(/</g, "&lt;") + "</span></li>";
+          })
+          .join("");
+        logList.scrollTop = logList.scrollHeight;
+      }
+    };
+  })();
 </script>

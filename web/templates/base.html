@@ -16,7 +16,7 @@
     ``localStorage`` نگه داشته می‌شود و در نبود آن، تنظیم سیستم‌عامل رعایت می‌شود.
 
     کلید نگه‌داری (``psa.theme``) و مقادیر مجاز (``light`` | ``dark``) قراردادی
-    است و در تست ``tests/test_dark_theme.py`` پاس داشته می‌شود.
+    است و در تست ``tests/test_design_tokens.py`` پاس داشته می‌شود.
   #}
   <script>
     (function () {
@@ -38,38 +38,19 @@
   </script>
 
   {#
-    Tailwind از طریق CDN بارگذاری می‌شود (بدون مرحلهٔ build) -- پالت «برند» بر
-    پایهٔ کاشی‌های تیل (فناوری/AI) و «نیوی» عمیق (اعتماد مالی) تعریف شده است.
-    مقیاس‌های ``slate``/``emerald``/``amber``/``red`` پیش‌فرض Tailwind دقیقاً
-    همان رنگ‌های سند طراحی هستند و بازتعریف نمی‌شوند.
+    ترتیب بارگذاری مهم است:
+      ۱) ``tokens.css`` -- توکن‌های طراحی. باید **پیش از** ``app.css`` بیاید،
+         چون ``app.css`` نام‌های قدیمی ``--color-*`` را به این توکن‌ها پل می‌زند.
+      ۲) ``app.css``   -- کامپوننت‌های مشترک (ظاهر).
+
+    پیکربندی Tailwind در ``components/tailwind_config.html`` است و مقادیرش را
+    با ``var(--psa-*)`` از همان توکن‌ها می‌خواند؛ بنابراین رنگ فقط یک منبع
+    حقیقت دارد. این پیکربندی باید **بعد از** اسکریپت CDN بیاید تا متغیر
+    سراسری ``tailwind`` موجود باشد.
   #}
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { vazir: ["Vazirmatn", "Tahoma", "sans-serif"] },
-          colors: {
-            brand: {
-              50: "#f0fdfa", 100: "#ccfbf1", 200: "#99f6e4", 300: "#5eead4",
-              400: "#2dd4bf", 500: "#14b8a6", 600: "#0f766e", 700: "#0d5f59",
-              800: "#0b4a46", 900: "#083b38"
-            },
-            navy: {
-              50: "#f5f7fa", 100: "#e7ecf3", 200: "#c9d3e0", 300: "#9aa9bf",
-              400: "#64748b", 500: "#475569", 600: "#334155", 700: "#1e293b",
-              800: "#111827", 900: "#0f172a", 950: "#0b1120"
-            },
-            gold: {
-              50: "#fffbeb", 100: "#fef3c7", 200: "#fde68a", 300: "#fcd34d",
-              400: "#fbbf24", 500: "#f59e0b", 600: "#d97706", 700: "#b45309"
-            }
-          },
-          borderRadius: { xl: "1rem", "2xl": "1.25rem" }
-        }
-      }
-    };
-  </script>
+  {% include "components/tailwind_config.html" %}
+  <link rel="stylesheet" href="/static/css/tokens.css" />
   <link rel="stylesheet" href="/static/css/app.css" />
   {% block extra_head %}{% endblock %}
 </head>
@@ -278,7 +259,7 @@
             شناسایی موارد عدم تطابق و تولید خلاصهٔ گزارش‌های حسابرسی به صورت هوشمند.
           </p>
           <div style="padding-top: 15px;">
-            <a href="https://github.com/math-team-project/persian-smart-accounting" target="_blank" class="inline-flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm transition duration-300 shadow-md">
+            <a href="https://github.com/math-team-project/persian-smart-accounting" target="_blank" rel="noopener noreferrer" class="psa-invert-btn inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                     <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
                   </svg>

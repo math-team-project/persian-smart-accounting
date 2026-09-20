@@ -1,0 +1,163 @@
+{#
+  ============================================================================
+  پیکربندی Tailwind — از CDN، بدون مرحلهٔ build
+  ============================================================================
+
+  چرا این فایل جدا شده است:
+    پیش‌تر این پیکربندی ۲۵ خطی به‌صورت درون‌خطی در ``base.html`` بود و پالت را
+    با هگز *تکرار* می‌کرد. نتیجه: دو منبع حقیقت برای رنگ (این‌جا و
+    ``tokens.css``) که با گذر زمان از هم دور می‌شوند. حالا همهٔ مقادیر با
+    ``var(--psa-*)`` از ``tokens.css`` خوانده می‌شوند.
+
+  نکتهٔ مهم دربارهٔ مقیاس‌های پیش‌فرض:
+    مقیاس‌های ``slate``/``emerald``/``amber``/``red``/``rose`` پیش‌فرض Tailwind
+    **بازتعریف نمی‌شوند**. دلیل فنی: در Tailwind v3، مُدال شفافیت روی رنگی که
+    با ``var()`` تعریف شده باشد ترکیب نمی‌شود، و در قالب‌ها
+    ``bg-slate-50/70`` و ``bg-slate-50/50`` استفاده شده است. اگر این مقیاس‌ها
+    را به توکن وصل کنیم، آن دو کلاس بی‌صدا می‌شکنند و نگاشت پوستهٔ تیره در
+    ``app.css`` هم از کار می‌افتد.
+
+  دربارهٔ مقیاس‌های برند:
+    ``brand``/``navy``/``gold`` پیش از این هیچ‌کجا در قالب‌ها استفاده نمی‌شدند
+    (صفر مورد) و مقادیر ``navy-50`` تا ``navy-400`` آن‌ها با پالت واقعی
+    ``app.css`` اختلاف داشت. این‌ها حالا به توکن‌های کانونی وصل شده‌اند تا برای
+    نویسندگان بعدی در دسترس و هم‌رنگ باشند.
+  ============================================================================
+#}
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        screens: {
+          /* پیش از این ۴۸۰px یک نقطهٔ شکست موردی در CSS بود؛ حالا در Tailwind هم
+             هست تا ``xs:`` معنا داشته باشد. ``sm``/``lg`` از قبل هم‌تراز بودند. */
+          xs: "480px",
+        },
+
+        fontFamily: {
+          /* هر دو نام به یک پشتهٔ فارسی اشاره می‌کنند: ``font-vazir`` قرارداد
+             موجود قالب‌هاست و ``font-sans`` برای آنکه یوتیلیتی پیش‌فرض هم
+             فونت فارسی بگیرد (به‌جای پشتهٔ لاتین Tailwind). */
+          vazir: ["Vazirmatn", "Tahoma", "system-ui", "sans-serif"],
+          sans: ["Vazirmatn", "Tahoma", "system-ui", "sans-serif"],
+        },
+
+        /* ------------------------------------------------------------------
+           مقیاس اندازهٔ متن
+           ------------------------------------------------------------------
+           هفت پله، متصل به توکن‌های ``--psa-text-*``. این‌جا ``fontSize``
+           بازتعریف می‌شود تا کف اندازهٔ متن بدون هیچ تغییری در قالب‌های
+           صفحه‌ها بالا بیاید: ``base`` روی ۱۶px ثابت می‌شود (پیش‌تر بدنه روی
+           ۱۵px و در موبایل ۱۴px بود) و کوچک‌ترین پله ۱۲px است.
+
+           ``lineHeight`` همراه هر پله نگه داشته شده است، چون Tailwind
+           به‌صورت پیش‌فرض برای هر اندازه یک ``line-height`` مطلق می‌گذارد؛ اگر
+           حذف شود، مقدار ``1.9`` بدنه به ارث می‌رسد و همه‌چیز غیرمنتظره بلند
+           می‌شود. نسبت‌ها همان نسبت‌های پیش‌فرض Tailwind‌اند تا فقط *اندازه*
+           تغییر کند، نه فاصلهٔ خطوط.
+           ------------------------------------------------------------------ */
+        fontSize: {
+          "2xs": ["var(--psa-text-2xs)", { lineHeight: "1rem" }],
+          xs: ["var(--psa-text-xs)", { lineHeight: "1.05rem" }],
+          sm: ["var(--psa-text-sm)", { lineHeight: "1.25rem" }],
+          base: ["var(--psa-text-base)", { lineHeight: "1.5rem" }],
+          lg: ["var(--psa-text-lg)", { lineHeight: "1.75rem" }],
+          xl: ["var(--psa-text-xl)", { lineHeight: "1.75rem" }],
+          "2xl": ["var(--psa-text-2xl)", { lineHeight: "2.15rem" }],
+        },
+
+        colors: {
+          /* نشان برند (تیل) — متصل به توکن */
+          brand: {
+            50: "var(--psa-teal-100)",
+            100: "var(--psa-teal-100)",
+            200: "var(--psa-teal-100)",
+            300: "var(--psa-teal-500)",
+            400: "var(--psa-teal-500)",
+            500: "var(--psa-teal-500)",
+            600: "var(--psa-teal-600)",
+            700: "var(--psa-teal-700)",
+            800: "var(--psa-teal-700)",
+            900: "var(--psa-teal-700)",
+          },
+          /* نیوی — لایهٔ اعتماد مالی */
+          navy: {
+            50: "var(--psa-navy-50)",
+            100: "var(--psa-navy-100)",
+            200: "var(--psa-navy-200)",
+            300: "var(--psa-navy-300)",
+            400: "var(--psa-navy-400)",
+            500: "var(--psa-navy-500)",
+            600: "var(--psa-navy-600)",
+            700: "var(--psa-navy-700)",
+            800: "var(--psa-navy-850)",
+            900: "var(--psa-navy-900)",
+            950: "var(--psa-navy-950)",
+          },
+          /* لهجهٔ مالی (طلایی) */
+          gold: {
+            50: "var(--psa-gold-300)",
+            100: "var(--psa-gold-300)",
+            200: "var(--psa-gold-300)",
+            300: "var(--psa-gold-300)",
+            400: "var(--psa-gold-400)",
+            500: "var(--psa-gold-500)",
+            600: "var(--psa-gold-600)",
+            700: "var(--psa-gold-700)",
+          },
+
+          /* ----------------------------------------------------------------
+             خانوادهٔ وضعیت — برای ابزار حسابرسی حیاتی است.
+
+             قاعده (از راهنمای «Color Only»، شدت High): هیچ وضعیتی فقط با رنگ
+             بیان نمی‌شود؛ همیشه رنگ + آیکون + برچسب متنی. این کلاس‌ها رنگ را
+             می‌دهند، نه معنا را.
+
+             توجه: در Tailwind v3، مُدال شفافیت (``/70``) روی رنگ ``var()``
+             کار نمی‌کند. پس این کلاس‌ها را بدون ``/`` استفاده کنید؛ اگر به
+             شفافیت نیاز دارید از کلاس‌های ``psa-*`` که همین حالا ``-bg``
+             نیمه‌شفاف دارند بهره ببرید.
+             ---------------------------------------------------------------- */
+          state: {
+            conform: "var(--psa-state-conform-fg)",
+            "conform-bg": "var(--psa-state-conform-bg)",
+            nonconform: "var(--psa-state-nonconform-fg)",
+            "nonconform-bg": "var(--psa-state-nonconform-bg)",
+            "nonconform-solid": "var(--psa-state-nonconform-solid)",
+            review: "var(--psa-state-review-fg)",
+            "review-bg": "var(--psa-state-review-bg)",
+            processing: "var(--psa-state-processing-fg)",
+            "processing-bg": "var(--psa-state-processing-bg)",
+            neutral: "var(--psa-state-neutral-fg)",
+            "neutral-bg": "var(--psa-state-neutral-bg)",
+            info: "var(--psa-state-info-fg)",
+            "info-bg": "var(--psa-state-info-bg)",
+          },
+
+          /* سطوح و متن — تا یوتیلیتی‌های معنایی هم پوسته‌پذیر شوند */
+          surface: "var(--psa-surface)",
+          "surface-muted": "var(--psa-surface-muted)",
+          "surface-subtle": "var(--psa-surface-subtle)",
+          canvas: "var(--psa-background)",
+          hairline: "var(--psa-border)",
+          "hairline-strong": "var(--psa-border-strong)",
+          ink: {
+            heading: "var(--psa-text-heading)",
+            DEFAULT: "var(--psa-text)",
+            strong: "var(--psa-text-strong)",
+            soft: "var(--psa-text-soft)",
+            muted: "var(--psa-text-muted)",
+            faint: "var(--psa-text-faint)",
+          },
+        },
+
+        /* شعاع: ``rounded-xl`` در قالب‌ها استفاده شده و باید همان مقدار
+           ``--psa-radius-lg`` (۱۶px) بماند تا ظاهر تغییر نکند. */
+        borderRadius: {
+          xl: "var(--psa-radius-lg)",
+          "2xl": "var(--psa-radius-xl)",
+        },
+      },
+    },
+  };
+</script>
