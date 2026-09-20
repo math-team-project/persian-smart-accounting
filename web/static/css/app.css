@@ -2004,6 +2004,11 @@ details.psa-result-item[open] .psa-chevron {
   color: var(--color-teal-ink);
 }
 
+.psa-university-logo {
+    width: 50px;
+    height: auto;
+    display: block;
+}
 /* ---------------------------------------------------------------------------
    انیمیشن‌ها
    --------------------------------------------------------------------------- */
